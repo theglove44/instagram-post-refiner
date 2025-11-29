@@ -1,8 +1,8 @@
-import { supabase, validateSupabaseConfig } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export async function GET() {
   try {
-    validateSupabaseConfig();
+    const supabase = getSupabaseClient();
     // Fetch all posts ordered by creation date (newest first)
     const { data, error } = await supabase
       .from('posts')
