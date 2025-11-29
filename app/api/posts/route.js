@@ -1,29 +1,27 @@
-import { readFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
-
-const DATA_DIR = process.env.DATA_DIR || './data';
-const POSTS_FILE = path.join(DATA_DIR, 'posts.json');
-
-async function ensureDataDir() {
-  if (!existsSync(DATA_DIR)) {
-    await mkdir(DATA_DIR, { recursive: true });
-  }
-}
-
-async function loadPosts() {
-  await ensureDataDir();
-  try {
-    const data = await readFile(POSTS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
+import { supabase } from '@/lib/supabase';
 
 export async function GET() {
   try {
-    const posts = await loadPosts();
+    // Fetch all posts ordered by creation date (newest first)
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // Format posts to match expected structure
+    const posts = (data || []).map(post => ({
+      id: post.post_id,
+      topic: post.topic,
+      aiVersion: post.ai_version,
+      finalVersion: post.final_version,
+      editCount: post.edit_count,
+      createdAt: post.created_at,
+    }));
+
     return Response.json({ posts });
   } catch (error) {
     console.error('Posts API error:', error);

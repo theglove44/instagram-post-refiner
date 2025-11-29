@@ -1,31 +1,4 @@
-import { writeFile, readFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
-
-// Store posts in a JSON file (you could swap this for a database later)
-const DATA_DIR = process.env.DATA_DIR || './data';
-const POSTS_FILE = path.join(DATA_DIR, 'posts.json');
-
-async function ensureDataDir() {
-  if (!existsSync(DATA_DIR)) {
-    await mkdir(DATA_DIR, { recursive: true });
-  }
-}
-
-async function loadPosts() {
-  await ensureDataDir();
-  try {
-    const data = await readFile(POSTS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-async function savePosts(posts) {
-  await ensureDataDir();
-  await writeFile(POSTS_FILE, JSON.stringify(posts, null, 2));
-}
+import { supabase } from '@/lib/supabase';
 
 export async function POST(request) {
   try {
@@ -38,24 +11,41 @@ export async function POST(request) {
       );
     }
 
-    const posts = await loadPosts();
-    
+    // Insert new post into Supabase
+    const { data, error } = await supabase
+      .from('posts')
+      .insert({
+        topic: topic || 'Untitled',
+        ai_version: aiVersion,
+        final_version: finalVersion,
+        edit_count: editCount || 0,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // Format response to match expected structure
     const newPost = {
-      id: Date.now().toString(),
-      topic: topic || 'Untitled',
-      aiVersion,
-      finalVersion,
-      editCount: editCount || 0,
-      createdAt: new Date().toISOString(),
+      id: data.post_id,
+      topic: data.topic,
+      aiVersion: data.ai_version,
+      finalVersion: data.final_version,
+      editCount: data.edit_count,
+      createdAt: data.created_at,
     };
 
-    posts.unshift(newPost); // Add to beginning
-    await savePosts(posts);
+    // Get total count
+    const { count } = await supabase
+      .from('posts')
+      .select('*', { count: 'exact', head: true });
 
-    return Response.json({ 
-      success: true, 
+    return Response.json({
+      success: true,
       post: newPost,
-      totalPosts: posts.length
+      totalPosts: count || 1
     });
   } catch (error) {
     console.error('Log API error:', error);

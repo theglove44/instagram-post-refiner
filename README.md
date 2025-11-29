@@ -11,10 +11,30 @@ A simple web app to track your Instagram post edits for training data. Paste Cla
 
 The logged posts create training data to improve the skill over time.
 
-## Quick Start
+## Setup
+
+### 1. Create a Supabase Project
+
+1. Go to [supabase.com](https://supabase.com) and sign up
+2. Create a new project
+3. In the SQL Editor, run the SQL from `lib/supabase-schema.sql` to create the `posts` table
+4. Get your credentials from **Settings → API**:
+   - `NEXT_PUBLIC_SUPABASE_URL` (Project URL)
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Anon public key)
+
+### 2. Configure Environment Variables
+
+Create `.env.local` in your project root:
 
 ```bash
-# Install
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+```
+
+### 3. Install & Run
+
+```bash
+# Install dependencies
 npm install
 
 # Run locally
@@ -25,20 +45,12 @@ Open http://localhost:3000
 
 ## Deploy to Vercel
 
-1. Push to GitHub
-2. Import at vercel.com/new
-3. Deploy (no environment variables needed!)
+1. Push code to GitHub
+2. Import repository at [vercel.com/new](https://vercel.com/new)
+3. Add the two environment variables from step 1 above
+4. Deploy!
 
-## Data Storage
-
-Posts are stored in `./data/posts.json`. 
-
-On Vercel, this uses ephemeral storage - posts persist across requests but reset on new deployments. For permanent storage, consider adding:
-
-- Vercel KV (Redis)
-- Vercel Postgres  
-- Supabase
-- Or just export the JSON periodically
+Your data will now persist permanently in Supabase across deployments.
 
 ## Project Structure
 
@@ -63,4 +75,4 @@ instagram-post-logger/
 - Copy to clipboard
 - Dark mode UI
 
-No API keys required - all refinement happens manually (that's the point!).
+Data persists permanently in Supabase - no more ephemeral storage on Vercel.
