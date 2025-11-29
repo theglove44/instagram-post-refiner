@@ -1,25 +1,25 @@
-# Instagram Post Refiner - Project Guide
+# Instagram Post Logger - Project Guide
 
 ## Project Overview
 
-**Instagram Post Refiner** is a web application designed to refine Instagram post drafts to match your authentic voice and style for food, drink, and lifestyle content. It acts as both a refinement tool and a training feedback loop:
+**Instagram Post Logger** is a web application designed to track your Instagram post edits and create training data for future refinement. It enables a simple manual editing workflow that captures how you transform Claude-generated posts into your authentic voice:
 
-- Takes draft posts (initially created in Claude Chat)
-- Uses Claude AI with your custom voice guidelines to refine them
-- Allows manual editing to perfect the tone
-- Logs both AI and final versions to create training data
-- Tracks edit counts to measure AI refinement accuracy
+- Paste posts generated in Claude Chat
+- Lock the original and edit manually to match your voice
+- Log both versions to create training data
+- Tracks edit counts to measure refinement patterns
+- Provides diff view to see exactly what changed
 
-**Core Innovation**: Each logged post pair (AI version vs. final version) serves as training data to improve future refinement accuracy.
+**Core Innovation**: By manually editing Claude outputs and logging the results, you create authentic training data that shows your editing patterns and preferences, which can later train an automated refinement system.
 
 ## Technology Stack
 
 - **Next.js 16.0.5** - Full-stack React framework with API routes
 - **React 19.2.0** - UI library
-- **@anthropic-ai/sdk 0.71.0** - Anthropic SDK for Claude API integration
-- **Claude Sonnet 4** - AI model for post refinement
 - **Node.js** - Runtime (no version locking)
 - **CSS-in-JS + Global CSS** - Styling (no external UI library)
+
+**Note**: No external API integrations. All processing is local and client-side.
 
 ## Project Structure
 
@@ -27,18 +27,16 @@
 instagram-post-refiner/
 ├── app/                          # Next.js App Router
 │   ├── api/
-│   │   ├── refine/route.js       # POST: Refine draft using Claude
-│   │   ├── log/route.js          # POST: Save post pair to JSON
+│   │   ├── log/route.js          # POST: Save logged post pair to JSON
 │   │   └── posts/route.js        # GET: Retrieve post history
 │   ├── layout.js                 # Root layout wrapper
-│   ├── page.js                   # Main UI (client-side React)
+│   ├── page.js                   # Main UI (client-side React with all logic)
 │   └── globals.css               # Global styling (dark theme)
 ├── lib/
-│   ├── system-prompt.js          # Claude system prompt with voice guidelines
-│   └── diff.js                   # Diff computation & edit counting utilities
+│   └── system-prompt.js          # Voice guidelines (archived, not currently used)
 ├── data/
 │   └── posts.json                # Local JSON storage (gitignored)
-├── .env.example                  # Environment variable template
+├── .env.example                  # Environment variables (optional)
 ├── next.config.mjs               # Next.js configuration
 ├── package.json                  # Dependencies & scripts
 └── README.md                     # Setup & deployment guide
@@ -48,30 +46,29 @@ instagram-post-refiner/
 
 ### 1. Three-Tab Interface
 
-**Refine Post Tab** (Main Workflow)
-- Input draft and optional topic
-- Click "Refine Post" → API calls `/api/refine`
-- Claude-refined version appears
-- User can edit the refined text
-- View live diff showing all changes
-- Save with "Log Post" → API calls `/api/log`
+**Edit Post Tab** (Main Workflow)
+- Paste post from Claude Chat (no API refinement)
+- Click "Start Editing" to lock the original and begin editing
+- Edit your version in the right column to match your voice
+- View live diff showing all your changes
+- Save with "Log & Save" → saves both versions to training data
 
 **History Tab**
 - Browse all logged posts with count
 - List shows: topic, edit count, timestamp
-- Click post to view full details
+- Click post to view full details and diff
 
-**View Post Tab**
-- Side-by-side AI version vs final version
+**View Post Tab** (appears when a post is selected)
+- Side-by-side original (Claude) vs final version (your edit)
 - Full diff with added/removed lines highlighted
 - Edit count display
 
 ### 2. Workflow
 
 ```
-Draft → Refine (Claude API) → Edit (User tweaks) → Log (Save both versions)
-                                                      ↓
-                                          Creates training data
+Claude Chat (external) → Paste here → Lock original → Edit manually → Log both versions
+                                                               ↓
+                                           Creates training data showing your edits
 ```
 
 ### 3. Diff & Edit Tracking
@@ -85,46 +82,17 @@ Draft → Refine (Claude API) → Edit (User tweaks) → Log (Save both versions
 
 ## API Endpoints
 
-### `POST /api/refine`
-
-Refine a draft post using Claude.
-
-**Request**
-```javascript
-{
-  draft: string,      // Required: User's draft post
-  topic?: string      // Optional: Post topic/subject
-}
-```
-
-**Response**
-```javascript
-{
-  refined: string,    // Claude's refined version
-  usage: {
-    inputTokens: number,
-    outputTokens: number
-  }
-}
-```
-
-**Process**
-1. Receives draft + topic
-2. Sends to Claude Sonnet 4 with system prompt
-3. Returns refined post matching voice guidelines
-4. Includes token usage tracking
-
 ### `POST /api/log`
 
-Save a post pair (AI version + final user version).
+Save a logged post pair (original + final version).
 
 **Request**
 ```javascript
 {
   topic: string,          // Post topic/title
-  aiVersion: string,      // Original Claude output
-  finalVersion: string,   // User-edited final version
-  editCount: number       // Number of meaningful edits
+  aiVersion: string,      // Original Claude output (from Claude Chat)
+  finalVersion: string,   // Your edited version
+  editCount: number       // Number of meaningful edits made
 }
 ```
 
@@ -135,8 +103,8 @@ Save a post pair (AI version + final user version).
   post: {
     id: string,                  // Timestamp-based ID
     topic: string,
-    aiVersion: string,
-    finalVersion: string,
+    aiVersion: string,           // Unchanged original
+    finalVersion: string,        // Your edits
     editCount: number,
     createdAt: string           // ISO timestamp
   },
@@ -145,10 +113,11 @@ Save a post pair (AI version + final user version).
 ```
 
 **Process**
-1. Creates post object with ID and timestamp
-2. Loads existing posts from `data/posts.json`
-3. Adds new post to beginning of array
-4. Saves updated array back to file
+1. Receives logged post with both versions
+2. Creates post object with ID and timestamp
+3. Loads existing posts from `data/posts.json`
+4. Adds new post to beginning of array
+5. Saves updated array back to file
 
 ### `GET /api/posts`
 
@@ -161,34 +130,10 @@ Retrieve all logged posts.
 }
 ```
 
-## Voice System Prompt
+**Process**
+1. Loads `data/posts.json`
+2. Returns all logged post pairs in chronological order (newest first)
 
-Located in `lib/system-prompt.js`, this is a **127-line system prompt** that teaches Claude your voice. It includes:
-
-### Core Voice Characteristics
-
-- Conversational, self-aware tone ("catching up with a drink")
-- Avoids marketing hype and forced enthusiasm
-- Includes Tommo (partner) as active character, not sidekick
-- Self-aware humor, acknowledging contradictions
-- Genuine opinions without obligatory enthusiasm
-
-### Formatting Rules
-
-- **CAPS sparingly** (2-4 max per post) for: key foods, brands, quality descriptors
-- **Emoji at end** of sentences/paragraphs (1 per paragraph max)
-- **Avoid these emojis**: 🤩 🔥 💯 🚀 (feel salesy)
-- **Short paragraphs** (1-3 sentences) with white space
-
-### Language Patterns
-
-- **Use**: "proper", "brilliant", "lovely", "flipping", "moorish", "bad boys"
-- **Avoid**: "absolute BEAUT", "game changer", "to die for", American spellings
-- **Be specific**: "tender meat" vs "incredible"
-
-### Real Examples
-
-The system prompt includes 10+ before/after examples showing transformation from generic AI to authentic voice. This is the most important part for training Claude to match your style.
 
 ## Styling & Design
 
@@ -220,10 +165,6 @@ The system prompt includes 10+ before/after examples showing transformation from
 ```bash
 # Install dependencies
 npm install
-
-# Create .env.local with your API key
-cp .env.example .env.local
-# Edit .env.local and add your ANTHROPIC_API_KEY
 ```
 
 ### Running Locally
@@ -238,7 +179,8 @@ npm run dev
 **Features**:
 - Hot reload enabled by Next.js
 - File-based data storage in `./data/posts.json`
-- Local API endpoints available immediately
+- No API keys required
+- Local-only operation (no external services)
 
 ### Production Build
 
@@ -252,56 +194,51 @@ npm start
 
 ### Environment Variables
 
-**Required**:
-- `ANTHROPIC_API_KEY` - Your Anthropic API key (from console.anthropic.com)
-
 **Optional**:
 - `DATA_DIR` - Custom data directory path (defaults to `./data`)
 
+**Note**: No API keys are required. All processing is local and client-side.
+
 ## Customization Guide
 
-### 1. Modify Your Voice Guidelines
-
-Edit `lib/system-prompt.js`:
-- Update tone and style description
-- Add/edit language patterns
-- Update before/after examples
-- Adjust formatting rules
-
-This is the primary way to train Claude to match your voice better.
-
-### 2. Change Colors & Styling
+### 1. Change Colors & Styling
 
 Edit `app/globals.css`:
 - Modify `:root` CSS variables for colors
 - Change fonts, sizes, spacing
 - Update responsive breakpoints
+- Customize tab styles and buttons
 
-### 3. Switch AI Models
+### 2. Adjust Diff Display
 
-Edit `app/api/refine/route.js`:
-- Change `model: "claude-sonnet-4-20250514"` to another Claude model
-- Adjust `max_tokens` (currently 2000)
+Edit `app/page.js` (lines 6-41):
+- Modify `computeDiff()` algorithm for different comparison logic
+- Change how diff stats are displayed (currently line-based)
+- Update color scheme for diff view
 
-### 4. Replace Data Storage
+### 3. Replace Data Storage
 
 Edit `app/api/log/route.js`:
 - Replace JSON file storage with database (Vercel KV, Supabase, etc.)
 - Modify DATA_DIR environment variable
 - Change file path or connection string
 
+### 4. Update UI Labels & Placeholder Text
+
+Edit `app/page.js`:
+- Change tab names (lines 159-168)
+- Update textarea placeholders (lines 217, 260)
+- Modify button labels (lines 226, 277, 282)
+
 ## Code Entry Points
 
-| Task | File |
-|------|------|
-| Main UI & interaction | `app/page.js` |
-| Claude refinement logic | `app/api/refine/route.js` |
-| Save posts to storage | `app/api/log/route.js` |
-| Get post history | `app/api/posts/route.js` |
-| Voice guidelines | `lib/system-prompt.js` |
-| Diff computation | `lib/diff.js` |
-| Styling | `app/globals.css` |
-| Root layout | `app/layout.js` |
+| Task | File | Notes |
+|------|------|-------|
+| Main UI & all interaction logic | `app/page.js` | Contains state management, diff computation, and workflow |
+| Save posts to storage | `app/api/log/route.js` | Handles POST requests to save post pairs |
+| Get post history | `app/api/posts/route.js` | Handles GET requests for all logged posts |
+| Styling & design system | `app/globals.css` | Colors, fonts, responsive layout |
+| Root layout | `app/layout.js` | HTML wrapper and metadata |
 
 ## Data Model
 
@@ -332,42 +269,42 @@ Posts are stored in `data/posts.json` as an array of objects:
 - Data resets on redeploy
 - Recommendation: Migrate to persistent DB (Vercel KV, Postgres, Supabase)
 
-## Utilities & Helpers
+## Diff Computation Logic
 
-### `lib/diff.js`
+The diff computation happens entirely client-side in `app/page.js` (lines 6-41):
 
-**computeDiff(oldText, newText)**
-- Line-by-line diff algorithm
+**computeDiff(oldText, newText)** (lines 6-34)
+- Line-by-line comparison algorithm
 - Returns array of change objects `{type, content}`
 - Types: `'added'`, `'removed'`, `'unchanged'`
+- Used to display visual diff when editing
 
-**countEdits(oldText, newText)**
-- Calculates meaningful edits
+**countEdits(oldText, newText)** (lines 36-41)
+- Calculates meaningful edits for training metrics
 - Computes diff and filters unchanged lines
 - Pairs add/remove operations as single edit
-- Returns minimum of 1 edit
-
-**calculateSimilarity(a, b)**
-- Jaccard index similarity (0-1)
-- Compares word sets between texts
-- Currently exported but unused
+- Returns minimum of 1 edit (even for single character changes)
 
 ## Client-Side State Management
 
 `app/page.js` uses React hooks (no global state):
 
 ```javascript
-const [topic, setTopic] = useState('');              // Post topic
-const [draft, setDraft] = useState('');              // User draft input
-const [refined, setRefined] = useState('');          // Claude output
-const [final, setFinal] = useState('');              // User-edited version
-const [isRefining, setIsRefining] = useState(false); // API call loading
-const [isSaving, setIsSaving] = useState(false);     // Save loading
-const [toast, setToast] = useState(null);            // Notification
-const [history, setHistory] = useState([]);          // Logged posts
-const [activeTab, setActiveTab] = useState('refine');// Current tab
-const [selectedPost, setSelectedPost] = useState(null); // Viewing post
+const [topic, setTopic] = useState('');              // Post topic (optional)
+const [original, setOriginal] = useState('');        // Pasted from Claude Chat
+const [edited, setEdited] = useState('');            // Your edited version
+const [isLocked, setIsLocked] = useState(false);     // Whether original is locked
+const [isSaving, setIsSaving] = useState(false);     // Save API call loading
+const [toast, setToast] = useState(null);            // Notification message
+const [history, setHistory] = useState([]);          // All logged posts
+const [activeTab, setActiveTab] = useState('edit');  // Current tab: edit/history/view
+const [selectedPost, setSelectedPost] = useState(null); // Post being viewed
 ```
+
+**Key Workflow Variables**:
+- `isLocked`: When true, original cannot be edited; edited version becomes editable
+- `editCount`: Computed on-the-fly from `countEdits(original, edited)` when locked
+- `diff`: Computed on-the-fly from `computeDiff(original, edited)` when locked
 
 All state is local to the Home component. No Context API or Redux needed for this scope.
 
@@ -377,17 +314,20 @@ All state is local to the Home component. No Context API or Redux needed for thi
 
 1. Push code to GitHub
 2. Import repository in Vercel dashboard
-3. Add `ANTHROPIC_API_KEY` environment variable
+3. No environment variables needed
 4. Deploy (automatic on push)
+
+**Note**: No API keys required. All processing is local and client-side.
 
 ### Self-Hosted
 
 1. Clone repository
 2. Install Node.js
 3. Run `npm install`
-4. Set `ANTHROPIC_API_KEY` in `.env.local`
-5. Run `npm run build && npm start`
-6. Access on port 3000 (or configure PORT env var)
+4. Run `npm run build && npm start`
+5. Access on port 3000 (or configure PORT env var)
+
+**Note**: No environment variables needed for basic operation.
 
 ### Database Considerations
 
@@ -405,12 +345,11 @@ See README.md for detailed deployment instructions.
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| `@anthropic-ai/sdk` | ^0.71.0 | Claude API client library |
-| `next` | ^16.0.5 | React framework + server |
+| `next` | ^16.0.5 | Full-stack React framework with API routes |
 | `react` | ^19.2.0 | UI library |
 | `react-dom` | ^19.2.0 | React DOM rendering |
 
-No dev dependencies—minimal setup for fast development.
+**Total**: 3 dependencies. No dev dependencies—minimal setup for fast development and deployment.
 
 ## Project Rules
 
@@ -442,12 +381,12 @@ No dev dependencies—minimal setup for fast development.
 - Styling in `app/globals.css` and inline styles
 - Don't create unnecessary files or directories
 
-### Voice System Maintenance
+### Data Logging Best Practices
 
-- Regularly review logged posts to identify patterns
-- Update system prompt based on real examples
-- Keep voice guidelines current as your style evolves
-- Use logged data to improve refinement accuracy
+- Always include a meaningful topic for easier filtering
+- The original (aiVersion) is never modified—it's your baseline
+- Edit freely to match your authentic voice
+- Edit counts help identify which topics need more refinement
 
 ### Data Integrity
 
@@ -456,63 +395,76 @@ No dev dependencies—minimal setup for fast development.
 - Use `editCount` to measure AI accuracy over time
 - Back up `posts.json` before major updates
 
-## Future Enhancement Ideas
+## Project Evolution
 
-1. **Database Migration**
-   - Move from JSON to Postgres/MongoDB
-   - Add proper indexing and queries
-   - Support concurrent users
+### v1.0 (Current)
+**November 2024** - Launched as Instagram Post Logger with manual editing workflow
 
-2. **Advanced Diff Display**
-   - Word-by-word diffs (not just line-by-line)
-   - Diff visualization improvements
-   - Export diffs as formatted documents
+**Approach**: Users manually edit Claude-generated posts and log both versions. This creates authentic training data showing real editing patterns.
 
-3. **Analytics & Insights**
-   - Track average edit count by topic
-   - Most common refinements
-   - Voice effectiveness metrics
-   - Timeline of voice evolution
+**Why manual editing?** Manual edits capture genuine user preferences and voice adjustments in a way that pure AI refinement metrics cannot. Each logged post pair becomes valuable training data for future automation.
 
-4. **Batch Processing**
-   - Refine multiple posts at once
-   - CSV/JSON import/export
-   - Scheduled refinement
+**Current features**:
+- Paste from Claude Chat, lock original, edit manually
+- Real-time diff tracking with edit counts
+- Local JSON-based post history
+- No external API dependencies
 
-5. **Collaboration**
-   - Share refined posts with Tommo for feedback
-   - Comments on versions
-   - Version history/rollback
+### v0.1 (Previous Concept)
+Earlier iterations explored automatic Claude API refinement using a detailed voice system prompt. The shift to manual logging reflects a decision to prioritize training data quality over automation convenience.
 
-6. **Export Features**
-   - Download refined post as .txt, .md, or .docx
-   - Export history as CSV
-   - Copy to clipboard button
+**What was changed and why**:
+- Removed `/api/refine` endpoint - Decided manual editing creates better training data
+- Removed Anthropic SDK dependency - No external API calls needed
+- Simplified to pure client-side diff computation - Faster, no latency
 
-7. **Voice Training**
-   - Auto-generate training examples from history
-   - Compare new refinements against past voice
-   - Measure voice consistency over time
+---
 
-8. **Mobile App**
-   - React Native version
-   - Offline support
-   - Mobile-optimized UI
+## Archived Components
+
+### Voice System Prompt (`lib/system-prompt.js`)
+
+**Current Status**: Available but unused (no active refinement feature)
+
+**Content**: A comprehensive 127-line system prompt designed to teach Claude your voice through:
+- Core voice characteristics (conversational, self-aware, authentic)
+- Formatting rules (CAPS usage, emoji placement)
+- Language patterns (preferred phrases, things to avoid)
+- 10+ before/after examples showing voice transformation
+
+**Why it exists**: This can be repurposed when/if an automated refinement feature is re-added in future versions. It documents your voice characteristics for reference.
+
+**Potential future use**:
+- Feed to Claude API for automatic refinement (with user approval)
+- Compare new posts against documented patterns
+- Train a local fine-tuned model
+- Export as guidance document for other AI tools
+
+**If you want to maintain it**:
+- Keep it updated as your voice evolves
+- Add new examples as you log more posts
+- Use it as reference when manually editing
+
+**If you want to archive it**:
+- Move to `lib/system-prompt.archived.js`
+- Can be recovered later if needed
 
 ## Quick Reference
 
 **Start Development**: `npm run dev` → http://localhost:3000
 
-**Add Environment Variables**: Create `.env.local` with `ANTHROPIC_API_KEY=sk-ant-...`
-
-**Train Voice**: Edit `lib/system-prompt.js` and test with real drafts
+**Main Workflow**: Paste from Claude Chat → Lock original → Edit manually → Log both versions
 
 **View Logged Posts**: Click "History" tab or check `data/posts.json`
 
-**Deploy**: Push to GitHub, Vercel auto-deploys with environment variables set
+**Export Data**: Copy `data/posts.json` to backup before major updates
 
-**Debug API**: Check browser DevTools Network tab or server logs from `npm run dev`
+**Deploy**: Push to GitHub, Vercel auto-deploys (no environment variables needed)
+
+**Debug**: Check browser DevTools Network tab or server logs from `npm run dev`
+
+**Customize**: Edit `app/globals.css` for colors, `app/page.js` for behavior, `app/api/log/route.js` for storage
 
 ---
 
-Last Updated: November 2024
+Last Updated: November 2024 (Updated for v1.0)

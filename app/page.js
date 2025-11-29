@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 // Simple diff computation
 function computeDiff(oldText, newText) {
@@ -42,15 +42,14 @@ function countEdits(oldText, newText) {
 
 export default function Home() {
   const [topic, setTopic] = useState('');
-  const [draft, setDraft] = useState('');
-  const [refined, setRefined] = useState('');
-  const [final, setFinal] = useState('');
-  const [isRefining, setIsRefining] = useState(false);
+  const [original, setOriginal] = useState('');
+  const [edited, setEdited] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const [history, setHistory] = useState([]);
-  const [activeTab, setActiveTab] = useState('refine');
+  const [activeTab, setActiveTab] = useState('edit');
   const [selectedPost, setSelectedPost] = useState(null);
+  const [isLocked, setIsLocked] = useState(false);
 
   // Load history on mount
   useEffect(() => {
@@ -72,53 +71,32 @@ export default function Home() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleRefine = async () => {
-    if (!draft.trim()) {
-      showToast('Please enter a draft post', 'error');
+  const handleStartEditing = () => {
+    if (!original.trim()) {
+      showToast('Please paste a post first', 'error');
       return;
     }
-
-    setIsRefining(true);
-    try {
-      const res = await fetch('/api/refine', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draft, topic }),
-      });
-      
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to refine post');
-      }
-      
-      setRefined(data.refined);
-      setFinal(data.refined); // Pre-fill final with refined
-      showToast('Post refined successfully!');
-    } catch (error) {
-      showToast(error.message, 'error');
-    } finally {
-      setIsRefining(false);
-    }
+    setEdited(original);
+    setIsLocked(true);
   };
 
   const handleSave = async () => {
-    if (!refined || !final.trim()) {
-      showToast('Please refine a post first', 'error');
+    if (!original.trim() || !edited.trim()) {
+      showToast('Both original and edited versions are required', 'error');
       return;
     }
 
     setIsSaving(true);
     try {
-      const editCount = countEdits(refined, final);
+      const editCount = countEdits(original, edited);
       
       const res = await fetch('/api/log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           topic: topic || 'Untitled',
-          aiVersion: refined,
-          finalVersion: final,
+          aiVersion: original,
+          finalVersion: edited,
           editCount,
         }),
       });
@@ -134,14 +112,21 @@ export default function Home() {
       
       // Reset form
       setTopic('');
-      setDraft('');
-      setRefined('');
-      setFinal('');
+      setOriginal('');
+      setEdited('');
+      setIsLocked(false);
     } catch (error) {
       showToast(error.message, 'error');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleReset = () => {
+    setOriginal('');
+    setEdited('');
+    setTopic('');
+    setIsLocked(false);
   };
 
   const copyToClipboard = async (text) => {
@@ -158,23 +143,23 @@ export default function Home() {
     setActiveTab('view');
   };
 
-  const diff = refined && final ? computeDiff(refined, final) : [];
-  const editCount = refined && final ? countEdits(refined, final) : 0;
-  const hasChanges = refined !== final;
+  const diff = original && edited && isLocked ? computeDiff(original, edited) : [];
+  const editCount = original && edited && isLocked ? countEdits(original, edited) : 0;
+  const hasChanges = original !== edited;
 
   return (
     <div className="container">
       <header className="header">
-        <h1>📸 Instagram Post Refiner</h1>
-        <p>Paste your Claude draft → Refine to your voice → Edit & Log for training</p>
+        <h1>📸 Instagram Post Logger</h1>
+        <p>Paste from Claude Chat → Edit to your voice → Log for training</p>
       </header>
 
       <div className="tabs">
         <button 
-          className={`tab ${activeTab === 'refine' ? 'active' : ''}`}
-          onClick={() => setActiveTab('refine')}
+          className={`tab ${activeTab === 'edit' ? 'active' : ''}`}
+          onClick={() => setActiveTab('edit')}
         >
-          ✨ Refine Post
+          ✏️ Edit Post
         </button>
         <button 
           className={`tab ${activeTab === 'history' ? 'active' : ''}`}
@@ -192,16 +177,27 @@ export default function Home() {
         )}
       </div>
 
-      {activeTab === 'refine' && (
+      {activeTab === 'edit' && (
         <>
           <div className="main-grid">
-            {/* Left Column - Input */}
+            {/* Left Column - Original from Claude */}
             <div className="card">
               <div className="card-header">
                 <h2 className="card-title">
                   <span className="step">1</span>
-                  Paste Draft
+                  Original (from Claude)
                 </h2>
+                {isLocked && (
+                  <span style={{ 
+                    fontSize: '0.75rem', 
+                    color: 'var(--warning)',
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '4px'
+                  }}>
+                    🔒 Locked
+                  </span>
+                )}
               </div>
               
               <div className="input-group">
@@ -211,62 +207,66 @@ export default function Home() {
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   placeholder="e.g., Selfridges Food Hall, M&S Night..."
+                  disabled={isLocked}
                 />
               </div>
               
               <textarea
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder="Paste the draft Instagram post from Claude here..."
+                value={original}
+                onChange={(e) => setOriginal(e.target.value)}
+                placeholder="Paste the Instagram post from Claude Chat here..."
+                disabled={isLocked}
+                style={isLocked ? { opacity: 0.7, cursor: 'not-allowed' } : {}}
               />
               
-              <div className="btn-group">
-                <button 
-                  className="btn btn-primary"
-                  onClick={handleRefine}
-                  disabled={isRefining || !draft.trim()}
-                >
-                  {isRefining ? (
-                    <>
-                      <span className="loading-spinner" />
-                      Refining...
-                    </>
-                  ) : (
-                    '✨ Refine Post'
-                  )}
-                </button>
-              </div>
+              {!isLocked && (
+                <div className="btn-group">
+                  <button 
+                    className="btn btn-primary"
+                    onClick={handleStartEditing}
+                    disabled={!original.trim()}
+                  >
+                    ✏️ Start Editing
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Right Column - Output */}
+            {/* Right Column - Your Edited Version */}
             <div className="card">
               <div className="card-header">
                 <h2 className="card-title">
                   <span className="step">2</span>
-                  Edit & Finalize
+                  Your Version
                 </h2>
-                {refined && (
+                {edited && (
                   <button 
                     className="btn btn-secondary"
-                    onClick={() => copyToClipboard(final)}
+                    onClick={() => copyToClipboard(edited)}
                   >
                     📋 Copy
                   </button>
                 )}
               </div>
               
+              <div className="input-group" style={{ visibility: 'hidden' }}>
+                <label>Spacer</label>
+                <input type="text" disabled />
+              </div>
+              
               <textarea
-                value={final}
-                onChange={(e) => setFinal(e.target.value)}
-                placeholder="Refined post will appear here. Edit it to perfect your voice..."
-                disabled={!refined}
+                value={edited}
+                onChange={(e) => setEdited(e.target.value)}
+                placeholder={isLocked ? "Edit the post here to match your voice..." : "Click 'Start Editing' first to lock the original..."}
+                disabled={!isLocked}
+                style={!isLocked ? { opacity: 0.5 } : {}}
               />
               
               <div className="btn-group">
                 <button 
                   className="btn btn-success"
                   onClick={handleSave}
-                  disabled={isSaving || !refined || !final.trim()}
+                  disabled={isSaving || !isLocked || !edited.trim()}
                 >
                   {isSaving ? (
                     <>
@@ -274,15 +274,15 @@ export default function Home() {
                       Saving...
                     </>
                   ) : (
-                    '💾 Log Post'
+                    '💾 Log & Save'
                   )}
                 </button>
-                {refined && (
+                {isLocked && (
                   <button 
                     className="btn btn-secondary"
-                    onClick={() => setFinal(refined)}
+                    onClick={handleReset}
                   >
-                    ↩️ Reset
+                    🔄 Start Over
                   </button>
                 )}
               </div>
@@ -290,10 +290,10 @@ export default function Home() {
           </div>
 
           {/* Diff View */}
-          {refined && hasChanges && (
+          {isLocked && hasChanges && (
             <div className="card" style={{ marginTop: '1.5rem' }}>
               <div className="card-header">
-                <h2 className="card-title">📊 Changes Preview</h2>
+                <h2 className="card-title">📊 Your Changes</h2>
                 <div className="diff-stats">
                   <span className="diff-stat edits">
                     ✏️ {editCount} edit{editCount !== 1 ? 's' : ''}
@@ -318,6 +318,34 @@ export default function Home() {
               </div>
             </div>
           )}
+
+          {/* Workflow reminder */}
+          {!isLocked && !original && (
+            <div className="card" style={{ marginTop: '1.5rem', textAlign: 'center', padding: '2rem' }}>
+              <h3 style={{ marginBottom: '1rem', color: 'var(--text-muted)' }}>Workflow</h3>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💬</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Get post from<br/>Claude Chat</div>
+                </div>
+                <div style={{ color: 'var(--text-muted)', alignSelf: 'center' }}>→</div>
+                <div>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📋</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Paste &<br/>lock original</div>
+                </div>
+                <div style={{ color: 'var(--text-muted)', alignSelf: 'center' }}>→</div>
+                <div>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✏️</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Edit to<br/>your voice</div>
+                </div>
+                <div style={{ color: 'var(--text-muted)', alignSelf: 'center' }}>→</div>
+                <div>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💾</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Log for<br/>training</div>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -337,7 +365,7 @@ export default function Home() {
                 <path d="M12 8v8"/>
                 <path d="M8 12h8"/>
               </svg>
-              <p>No posts logged yet. Refine and log your first post!</p>
+              <p>No posts logged yet. Edit and log your first post!</p>
             </div>
           ) : (
             <div className="history-list">
@@ -377,7 +405,7 @@ export default function Home() {
         <div className="main-grid">
           <div className="card">
             <div className="card-header">
-              <h2 className="card-title">🤖 AI Version</h2>
+              <h2 className="card-title">🤖 Original (Claude)</h2>
               <button 
                 className="btn btn-secondary"
                 onClick={() => copyToClipboard(selectedPost.aiVersion)}

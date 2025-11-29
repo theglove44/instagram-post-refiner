@@ -1,5 +1,5 @@
 {
-  "name": "instagram-post-refiner",
+  "name": "instagram-post-logger",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -8,7 +8,6 @@
     "start": "next start"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.71.0",
     "next": "^16.0.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
