@@ -1,7 +1,8 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export async function POST(request) {
   try {
+    const supabase = getSupabaseClient();
     const { topic, aiVersion, finalVersion, editCount } = await request.json();
 
     if (!aiVersion || !finalVersion) {
