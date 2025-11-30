@@ -1,15 +1,15 @@
-# Instagram Post Logger 📸
+# Instagram Post Refiner 📸
 
-A simple web app to track your Instagram post edits for training data. Paste Claude's output, edit to your voice, log both versions.
+A web app to track and refine your Instagram posts with persistent storage. Paste Claude-generated content, edit to match your voice, and log both versions to build authentic training data.
 
 ## How It Works
 
-1. **Claude Chat** → generates initial post using your Instagram skill
-2. **Paste** into this app → locks the original
-3. **Edit** → refine to match your authentic voice  
-4. **Log** → saves original + final with diff & edit count
+1. **Paste** from Claude Chat → Copy Claude's initial output
+2. **Lock & Edit** → Lock the original, refine to your voice
+3. **Review** → See real-time diff of all your changes
+4. **Log** → Save original + final with edit count to Supabase
 
-The logged posts create training data to improve the skill over time.
+The logged posts create training data showing your editing patterns and voice refinements.
 
 ## Setup
 
@@ -55,15 +55,28 @@ Your data will now persist permanently in Supabase across deployments.
 ## Project Structure
 
 ```
-instagram-post-logger/
+instagram-post-refiner/
 ├── app/
 │   ├── api/
-│   │   ├── log/route.js       # Save post versions
-│   │   └── posts/route.js     # Get post history
-│   ├── globals.css            # Styles
-│   ├── layout.js              # App layout
-│   └── page.js                # Main UI
-└── data/                      # Post storage (gitignored)
+│   │   ├── log/route.js           # POST: Save post to Supabase
+│   │   ├── posts/route.js         # GET: Retrieve posts from Supabase
+│   │   └── analyse/route.js       # GET: Compute analytics metrics
+│   ├── analysis/
+│   │   └── page.js                # Analytics dashboard UI
+│   ├── layout.js                  # Root layout with Analytics
+│   ├── layout.test.js             # Layout unit tests
+│   ├── page.js                    # Main UI (Edit, History, View tabs)
+│   └── globals.css                # Global styles and dark theme
+├── lib/
+│   ├── supabase.js                # Supabase client configuration
+│   ├── supabase-schema.sql        # Database schema
+│   ├── diff.js                    # Diff computation utilities
+│   └── system-prompt.js           # Voice guidelines (reference)
+├── .env.example                   # Environment variables template
+├── package.json                   # Dependencies and scripts
+├── next.config.mjs                # Next.js configuration
+├── CLAUDE.md                      # Developer guide
+└── README.md                      # User guide
 ```
 
 ## Features

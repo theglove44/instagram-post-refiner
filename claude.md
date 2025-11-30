@@ -16,10 +16,12 @@
 
 - **Next.js 16.0.5** - Full-stack React framework with API routes
 - **React 19.2.0** - UI library
+- **Supabase 2.44.0** - PostgreSQL database for persistent storage
+- **Vercel Analytics 1.5.0** - Performance monitoring and Web Vitals tracking
 - **Node.js** - Runtime (no version locking)
 - **CSS-in-JS + Global CSS** - Styling (no external UI library)
 
-**Note**: No external API integrations. All processing is local and client-side.
+**Note**: Supabase is used for persistent data storage across all API routes. Vercel Analytics provides non-intrusive performance monitoring.
 
 ## Project Structure
 
@@ -27,41 +29,55 @@
 instagram-post-refiner/
 ├── app/                          # Next.js App Router
 │   ├── api/
-│   │   ├── log/route.js          # POST: Save logged post pair to JSON
-│   │   └── posts/route.js        # GET: Retrieve post history
-│   ├── layout.js                 # Root layout wrapper
-│   ├── page.js                   # Main UI (client-side React with all logic)
+│   │   ├── log/route.js          # POST: Save logged post pair to Supabase
+│   │   ├── posts/route.js        # GET: Retrieve post history from Supabase
+│   │   └── analyse/route.js      # GET: Compute analytics metrics from posts
+│   ├── analysis/
+│   │   └── page.js               # Analytics dashboard UI
+│   ├── layout.js                 # Root layout wrapper with Analytics
+│   ├── layout.test.js            # Unit tests for layout component
+│   ├── page.js                   # Main UI (edit, history, view tabs)
 │   └── globals.css               # Global styling (dark theme)
 ├── lib/
-│   └── system-prompt.js          # Voice guidelines (archived, not currently used)
+│   ├── supabase.js               # Supabase client initialization
+│   ├── supabase-schema.sql       # Database schema and migrations
+│   ├── diff.js                   # Diff computation utilities
+│   └── system-prompt.js          # Voice guidelines (archived, available for reference)
 ├── data/
-│   └── posts.json                # Local JSON storage (gitignored)
-├── .env.example                  # Environment variables (optional)
+│   └── posts.json                # Local JSON storage (gitignored, used for local dev fallback)
+├── .env.example                  # Environment variables template
 ├── next.config.mjs               # Next.js configuration
 ├── package.json                  # Dependencies & scripts
-└── README.md                     # Setup & deployment guide
+├── CLAUDE.md                     # This file - developer guide
+└── README.md                     # User-facing setup & deployment guide
 ```
 
 ## Core Features
 
-### 1. Three-Tab Interface
+### 1. Four-Tab Interface
 
 **Edit Post Tab** (Main Workflow)
 - Paste post from Claude Chat (no API refinement)
 - Click "Start Editing" to lock the original and begin editing
 - Edit your version in the right column to match your voice
 - View live diff showing all your changes
-- Save with "Log & Save" → saves both versions to training data
+- Save with "Log & Save" → saves both versions to Supabase
 
 **History Tab**
-- Browse all logged posts with count
-- List shows: topic, edit count, timestamp
+- Browse all logged posts with topic, edit count, and timestamp
 - Click post to view full details and diff
+- Displays posts in reverse chronological order (newest first)
 
-**View Post Tab** (appears when a post is selected)
+**Analysis Tab**
+- View metrics dashboard with post statistics
+- Shows total posts logged, average edits, edit distribution
+- Identify trending topics and editing patterns
+- Helps measure refinement effectiveness over time
+
+**View Post Tab** (appears when a post is selected from history)
 - Side-by-side original (Claude) vs final version (your edit)
 - Full diff with added/removed lines highlighted
-- Edit count display
+- Edit count display with breakdown
 
 ### 2. Workflow
 
@@ -84,7 +100,7 @@ Claude Chat (external) → Paste here → Lock original → Edit manually → Lo
 
 ### `POST /api/log`
 
-Save a logged post pair (original + final version).
+Save a logged post pair (original + final version) to Supabase.
 
 **Request**
 ```javascript
@@ -101,7 +117,7 @@ Save a logged post pair (original + final version).
 {
   success: true,
   post: {
-    id: string,                  // Timestamp-based ID
+    id: number,                  // Auto-incremented Supabase ID
     topic: string,
     aiVersion: string,           // Unchanged original
     finalVersion: string,        // Your edits
@@ -114,25 +130,58 @@ Save a logged post pair (original + final version).
 
 **Process**
 1. Receives logged post with both versions
-2. Creates post object with ID and timestamp
-3. Loads existing posts from `data/posts.json`
-4. Adds new post to beginning of array
-5. Saves updated array back to file
+2. Validates environment variables (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)
+3. Inserts post into Supabase `posts` table
+4. Returns created post object and total count
 
 ### `GET /api/posts`
 
-Retrieve all logged posts.
+Retrieve all logged posts from Supabase.
 
 **Response**
 ```javascript
 {
-  posts: array  // All post objects from data/posts.json
+  success: true,
+  posts: array  // All post objects from Supabase posts table, newest first
 }
 ```
 
 **Process**
-1. Loads `data/posts.json`
-2. Returns all logged post pairs in chronological order (newest first)
+1. Connects to Supabase using environment variables
+2. Queries all posts from database, ordered by created_at DESC
+3. Returns posts array with fallback error handling
+
+### `GET /api/analyse`
+
+Compute analytics metrics from all logged posts.
+
+**Response**
+```javascript
+{
+  success: true,
+  stats: {
+    totalPosts: number,              // Total posts logged
+    averageEdits: number,            // Mean edits per post
+    medianEdits: number,             // Median edits per post
+    topTopics: array[{               // Most common topics
+      topic: string,
+      count: number
+    }],
+    editDistribution: {              // Posts grouped by edit count ranges
+      "1-2": number,
+      "3-5": number,
+      "6-10": number,
+      "10+": number
+    }
+  }
+}
+```
+
+**Process**
+1. Retrieves all posts from Supabase
+2. Computes statistical metrics (total, average, median)
+3. Aggregates topics and edit distributions
+4. Returns stats object for dashboard display
 
 
 ## Styling & Design
@@ -170,6 +219,10 @@ npm install
 ### Running Locally
 
 ```bash
+# Create .env.local with Supabase credentials
+cp .env.example .env.local
+# Edit .env.local and add your Supabase URL and API key
+
 # Start development server (port 3000)
 npm run dev
 
@@ -178,9 +231,9 @@ npm run dev
 
 **Features**:
 - Hot reload enabled by Next.js
-- File-based data storage in `./data/posts.json`
-- No API keys required
-- Local-only operation (no external services)
+- Data storage in Supabase PostgreSQL
+- Vercel Analytics for performance monitoring
+- Environment-based configuration for different deployments
 
 ### Production Build
 
@@ -194,10 +247,15 @@ npm start
 
 ### Environment Variables
 
-**Optional**:
-- `DATA_DIR` - Custom data directory path (defaults to `./data`)
+**Required for Supabase**:
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL (https://[project].supabase.co)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon public key
 
-**Note**: No API keys are required. All processing is local and client-side.
+**Note**: These are public keys prefixed with `NEXT_PUBLIC_` and safe to expose in client code. The anon key is restricted to database row-level security policies.
+
+**Optional**:
+- `.env.local` - Local development overrides
+- `.env.production` - Production environment variables
 
 ## Customization Guide
 
@@ -234,40 +292,60 @@ Edit `app/page.js`:
 
 | Task | File | Notes |
 |------|------|-------|
-| Main UI & all interaction logic | `app/page.js` | Contains state management, diff computation, and workflow |
-| Save posts to storage | `app/api/log/route.js` | Handles POST requests to save post pairs |
-| Get post history | `app/api/posts/route.js` | Handles GET requests for all logged posts |
-| Styling & design system | `app/globals.css` | Colors, fonts, responsive layout |
-| Root layout | `app/layout.js` | HTML wrapper and metadata |
+| Main UI & interaction logic | `app/page.js` | Edit, history, and view tabs; state management; client-side diff |
+| Analytics dashboard UI | `app/analysis/page.js` | Analytics tab with metrics visualization |
+| Save posts to Supabase | `app/api/log/route.js` | POST /api/log - Insert into posts table |
+| Get post history | `app/api/posts/route.js` | GET /api/posts - Query all posts from Supabase |
+| Compute analytics | `app/api/analyse/route.js` | GET /api/analyse - Calculate metrics from posts |
+| Supabase client | `lib/supabase.js` | Client initialization and connection management |
+| Database schema | `lib/supabase-schema.sql` | SQL migrations for posts table setup |
+| Diff utilities | `lib/diff.js` | Diff computation and edit counting algorithms |
+| Styling & design | `app/globals.css` | Colors, fonts, responsive layout, dark theme |
+| Root layout | `app/layout.js` | HTML wrapper, metadata, Analytics component |
+| Layout tests | `app/layout.test.js` | Unit tests for layout component |
 
 ## Data Model
 
 ### Post Schema
 
-Posts are stored in `data/posts.json` as an array of objects:
+Posts are stored in Supabase `posts` table as rows:
 
+```sql
+-- Table: posts
+id          INT PRIMARY KEY AUTO INCREMENT
+topic       TEXT NOT NULL
+aiVersion   TEXT NOT NULL
+finalVersion TEXT NOT NULL
+editCount   INT NOT NULL
+createdAt   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+```
+
+**Example Row**:
 ```javascript
 {
-  id: "1234567890",              // Timestamp-based ID (unique)
+  id: 42,                        // Auto-incremented Supabase ID
   topic: "M&S Food Hall",        // Post topic/title
   aiVersion: "...",              // Raw Claude output (unchanged)
   finalVersion: "...",           // User-edited version (final)
   editCount: 3,                  // Number of meaningful edits made
-  createdAt: "2024-11-28T10:30:00.000Z"  // ISO timestamp
+  createdAt: "2024-11-28T10:30:00Z"  // ISO timestamp
 }
 ```
 
 ### Storage Details
 
-**Local Development**:
-- Posts saved to `./data/posts.json` (auto-created)
-- Human-readable JSON format
-- Persists between server restarts
+**Supabase Integration** (Current):
+- Posts persisted in PostgreSQL database
+- Configured via `lib/supabase.js`
+- Environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Row-level security (RLS) policies can restrict access
+- Data survives deployments and application restarts
+- Real-time capabilities available (future enhancement)
 
-**Vercel Deployment**:
-- Uses ephemeral storage (persists per deployment)
-- Data resets on redeploy
-- Recommendation: Migrate to persistent DB (Vercel KV, Postgres, Supabase)
+**Local Development Fallback**:
+- `./data/posts.json` available for local testing without Supabase
+- Useful for offline development or testing
+- Not recommended for production
 
 ## Diff Computation Logic
 
@@ -312,34 +390,38 @@ All state is local to the Home component. No Context API or Redux needed for thi
 
 ### Quick Start with Vercel
 
-1. Push code to GitHub
-2. Import repository in Vercel dashboard
-3. No environment variables needed
-4. Deploy (automatic on push)
+1. Create Supabase project and set up `posts` table using `lib/supabase-schema.sql`
+2. Get Supabase credentials (URL and anon key)
+3. Push code to GitHub
+4. Import repository in Vercel dashboard
+5. Add environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+6. Deploy (automatic on push)
 
-**Note**: No API keys required. All processing is local and client-side.
+**Note**: Supabase provides persistent storage that survives deployments.
 
-### Self-Hosted
+### Self-Hosted (Docker, VPS, etc.)
 
 1. Clone repository
-2. Install Node.js
-3. Run `npm install`
-4. Run `npm run build && npm start`
-5. Access on port 3000 (or configure PORT env var)
+2. Install Node.js 18+
+3. Set up Supabase project (self-hosted or managed)
+4. Create `.env.local` with Supabase credentials
+5. Run `npm install && npm run build && npm start`
+6. Access on port 3000 (or configure PORT env var)
 
-**Note**: No environment variables needed for basic operation.
+**Note**: Requires Supabase project for data persistence.
 
-### Database Considerations
+### Alternative Storage Backends
 
-For production, consider migrating from JSON file storage to:
+To use different storage instead of Supabase:
 
-- **Vercel KV** (Redis) - Easy integration with Vercel
-- **Vercel Postgres** - Full SQL database
-- **Supabase** - PostgreSQL + auth
-- **Firebase** - Real-time database
-- **MongoDB** - NoSQL option
+- **Vercel Postgres** - PostgreSQL via Vercel (requires schema migration)
+- **Firebase Firestore** - NoSQL option (requires rewrite of API routes)
+- **MongoDB** - NoSQL option (requires rewrite of API routes)
+- **Local JSON** - For development only (ephemeral on Vercel)
 
-See README.md for detailed deployment instructions.
+The API structure (`POST /api/log`, `GET /api/posts`, `GET /api/analyse`) can be adapted to any backend by modifying the route handlers in `app/api/`.
 
 ## Dependencies
 
@@ -348,8 +430,10 @@ See README.md for detailed deployment instructions.
 | `next` | ^16.0.5 | Full-stack React framework with API routes |
 | `react` | ^19.2.0 | UI library |
 | `react-dom` | ^19.2.0 | React DOM rendering |
+| `@supabase/supabase-js` | ^2.44.0 | Supabase client for PostgreSQL access |
+| `@vercel/analytics` | ^1.5.0 | Performance monitoring and Web Vitals tracking |
 
-**Total**: 3 dependencies. No dev dependencies—minimal setup for fast development and deployment.
+**Total**: 5 dependencies. No dev dependencies—minimal setup for fast development and deployment.
 
 ## Project Rules
 
@@ -397,18 +481,41 @@ See README.md for detailed deployment instructions.
 
 ## Project Evolution
 
-### v1.0 (Current)
+### v1.1 (Current)
+**November 2024** - Enhanced with Supabase persistence, analytics dashboard, and performance monitoring
+
+**Major changes from v1.0**:
+- Migrated from ephemeral JSON file storage to Supabase PostgreSQL
+- Added analytics dashboard with metrics visualization
+- Integrated Vercel Analytics for performance monitoring
+- Added unit tests for layout component
+- Implemented `/api/analyse` endpoint for computing post statistics
+- Fixed HTML structure issues (Analytics component placement)
+
+**Current features**:
+- Paste from Claude Chat, lock original, edit manually
+- Real-time diff tracking with edit counts
+- Persistent data storage in Supabase
+- Analytics dashboard showing:
+  - Total posts logged
+  - Average and median edits per post
+  - Top topics by frequency
+  - Edit distribution patterns
+- Vercel Analytics for performance monitoring
+- Unit test coverage for layout component
+
+### v1.0 (Previous Release)
 **November 2024** - Launched as Instagram Post Logger with manual editing workflow
 
 **Approach**: Users manually edit Claude-generated posts and log both versions. This creates authentic training data showing real editing patterns.
 
 **Why manual editing?** Manual edits capture genuine user preferences and voice adjustments in a way that pure AI refinement metrics cannot. Each logged post pair becomes valuable training data for future automation.
 
-**Current features**:
+**Features**:
 - Paste from Claude Chat, lock original, edit manually
 - Real-time diff tracking with edit counts
-- Local JSON-based post history
-- No external API dependencies
+- Local JSON-based post history with three-tab interface
+- No external dependencies
 
 ### v0.1 (Previous Concept)
 Earlier iterations explored automatic Claude API refinement using a detailed voice system prompt. The shift to manual logging reflects a decision to prioritize training data quality over automation convenience.
@@ -467,4 +574,4 @@ Earlier iterations explored automatic Claude API refinement using a detailed voi
 
 ---
 
-Last Updated: November 2024 (Updated for v1.0)
+Last Updated: November 30, 2024 (Updated for v1.1 - Supabase & Analytics)
