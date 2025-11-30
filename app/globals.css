@@ -440,3 +440,46 @@ textarea::placeholder {
   margin-bottom: 1rem;
   opacity: 0.5;
 }
+
+/* Analysis page tags */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.tag-removed {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.tag-added {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.tag-neutral {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+
+/* Nav link in header */
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.nav-link:hover {
+  background: rgba(225, 48, 108, 0.1);
+}

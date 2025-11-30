@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 // Simple diff computation
 function computeDiff(oldText, newText) {
@@ -154,7 +155,8 @@ export default function Home() {
         <p>Paste from Claude Chat → Edit to your voice → Log for training</p>
       </header>
 
-      <div className="tabs">
+      <div className="tabs" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
         <button 
           className={`tab ${activeTab === 'edit' ? 'active' : ''}`}
           onClick={() => setActiveTab('edit')}
@@ -175,6 +177,10 @@ export default function Home() {
             👁️ View Post
           </button>
         )}
+        </div>
+        <Link href="/analysis" className="nav-link">
+          📊 Analysis
+        </Link>
       </div>
 
       {activeTab === 'edit' && (
