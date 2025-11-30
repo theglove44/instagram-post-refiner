@@ -1,4 +1,9 @@
 import './globals.css';
+import { Analytics } from "@vercel/analytics/next";
+
+// Note: Supabase is configured in lib/supabase.js and used by API routes
+// for persistent data storage (posts, analysis data). It's not directly imported
+// in this layout but is a core dependency for the application backend.
 
 export const metadata = {
   title: 'Instagram Post Refiner',
@@ -8,7 +13,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
