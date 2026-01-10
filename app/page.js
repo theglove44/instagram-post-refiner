@@ -155,32 +155,37 @@ export default function Home() {
         <p>Paste from Claude Chat → Edit to your voice → Log for training</p>
       </header>
 
-      <div className="tabs" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <button 
-          className={`tab ${activeTab === 'edit' ? 'active' : ''}`}
-          onClick={() => setActiveTab('edit')}
-        >
-          ✏️ Edit Post
-        </button>
-        <button 
-          className={`tab ${activeTab === 'history' ? 'active' : ''}`}
-          onClick={() => setActiveTab('history')}
-        >
-          📚 History ({history.length})
-        </button>
-        {selectedPost && (
+      <div className="tabs">
+        <div className="tabs-inner">
           <button 
-            className={`tab ${activeTab === 'view' ? 'active' : ''}`}
-            onClick={() => setActiveTab('view')}
+            className={`tab ${activeTab === 'edit' ? 'active' : ''}`}
+            onClick={() => setActiveTab('edit')}
           >
-            👁️ View Post
+            <span className="tab-icon">✏️</span>
+            Edit Post
           </button>
-        )}
+          <button 
+            className={`tab ${activeTab === 'history' ? 'active' : ''}`}
+            onClick={() => setActiveTab('history')}
+          >
+            <span className="tab-icon">📚</span>
+            History
+            {history.length > 0 && <span className="tab-badge">{history.length}</span>}
+          </button>
+          {selectedPost && (
+            <button 
+              className={`tab ${activeTab === 'view' ? 'active' : ''}`}
+              onClick={() => setActiveTab('view')}
+            >
+              <span className="tab-icon">👁️</span>
+              View Post
+            </button>
+          )}
+          <Link href="/analysis" className="tab">
+            <span className="tab-icon">📊</span>
+            Analysis
+          </Link>
         </div>
-        <Link href="/analysis" className="nav-link">
-          📊 Analysis
-        </Link>
       </div>
 
       {activeTab === 'edit' && (
@@ -191,16 +196,10 @@ export default function Home() {
               <div className="card-header">
                 <h2 className="card-title">
                   <span className="step">1</span>
-                  Original (from Claude)
+                  Original from Claude
                 </h2>
                 {isLocked && (
-                  <span style={{ 
-                    fontSize: '0.75rem', 
-                    color: 'var(--warning)',
-                    background: 'rgba(245, 158, 11, 0.1)',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px'
-                  }}>
+                  <span className="status-badge status-locked">
                     🔒 Locked
                   </span>
                 )}
@@ -222,7 +221,7 @@ export default function Home() {
                 onChange={(e) => setOriginal(e.target.value)}
                 placeholder="Paste the Instagram post from Claude Chat here..."
                 disabled={isLocked}
-                style={isLocked ? { opacity: 0.7, cursor: 'not-allowed' } : {}}
+                style={isLocked ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
               />
               
               {!isLocked && (
@@ -249,13 +248,14 @@ export default function Home() {
                   <button 
                     className="btn btn-secondary"
                     onClick={() => copyToClipboard(edited)}
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
                   >
                     📋 Copy
                   </button>
                 )}
               </div>
               
-              <div className="input-group" style={{ visibility: 'hidden' }}>
+              <div className="input-group" style={{ visibility: 'hidden', height: '72px' }}>
                 <label>Spacer</label>
                 <input type="text" disabled />
               </div>
@@ -265,7 +265,7 @@ export default function Home() {
                 onChange={(e) => setEdited(e.target.value)}
                 placeholder={isLocked ? "Edit the post here to match your voice..." : "Click 'Start Editing' first to lock the original..."}
                 disabled={!isLocked}
-                style={!isLocked ? { opacity: 0.5 } : {}}
+                style={!isLocked ? { opacity: 0.4 } : {}}
               />
               
               <div className="btn-group">
@@ -305,10 +305,10 @@ export default function Home() {
                     ✏️ {editCount} edit{editCount !== 1 ? 's' : ''}
                   </span>
                   <span className="diff-stat added">
-                    + {diff.filter(d => d.type === 'added').length} added
+                    + {diff.filter(d => d.type === 'added').length}
                   </span>
                   <span className="diff-stat removed">
-                    - {diff.filter(d => d.type === 'removed').length} removed
+                    − {diff.filter(d => d.type === 'removed').length}
                   </span>
                 </div>
               </div>
@@ -317,7 +317,7 @@ export default function Home() {
                 {diff.map((line, i) => (
                   <div key={i} className={`diff-line ${line.type}`}>
                     {line.type === 'added' && '+ '}
-                    {line.type === 'removed' && '- '}
+                    {line.type === 'removed' && '− '}
                     {line.content || ' '}
                   </div>
                 ))}
@@ -327,27 +327,27 @@ export default function Home() {
 
           {/* Workflow reminder */}
           {!isLocked && !original && (
-            <div className="card" style={{ marginTop: '1.5rem', textAlign: 'center', padding: '2rem' }}>
-              <h3 style={{ marginBottom: '1rem', color: 'var(--text-muted)' }}>Workflow</h3>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💬</div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Get post from<br/>Claude Chat</div>
+            <div className="card" style={{ marginTop: '1.5rem', textAlign: 'center', padding: '2.5rem 2rem' }}>
+              <h3 style={{ marginBottom: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Workflow</h3>
+              <div className="workflow-container">
+                <div className="workflow-step">
+                  <span className="workflow-icon">💬</span>
+                  <span className="workflow-label">Get post from<br/>Claude Chat</span>
                 </div>
-                <div style={{ color: 'var(--text-muted)', alignSelf: 'center' }}>→</div>
-                <div>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📋</div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Paste &<br/>lock original</div>
+                <span className="workflow-arrow">→</span>
+                <div className="workflow-step">
+                  <span className="workflow-icon">📋</span>
+                  <span className="workflow-label">Paste &<br/>lock original</span>
                 </div>
-                <div style={{ color: 'var(--text-muted)', alignSelf: 'center' }}>→</div>
-                <div>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✏️</div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Edit to<br/>your voice</div>
+                <span className="workflow-arrow">→</span>
+                <div className="workflow-step">
+                  <span className="workflow-icon">✏️</span>
+                  <span className="workflow-label">Edit to<br/>your voice</span>
                 </div>
-                <div style={{ color: 'var(--text-muted)', alignSelf: 'center' }}>→</div>
-                <div>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💾</div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Log for<br/>training</div>
+                <span className="workflow-arrow">→</span>
+                <div className="workflow-step">
+                  <span className="workflow-icon">💾</span>
+                  <span className="workflow-label">Log for<br/>training</span>
                 </div>
               </div>
             </div>
@@ -359,19 +359,19 @@ export default function Home() {
         <div className="card">
           <div className="history-header">
             <h2 className="card-title">📚 Post History</h2>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            <span className="history-count">
               {history.length} post{history.length !== 1 ? 's' : ''} logged
             </span>
           </div>
           
           {history.length === 0 ? (
             <div className="empty-state">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z"/>
                 <path d="M12 8v8"/>
                 <path d="M8 12h8"/>
               </svg>
-              <p>No posts logged yet. Edit and log your first post!</p>
+              <p>No posts logged yet.<br/>Edit and log your first post to get started!</p>
             </div>
           ) : (
             <div className="history-list">
@@ -383,9 +383,9 @@ export default function Home() {
                 >
                   <div className="history-item-header">
                     <span className="history-item-topic">{post.topic}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div className="history-item-meta">
                       <span className="history-item-edits">
-                        ✏️ {post.editCount} edit{post.editCount !== 1 ? 's' : ''}
+                        ✏️ {post.editCount}
                       </span>
                       <span className="history-item-date">
                         {new Date(post.createdAt).toLocaleDateString('en-GB', {
@@ -398,7 +398,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="history-item-preview">
-                    {post.finalVersion.substring(0, 100)}...
+                    {post.finalVersion.substring(0, 120)}...
                   </div>
                 </div>
               ))}
@@ -408,53 +408,43 @@ export default function Home() {
       )}
 
       {activeTab === 'view' && selectedPost && (
-        <div className="main-grid">
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">🤖 Original (Claude)</h2>
-              <button 
-                className="btn btn-secondary"
-                onClick={() => copyToClipboard(selectedPost.aiVersion)}
-              >
-                📋 Copy
-              </button>
+        <>
+          <div className="main-grid">
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">🤖 Original (Claude)</h2>
+                <button 
+                  className="btn btn-secondary"
+                  onClick={() => copyToClipboard(selectedPost.aiVersion)}
+                  style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
+                >
+                  📋 Copy
+                </button>
+              </div>
+              <div className="post-content">
+                {selectedPost.aiVersion}
+              </div>
             </div>
-            <div style={{ 
-              background: 'var(--bg-input)', 
-              padding: '1rem', 
-              borderRadius: '8px',
-              whiteSpace: 'pre-wrap',
-              fontSize: '0.9rem',
-              lineHeight: '1.6'
-            }}>
-              {selectedPost.aiVersion}
-            </div>
-          </div>
-          
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">✅ Final Version</h2>
-              <button 
-                className="btn btn-secondary"
-                onClick={() => copyToClipboard(selectedPost.finalVersion)}
-              >
-                📋 Copy
-              </button>
-            </div>
-            <div style={{ 
-              background: 'var(--bg-input)', 
-              padding: '1rem', 
-              borderRadius: '8px',
-              whiteSpace: 'pre-wrap',
-              fontSize: '0.9rem',
-              lineHeight: '1.6'
-            }}>
-              {selectedPost.finalVersion}
+            
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">✅ Final Version</h2>
+                <button 
+                  className="btn btn-secondary"
+                  onClick={() => copyToClipboard(selectedPost.finalVersion)}
+                  style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
+                >
+                  📋 Copy
+                </button>
+              </div>
+              <div className="post-content">
+                {selectedPost.finalVersion}
+              </div>
             </div>
           </div>
           
           {/* Diff for selected post */}
-          <div className="card" style={{ gridColumn: '1 / -1' }}>
+          <div className="card" style={{ marginTop: '1.5rem' }}>
             <div className="card-header">
               <h2 className="card-title">📊 Changes Made</h2>
               <span className="history-item-edits">
@@ -465,19 +455,28 @@ export default function Home() {
               {computeDiff(selectedPost.aiVersion, selectedPost.finalVersion).map((line, i) => (
                 <div key={i} className={`diff-line ${line.type}`}>
                   {line.type === 'added' && '+ '}
-                  {line.type === 'removed' && '- '}
+                  {line.type === 'removed' && '− '}
                   {line.content || ' '}
                 </div>
               ))}
             </div>
           </div>
-        </div>
+          
+          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+            <button 
+              className="btn btn-secondary"
+              onClick={() => setActiveTab('history')}
+            >
+              ← Back to History
+            </button>
+          </div>
+        </>
       )}
 
       {/* Toast */}
       {toast && (
         <div className={`toast toast-${toast.type}`}>
-          {toast.message}
+          {toast.type === 'success' ? '✓' : '✕'} {toast.message}
         </div>
       )}
     </div>
