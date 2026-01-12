@@ -39,9 +39,88 @@ export default function AnalysisPage() {
     
     let updates = `## Suggested SKILL.md Updates\n\nBased on analysis of ${analysis.totalPosts} logged posts:\n\n`;
     
+    // Tone Descriptors - Natural language voice description
+    if (analysis.toneDescriptors && analysis.toneDescriptors.length > 0) {
+      updates += `### Voice Characteristics:\n`;
+      analysis.toneDescriptors.forEach(descriptor => {
+        updates += `- ${descriptor}\n`;
+      });
+      updates += '\n';
+    }
+    
+    // Before/After Examples
+    if (analysis.beforeAfterExamples && analysis.beforeAfterExamples.length > 0) {
+      updates += `### Transformation Examples:\n`;
+      analysis.beforeAfterExamples.forEach(example => {
+        updates += `**${example.topic}** (${example.editCount} edits)\n`;
+        updates += `- Before: "${example.before}"\n`;
+        updates += `- After: "${example.after}"\n\n`;
+      });
+    }
+    
+    // Structural/Formatting Rules
+    updates += `### Formatting Rules:\n`;
+    if (analysis.structuralPatterns) {
+      const sp = analysis.structuralPatterns;
+      if (parseFloat(sp.avgFinalLineBreaks) !== parseFloat(sp.avgAiLineBreaks)) {
+        updates += `- Line breaks: ${sp.avgAiLineBreaks} → ${sp.avgFinalLineBreaks} avg per post\n`;
+      }
+      if (parseFloat(sp.avgFinalHashtags) !== parseFloat(sp.avgAiHashtags)) {
+        updates += `- Hashtags: ${sp.avgAiHashtags} → ${sp.avgFinalHashtags} avg per post\n`;
+      }
+      if (sp.aiStartsWithEmojiPercent !== sp.finalStartsWithEmojiPercent) {
+        updates += `- Posts starting with emoji: ${sp.aiStartsWithEmojiPercent}% → ${sp.finalStartsWithEmojiPercent}%\n`;
+      }
+      if (sp.aiEndsWithEmojiPercent !== sp.finalEndsWithEmojiPercent) {
+        updates += `- Posts ending with emoji: ${sp.aiEndsWithEmojiPercent}% → ${sp.finalEndsWithEmojiPercent}%\n`;
+      }
+    }
+    updates += '\n';
+    
+    // Punctuation Rules
+    if (analysis.punctuation) {
+      const p = analysis.punctuation;
+      updates += `### Punctuation Guidelines:\n`;
+      if (parseFloat(p.exclamationReduction) > 20) {
+        updates += `- Reduce exclamation marks: ${p.avgAiExclamations} → ${p.avgFinalExclamations} per post (${p.exclamationReduction}% reduction)\n`;
+      }
+      if (parseFloat(p.avgFinalQuestions) !== parseFloat(p.avgAiQuestions)) {
+        updates += `- Questions per post: ${p.avgAiQuestions} → ${p.avgFinalQuestions}\n`;
+      }
+      if (parseFloat(p.avgFinalEllipsis) !== parseFloat(p.avgAiEllipsis)) {
+        updates += `- Ellipsis usage: ${p.avgAiEllipsis} → ${p.avgFinalEllipsis} per post\n`;
+      }
+      updates += '\n';
+    }
+    
+    // Sentence Structure
+    if (analysis.sentenceMetrics) {
+      const sm = analysis.sentenceMetrics;
+      updates += `### Sentence Structure:\n`;
+      updates += `- Average sentence length: ${sm.avgAiSentenceLength} → ${sm.avgFinalSentenceLength} words\n`;
+      updates += `- Short sentences (<8 words): ${sm.aiShortSentencePercent}% → ${sm.finalShortSentencePercent}%\n`;
+      updates += '\n';
+    }
+    
+    // Opening/Closing Patterns
+    if (analysis.openingClosing) {
+      const oc = analysis.openingClosing;
+      updates += `### Opening & Closing Patterns:\n`;
+      if (oc.openingPatterns.aiStartsWithI !== oc.openingPatterns.finalStartsWithI) {
+        updates += `- Posts starting with "I": ${oc.openingPatterns.aiStartsWithI} → ${oc.openingPatterns.finalStartsWithI}\n`;
+      }
+      if (oc.openingPatterns.aiStartsWithQuestion !== oc.openingPatterns.finalStartsWithQuestion) {
+        updates += `- Posts opening with question: ${oc.openingPatterns.aiStartsWithQuestion} → ${oc.openingPatterns.finalStartsWithQuestion}\n`;
+      }
+      if (oc.closingPatterns.aiHasCTA !== oc.closingPatterns.finalHasCTA) {
+        updates += `- Posts with CTA in closing: ${oc.closingPatterns.aiHasCTA} → ${oc.closingPatterns.finalHasCTA}\n`;
+      }
+      updates += '\n';
+    }
+    
     // Avoid section
     if (analysis.marketingPhrasesRemoved.length > 0) {
-      updates += `### Add to "Avoid" list:\n`;
+      updates += `### Phrases to Avoid:\n`;
       analysis.marketingPhrasesRemoved.forEach(([phrase, count]) => {
         updates += `- "${phrase}" (removed ${count}x)\n`;
       });
@@ -50,7 +129,7 @@ export default function AnalysisPage() {
     
     // Emoji section
     if (analysis.salesyEmojisRemoved.length > 0) {
-      updates += `### Emojis to avoid:\n`;
+      updates += `### Emojis to Avoid:\n`;
       analysis.salesyEmojisRemoved.forEach(([emoji, count]) => {
         updates += `- ${emoji} (removed ${count}x)\n`;
       });
@@ -59,7 +138,7 @@ export default function AnalysisPage() {
     
     // British expressions
     if (analysis.britishExpressionsAdded.length > 0) {
-      updates += `### British expressions to encourage:\n`;
+      updates += `### British Expressions to Encourage:\n`;
       analysis.britishExpressionsAdded.forEach(([phrase, count]) => {
         updates += `- "${phrase}" (added ${count}x)\n`;
       });
@@ -68,14 +147,14 @@ export default function AnalysisPage() {
     
     // Caps guidance
     if (analysis.capsReduction > 0.5) {
-      updates += `### Capitalization note:\n`;
-      updates += `AI averages ${analysis.avgAiCaps.toFixed(1)} CAPS words per post, you reduce to ${analysis.avgFinalCaps.toFixed(1)}.\n`;
-      updates += `Consider adding: "Maximum 2-3 capitalized words per post"\n\n`;
+      updates += `### Capitalization:\n`;
+      updates += `- AI averages ${analysis.avgAiCaps.toFixed(1)} CAPS words, you reduce to ${analysis.avgFinalCaps.toFixed(1)}\n`;
+      updates += `- Suggested rule: "Maximum 2-3 capitalized words per post"\n\n`;
     }
     
     // Words to use more
     if (analysis.addedWords.length > 0) {
-      updates += `### Words you frequently add:\n`;
+      updates += `### Words You Frequently Add:\n`;
       analysis.addedWords.slice(0, 10).forEach(([word, count]) => {
         updates += `- "${word}" (${count}x)\n`;
       });
@@ -84,11 +163,19 @@ export default function AnalysisPage() {
     
     // Words to use less
     if (analysis.removedWords.length > 0) {
-      updates += `### Words to avoid/reduce:\n`;
+      updates += `### Words to Reduce/Avoid:\n`;
       analysis.removedWords.slice(0, 10).forEach(([word, count]) => {
         updates += `- "${word}" (removed ${count}x)\n`;
       });
       updates += '\n';
+    }
+    
+    // Length guidance
+    if (analysis.lengthChanges) {
+      const lc = analysis.lengthChanges;
+      updates += `### Length Guidelines:\n`;
+      updates += `- Character count: ${lc.avgAiChars} → ${lc.avgFinalChars} (${lc.charChangePercent}%)\n`;
+      updates += `- Word count: ${lc.avgAiWords} → ${lc.avgFinalWords} (${lc.wordChangePercent}%)\n`;
     }
     
     return updates;

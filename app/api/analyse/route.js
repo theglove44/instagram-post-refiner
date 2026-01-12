@@ -252,6 +252,250 @@ function analyseLineChanges(aiVersion, finalVersion) {
   return { removed, added };
 }
 
+// New analysis functions for SKILL.md enhancements
+
+function analyseStructuralPatterns(posts) {
+  let totalAiParagraphs = 0, totalFinalParagraphs = 0;
+  let totalAiLineBreaks = 0, totalFinalLineBreaks = 0;
+  let totalAiHashtags = 0, totalFinalHashtags = 0;
+  let aiStartsWithEmoji = 0, finalStartsWithEmoji = 0;
+  let aiEndsWithEmoji = 0, finalEndsWithEmoji = 0;
+  
+  const emojiRegex = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu;
+  const hashtagRegex = /#\w+/g;
+  
+  posts.forEach(post => {
+    const aiText = post.ai_version;
+    const finalText = post.final_version;
+    
+    // Paragraph count (split by double newlines or significant breaks)
+    const aiParas = aiText.split(/\n\s*\n/).filter(Boolean).length;
+    const finalParas = finalText.split(/\n\s*\n/).filter(Boolean).length;
+    totalAiParagraphs += aiParas;
+    totalFinalParagraphs += finalParas;
+    
+    // Line breaks
+    totalAiLineBreaks += (aiText.match(/\n/g) || []).length;
+    totalFinalLineBreaks += (finalText.match(/\n/g) || []).length;
+    
+    // Hashtags
+    totalAiHashtags += (aiText.match(hashtagRegex) || []).length;
+    totalFinalHashtags += (finalText.match(hashtagRegex) || []).length;
+    
+    // Emoji at start/end
+    const aiFirstChar = aiText.trim().substring(0, 2);
+    const finalFirstChar = finalText.trim().substring(0, 2);
+    const aiLastChars = aiText.trim().slice(-4);
+    const finalLastChars = finalText.trim().slice(-4);
+    
+    if (emojiRegex.test(aiFirstChar)) aiStartsWithEmoji++;
+    if (emojiRegex.test(finalFirstChar)) finalStartsWithEmoji++;
+    emojiRegex.lastIndex = 0;
+    if (emojiRegex.test(aiLastChars)) aiEndsWithEmoji++;
+    emojiRegex.lastIndex = 0;
+    if (emojiRegex.test(finalLastChars)) finalEndsWithEmoji++;
+    emojiRegex.lastIndex = 0;
+  });
+  
+  const count = posts.length;
+  return {
+    avgAiParagraphs: (totalAiParagraphs / count).toFixed(1),
+    avgFinalParagraphs: (totalFinalParagraphs / count).toFixed(1),
+    avgAiLineBreaks: (totalAiLineBreaks / count).toFixed(1),
+    avgFinalLineBreaks: (totalFinalLineBreaks / count).toFixed(1),
+    avgAiHashtags: (totalAiHashtags / count).toFixed(1),
+    avgFinalHashtags: (totalFinalHashtags / count).toFixed(1),
+    aiStartsWithEmojiPercent: Math.round((aiStartsWithEmoji / count) * 100),
+    finalStartsWithEmojiPercent: Math.round((finalStartsWithEmoji / count) * 100),
+    aiEndsWithEmojiPercent: Math.round((aiEndsWithEmoji / count) * 100),
+    finalEndsWithEmojiPercent: Math.round((finalEndsWithEmoji / count) * 100)
+  };
+}
+
+function analysePunctuation(posts) {
+  let aiExclamations = 0, finalExclamations = 0;
+  let aiQuestions = 0, finalQuestions = 0;
+  let aiEllipsis = 0, finalEllipsis = 0;
+  let aiAllCapsWords = 0, finalAllCapsWords = 0;
+  
+  posts.forEach(post => {
+    const ai = post.ai_version;
+    const final = post.final_version;
+    
+    aiExclamations += (ai.match(/!/g) || []).length;
+    finalExclamations += (final.match(/!/g) || []).length;
+    
+    aiQuestions += (ai.match(/\?/g) || []).length;
+    finalQuestions += (final.match(/\?/g) || []).length;
+    
+    aiEllipsis += (ai.match(/\.{3}|…/g) || []).length;
+    finalEllipsis += (final.match(/\.{3}|…/g) || []).length;
+  });
+  
+  const count = posts.length;
+  return {
+    avgAiExclamations: (aiExclamations / count).toFixed(1),
+    avgFinalExclamations: (finalExclamations / count).toFixed(1),
+    exclamationReduction: ((aiExclamations - finalExclamations) / Math.max(aiExclamations, 1) * 100).toFixed(0),
+    avgAiQuestions: (aiQuestions / count).toFixed(1),
+    avgFinalQuestions: (finalQuestions / count).toFixed(1),
+    avgAiEllipsis: (aiEllipsis / count).toFixed(1),
+    avgFinalEllipsis: (finalEllipsis / count).toFixed(1)
+  };
+}
+
+function analyseSentenceMetrics(posts) {
+  let totalAiSentences = 0, totalFinalSentences = 0;
+  let totalAiSentenceLength = 0, totalFinalSentenceLength = 0;
+  let aiShortSentences = 0, finalShortSentences = 0; // < 8 words
+  
+  posts.forEach(post => {
+    const aiSentences = post.ai_version.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const finalSentences = post.final_version.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    
+    totalAiSentences += aiSentences.length;
+    totalFinalSentences += finalSentences.length;
+    
+    aiSentences.forEach(s => {
+      const wordCount = s.trim().split(/\s+/).length;
+      totalAiSentenceLength += wordCount;
+      if (wordCount < 8) aiShortSentences++;
+    });
+    
+    finalSentences.forEach(s => {
+      const wordCount = s.trim().split(/\s+/).length;
+      totalFinalSentenceLength += wordCount;
+      if (wordCount < 8) finalShortSentences++;
+    });
+  });
+  
+  return {
+    avgAiSentenceLength: (totalAiSentenceLength / Math.max(totalAiSentences, 1)).toFixed(1),
+    avgFinalSentenceLength: (totalFinalSentenceLength / Math.max(totalFinalSentences, 1)).toFixed(1),
+    avgAiSentencesPerPost: (totalAiSentences / posts.length).toFixed(1),
+    avgFinalSentencesPerPost: (totalFinalSentences / posts.length).toFixed(1),
+    aiShortSentencePercent: Math.round((aiShortSentences / Math.max(totalAiSentences, 1)) * 100),
+    finalShortSentencePercent: Math.round((finalShortSentences / Math.max(totalFinalSentences, 1)) * 100)
+  };
+}
+
+function analyseOpeningClosing(posts) {
+  const aiOpenings = [];
+  const finalOpenings = [];
+  const aiClosings = [];
+  const finalClosings = [];
+  
+  posts.forEach(post => {
+    const aiLines = post.ai_version.trim().split('\n').filter(Boolean);
+    const finalLines = post.final_version.trim().split('\n').filter(Boolean);
+    
+    if (aiLines.length > 0) {
+      aiOpenings.push(aiLines[0].substring(0, 50));
+      aiClosings.push(aiLines[aiLines.length - 1].substring(0, 50));
+    }
+    if (finalLines.length > 0) {
+      finalOpenings.push(finalLines[0].substring(0, 50));
+      finalClosings.push(finalLines[finalLines.length - 1].substring(0, 50));
+    }
+  });
+  
+  // Detect patterns in openings
+  const openingPatterns = {
+    aiStartsWithQuestion: aiOpenings.filter(o => o.includes('?')).length,
+    finalStartsWithQuestion: finalOpenings.filter(o => o.includes('?')).length,
+    aiStartsWithYou: aiOpenings.filter(o => o.toLowerCase().startsWith('you')).length,
+    finalStartsWithYou: finalOpenings.filter(o => o.toLowerCase().startsWith('you')).length,
+    aiStartsWithI: aiOpenings.filter(o => /^i\s/i.test(o)).length,
+    finalStartsWithI: finalOpenings.filter(o => /^i\s/i.test(o)).length,
+  };
+  
+  // Detect CTA patterns in closings
+  const closingPatterns = {
+    aiHasCTA: aiClosings.filter(c => /follow|link|comment|share|check out|click|tap/i.test(c)).length,
+    finalHasCTA: finalClosings.filter(c => /follow|link|comment|share|check out|click|tap/i.test(c)).length,
+  };
+  
+  return {
+    openingPatterns,
+    closingPatterns,
+    sampleOpenings: finalOpenings.slice(0, 3),
+    sampleClosings: finalClosings.slice(0, 3)
+  };
+}
+
+function extractBeforeAfterExamples(posts) {
+  // Get posts with significant edits to show transformation examples
+  const examples = [];
+  
+  const sortedByEdits = [...posts].sort((a, b) => b.edit_count - a.edit_count);
+  
+  sortedByEdits.slice(0, 5).forEach(post => {
+    if (post.edit_count >= 2) {
+      // Find a specific changed line to highlight
+      const aiLines = post.ai_version.split('\n').filter(Boolean);
+      const finalLines = post.final_version.split('\n').filter(Boolean);
+      
+      // Find first significantly different line
+      for (let i = 0; i < Math.min(aiLines.length, finalLines.length, 3); i++) {
+        if (aiLines[i] !== finalLines[i] && aiLines[i].length > 10) {
+          examples.push({
+            topic: post.topic,
+            before: aiLines[i].substring(0, 100),
+            after: finalLines[i] ? finalLines[i].substring(0, 100) : '(removed)',
+            editCount: post.edit_count
+          });
+          break;
+        }
+      }
+    }
+  });
+  
+  return examples.slice(0, 3);
+}
+
+function generateToneDescriptors(analysis) {
+  const descriptors = [];
+  
+  // Based on punctuation
+  if (parseFloat(analysis.punctuation.exclamationReduction) > 30) {
+    descriptors.push('Less enthusiastic/salesy, more understated');
+  }
+  
+  // Based on sentence length
+  if (parseFloat(analysis.sentenceMetrics.avgFinalSentenceLength) < parseFloat(analysis.sentenceMetrics.avgAiSentenceLength)) {
+    descriptors.push('Prefers shorter, punchier sentences');
+  }
+  
+  // Based on structure
+  if (parseFloat(analysis.structuralPatterns.avgFinalLineBreaks) > parseFloat(analysis.structuralPatterns.avgAiLineBreaks)) {
+    descriptors.push('Uses more line breaks for readability');
+  }
+  
+  // Based on caps
+  if (analysis.capsReduction > 1) {
+    descriptors.push('Avoids excessive capitalization');
+  }
+  
+  // Based on British expressions
+  if (analysis.britishExpressionsAdded.length > 0) {
+    descriptors.push('Incorporates British colloquialisms');
+  }
+  
+  // Based on emoji usage
+  if (analysis.structuralPatterns.finalStartsWithEmojiPercent < analysis.structuralPatterns.aiStartsWithEmojiPercent) {
+    descriptors.push('Rarely starts posts with emoji');
+  }
+  
+  // Based on length changes
+  if (analysis.lengthChanges.charChange < -50) {
+    descriptors.push('Tends to condense and tighten copy');
+  } else if (analysis.lengthChanges.charChange > 50) {
+    descriptors.push('Expands with personal details and context');
+  }
+  
+  return descriptors;
+}
+
 function findCommonPatterns(items, minCount = 2) {
   const counts = {};
   items.forEach(item => {
@@ -454,6 +698,13 @@ export async function GET() {
     const lengthChanges = analyseLengthChanges(posts);
     const emojiAnalysis = analyseFullEmojis(aiVersions, finalVersions);
     
+    // SKILL.md enhancement analytics
+    const structuralPatterns = analyseStructuralPatterns(posts);
+    const punctuation = analysePunctuation(posts);
+    const sentenceMetrics = analyseSentenceMetrics(posts);
+    const openingClosing = analyseOpeningClosing(posts);
+    const beforeAfterExamples = extractBeforeAfterExamples(posts);
+    
     // Count remaining issues for voice score
     const marketingPhrasesRemaining = Object.values(countOccurrences(finalVersions, text => findPhrases(text, MARKETING_PHRASES)))
       .reduce((a, b) => a + b, 0);
@@ -493,8 +744,17 @@ export async function GET() {
       improvementTrend,
       topicAnalysis,
       lengthChanges,
-      emojiAnalysis
+      emojiAnalysis,
+      // SKILL.md enhancements
+      structuralPatterns,
+      punctuation,
+      sentenceMetrics,
+      openingClosing,
+      beforeAfterExamples
     };
+    
+    // Generate tone descriptors after analysis object is complete
+    analysis.toneDescriptors = generateToneDescriptors(analysis);
     
     const suggestions = generateSuggestions(analysis);
 
