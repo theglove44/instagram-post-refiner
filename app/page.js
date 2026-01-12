@@ -51,10 +51,24 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('edit');
   const [selectedPost, setSelectedPost] = useState(null);
   const [isLocked, setIsLocked] = useState(false);
+  
+  // New UI enhancement states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterEditCount, setFilterEditCount] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSelection, setCompareSelection] = useState([]);
+  const [quickStats, setQuickStats] = useState(null);
+  const [theme, setTheme] = useState('dark');
 
-  // Load history on mount
+  // Load history and stats on mount
   useEffect(() => {
     loadHistory();
+    loadQuickStats();
+    // Load theme preference
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setTheme(savedTheme);
+    document.documentElement.setAttribute('data-theme', savedTheme);
   }, []);
 
   const loadHistory = async () => {
@@ -65,6 +79,133 @@ export default function Home() {
     } catch (error) {
       console.error('Failed to load history:', error);
     }
+  };
+
+  const loadQuickStats = async () => {
+    try {
+      const res = await fetch('/api/analyse');
+      const data = await res.json();
+      if (data.analysis) {
+        setQuickStats({
+          totalPosts: data.analysis.totalPosts,
+          avgEdits: data.analysis.avgEditCount,
+          voiceScore: data.analysis.voiceScore?.score || null
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load stats:', error);
+    }
+  };
+
+  // Toggle theme
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+  };
+
+  // Export functions
+  const exportAsJSON = () => {
+    const dataStr = JSON.stringify(history, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    downloadBlob(blob, 'instagram-posts-export.json');
+    showToast('Exported as JSON!');
+  };
+
+  const exportAsCSV = () => {
+    const headers = ['id', 'topic', 'aiVersion', 'finalVersion', 'editCount', 'createdAt'];
+    const csvRows = [headers.join(',')];
+    
+    history.forEach(post => {
+      const row = headers.map(header => {
+        let value = post[header] || '';
+        // Escape quotes and wrap in quotes if contains comma or newline
+        if (typeof value === 'string') {
+          value = value.replace(/"/g, '""');
+          if (value.includes(',') || value.includes('\n') || value.includes('"')) {
+            value = `"${value}"`;
+          }
+        }
+        return value;
+      });
+      csvRows.push(row.join(','));
+    });
+    
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    downloadBlob(blob, 'instagram-posts-export.csv');
+    showToast('Exported as CSV!');
+  };
+
+  const downloadBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Filter and sort history
+  const getFilteredHistory = () => {
+    let filtered = [...history];
+    
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(post => 
+        post.topic?.toLowerCase().includes(query) ||
+        post.finalVersion?.toLowerCase().includes(query) ||
+        post.aiVersion?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Edit count filter
+    if (filterEditCount !== 'all') {
+      filtered = filtered.filter(post => {
+        const edits = post.editCount;
+        switch (filterEditCount) {
+          case 'low': return edits <= 3;
+          case 'medium': return edits > 3 && edits <= 7;
+          case 'high': return edits > 7;
+          default: return true;
+        }
+      });
+    }
+    
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'oldest':
+          return new Date(a.createdAt) - new Date(b.createdAt);
+        case 'most-edits':
+          return b.editCount - a.editCount;
+        case 'least-edits':
+          return a.editCount - b.editCount;
+        case 'topic':
+          return (a.topic || '').localeCompare(b.topic || '');
+        default: // newest
+          return new Date(b.createdAt) - new Date(a.createdAt);
+      }
+    });
+    
+    return filtered;
+  };
+
+  // Compare mode handlers
+  const toggleCompareSelection = (post) => {
+    if (compareSelection.find(p => p.id === post.id)) {
+      setCompareSelection(compareSelection.filter(p => p.id !== post.id));
+    } else if (compareSelection.length < 2) {
+      setCompareSelection([...compareSelection, post]);
+    }
+  };
+
+  const clearCompare = () => {
+    setCompareMode(false);
+    setCompareSelection([]);
   };
 
   const showToast = (message, type = 'success') => {
@@ -148,11 +289,51 @@ export default function Home() {
   const editCount = original && edited && isLocked ? countEdits(original, edited) : 0;
   const hasChanges = original !== edited;
 
+  const filteredHistory = getFilteredHistory();
+  // Get best transformations for gallery (posts with most edits that show significant change)
+  const getBestTransformations = () => {
+    return [...history]
+      .filter(p => p.editCount >= 3)
+      .sort((a, b) => b.editCount - a.editCount)
+      .slice(0, 6);
+  };
+
   return (
     <div className="container">
       <header className="header">
-        <h1>📸 Instagram Post Logger</h1>
-        <p>Paste from Claude Chat → Edit to your voice → Log for training</p>
+        <div className="header-main">
+          <h1>📸 Instagram Post Logger</h1>
+          <p>Paste from Claude Chat → Edit to your voice → Log for training</p>
+        </div>
+        <div className="header-actions">
+          {quickStats && (
+            <div className="quick-stats">
+              <div className="quick-stat">
+                <span className="quick-stat-value">{quickStats.totalPosts}</span>
+                <span className="quick-stat-label">Posts</span>
+              </div>
+              <div className="quick-stat">
+                <span className="quick-stat-value">{quickStats.avgEdits}</span>
+                <span className="quick-stat-label">Avg Edits</span>
+              </div>
+              {quickStats.voiceScore && (
+                <div className="quick-stat">
+                  <span className="quick-stat-value" style={{ color: quickStats.voiceScore >= 80 ? 'var(--success)' : quickStats.voiceScore >= 60 ? 'var(--warning)' : 'var(--error)' }}>
+                    {quickStats.voiceScore}%
+                  </span>
+                  <span className="quick-stat-label">Voice</span>
+                </div>
+              )}
+            </div>
+          )}
+          <button 
+            className="btn btn-icon" 
+            onClick={toggleTheme}
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+        </div>
       </header>
 
       <div className="tabs">
@@ -172,6 +353,13 @@ export default function Home() {
             History
             {history.length > 0 && <span className="tab-badge">{history.length}</span>}
           </button>
+          <button 
+            className={`tab ${activeTab === 'gallery' ? 'active' : ''}`}
+            onClick={() => setActiveTab('gallery')}
+          >
+            <span className="tab-icon">🖼️</span>
+            Gallery
+          </button>
           {selectedPost && (
             <button 
               className={`tab ${activeTab === 'view' ? 'active' : ''}`}
@@ -179,6 +367,15 @@ export default function Home() {
             >
               <span className="tab-icon">👁️</span>
               View Post
+            </button>
+          )}
+          {compareSelection.length === 2 && (
+            <button 
+              className={`tab ${activeTab === 'compare' ? 'active' : ''}`}
+              onClick={() => setActiveTab('compare')}
+            >
+              <span className="tab-icon">⚖️</span>
+              Compare
             </button>
           )}
           <Link href="/analysis" className="tab">
@@ -359,46 +556,124 @@ export default function Home() {
         <div className="card">
           <div className="history-header">
             <h2 className="card-title">📚 Post History</h2>
-            <span className="history-count">
-              {history.length} post{history.length !== 1 ? 's' : ''} logged
-            </span>
+            <div className="history-actions">
+              <button 
+                className={`btn btn-secondary btn-sm ${compareMode ? 'active' : ''}`}
+                onClick={() => {
+                  setCompareMode(!compareMode);
+                  setCompareSelection([]);
+                }}
+              >
+                ⚖️ {compareMode ? 'Cancel Compare' : 'Compare'}
+              </button>
+              <div className="export-dropdown">
+                <button className="btn btn-secondary btn-sm">
+                  📥 Export
+                </button>
+                <div className="export-menu">
+                  <button onClick={exportAsJSON}>Export as JSON</button>
+                  <button onClick={exportAsCSV}>Export as CSV</button>
+                </div>
+              </div>
+            </div>
           </div>
           
-          {history.length === 0 ? (
+          {/* Search and Filter Bar */}
+          <div className="filter-bar">
+            <div className="search-box">
+              <span className="search-icon">🔍</span>
+              <input
+                type="text"
+                placeholder="Search posts..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button className="search-clear" onClick={() => setSearchQuery('')}>×</button>
+              )}
+            </div>
+            <select 
+              value={filterEditCount} 
+              onChange={(e) => setFilterEditCount(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">All Edits</option>
+              <option value="low">Low (1-3)</option>
+              <option value="medium">Medium (4-7)</option>
+              <option value="high">High (8+)</option>
+            </select>
+            <select 
+              value={sortBy} 
+              onChange={(e) => setSortBy(e.target.value)}
+              className="filter-select"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="most-edits">Most Edits</option>
+              <option value="least-edits">Least Edits</option>
+              <option value="topic">By Topic</option>
+            </select>
+          </div>
+
+          {compareMode && (
+            <div className="compare-banner">
+              <span>Select 2 posts to compare ({compareSelection.length}/2 selected)</span>
+              {compareSelection.length === 2 && (
+                <button className="btn btn-primary btn-sm" onClick={() => setActiveTab('compare')}>
+                  View Comparison →
+                </button>
+              )}
+            </div>
+          )}
+          
+          <div className="history-count">
+            {filteredHistory.length} of {history.length} post{history.length !== 1 ? 's' : ''}
+            {searchQuery && ` matching "${searchQuery}"`}
+          </div>
+          
+          {filteredHistory.length === 0 ? (
             <div className="empty-state">
               <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z"/>
                 <path d="M12 8v8"/>
                 <path d="M8 12h8"/>
               </svg>
-              <p>No posts logged yet.<br/>Edit and log your first post to get started!</p>
+              <p>{history.length === 0 ? 'No posts logged yet.' : 'No posts match your filters.'}<br/>
+              {history.length === 0 && 'Edit and log your first post to get started!'}</p>
             </div>
           ) : (
             <div className="history-list">
-              {history.map((post) => (
+              {filteredHistory.map((post) => (
                 <div 
                   key={post.id} 
-                  className="history-item"
-                  onClick={() => viewPost(post)}
+                  className={`history-item ${compareMode ? 'compare-mode' : ''} ${compareSelection.find(p => p.id === post.id) ? 'selected' : ''}`}
+                  onClick={() => compareMode ? toggleCompareSelection(post) : viewPost(post)}
                 >
-                  <div className="history-item-header">
-                    <span className="history-item-topic">{post.topic}</span>
-                    <div className="history-item-meta">
-                      <span className="history-item-edits">
-                        ✏️ {post.editCount}
-                      </span>
-                      <span className="history-item-date">
-                        {new Date(post.createdAt).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
+                  {compareMode && (
+                    <div className="compare-checkbox">
+                      {compareSelection.find(p => p.id === post.id) ? '☑️' : '☐'}
                     </div>
-                  </div>
-                  <div className="history-item-preview">
-                    {post.finalVersion.substring(0, 120)}...
+                  )}
+                  <div className="history-item-content">
+                    <div className="history-item-header">
+                      <span className="history-item-topic">{post.topic}</span>
+                      <div className="history-item-meta">
+                        <span className="history-item-edits">
+                          ✏️ {post.editCount}
+                        </span>
+                        <span className="history-item-date">
+                          {new Date(post.createdAt).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="history-item-preview">
+                      {post.finalVersion.substring(0, 120)}...
+                    </div>
                   </div>
                 </div>
               ))}
@@ -467,6 +742,131 @@ export default function Home() {
               className="btn btn-secondary"
               onClick={() => setActiveTab('history')}
             >
+              ← Back to History
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Gallery Tab - Best Transformations */}
+      {activeTab === 'gallery' && (
+        <div className="card">
+          <div className="card-header">
+            <h2 className="card-title">🖼️ Best Transformations</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              Posts with the most significant edits
+            </p>
+          </div>
+          
+          {getBestTransformations().length === 0 ? (
+            <div className="empty-state">
+              <p>No significant transformations yet.<br/>Posts with 3+ edits will appear here.</p>
+            </div>
+          ) : (
+            <div className="gallery-grid">
+              {getBestTransformations().map((post) => (
+                <div key={post.id} className="gallery-card" onClick={() => viewPost(post)}>
+                  <div className="gallery-card-header">
+                    <span className="gallery-topic">{post.topic}</span>
+                    <span className="gallery-edits">✏️ {post.editCount} edits</span>
+                  </div>
+                  <div className="gallery-preview">
+                    <div className="gallery-before">
+                      <span className="gallery-label">Before</span>
+                      <p>{post.aiVersion.substring(0, 100)}...</p>
+                    </div>
+                    <div className="gallery-arrow">→</div>
+                    <div className="gallery-after">
+                      <span className="gallery-label">After</span>
+                      <p>{post.finalVersion.substring(0, 100)}...</p>
+                    </div>
+                  </div>
+                  <div className="gallery-date">
+                    {new Date(post.createdAt).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric'
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Compare Tab */}
+      {activeTab === 'compare' && compareSelection.length === 2 && (
+        <>
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <div className="card-header">
+              <h2 className="card-title">⚖️ Post Comparison</h2>
+              <button className="btn btn-secondary btn-sm" onClick={clearCompare}>
+                ✕ Clear Comparison
+              </button>
+            </div>
+            <div className="compare-stats">
+              <div className="compare-stat-item">
+                <span className="compare-stat-label">Post 1 Edits</span>
+                <span className="compare-stat-value">{compareSelection[0].editCount}</span>
+              </div>
+              <div className="compare-stat-item">
+                <span className="compare-stat-label">Post 2 Edits</span>
+                <span className="compare-stat-value">{compareSelection[1].editCount}</span>
+              </div>
+              <div className="compare-stat-item">
+                <span className="compare-stat-label">Difference</span>
+                <span className="compare-stat-value" style={{ 
+                  color: compareSelection[0].editCount === compareSelection[1].editCount 
+                    ? 'var(--text-muted)' 
+                    : 'var(--warning)' 
+                }}>
+                  {Math.abs(compareSelection[0].editCount - compareSelection[1].editCount)} edits
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="main-grid">
+            {compareSelection.map((post, index) => (
+              <div key={post.id} className="card">
+                <div className="card-header">
+                  <h3 className="card-title">
+                    <span className="compare-number">{index + 1}</span>
+                    {post.topic}
+                  </h3>
+                  <span className="history-item-edits">✏️ {post.editCount}</span>
+                </div>
+                <div className="compare-section">
+                  <h4 style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Original (Claude)</h4>
+                  <div className="post-content" style={{ fontSize: '0.85rem', maxHeight: '150px', overflow: 'auto' }}>
+                    {post.aiVersion}
+                  </div>
+                </div>
+                <div className="compare-section">
+                  <h4 style={{ color: 'var(--success)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Final Version</h4>
+                  <div className="post-content" style={{ fontSize: '0.85rem', maxHeight: '150px', overflow: 'auto' }}>
+                    {post.finalVersion}
+                  </div>
+                </div>
+                <div className="compare-section">
+                  <h4 style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Changes</h4>
+                  <div className="diff-container" style={{ maxHeight: '200px', overflow: 'auto' }}>
+                    {computeDiff(post.aiVersion, post.finalVersion).map((line, i) => (
+                      <div key={i} className={`diff-line ${line.type}`}>
+                        {line.type === 'added' && '+ '}
+                        {line.type === 'removed' && '− '}
+                        {line.content || ' '}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+            <button className="btn btn-secondary" onClick={() => setActiveTab('history')}>
               ← Back to History
             </button>
           </div>
