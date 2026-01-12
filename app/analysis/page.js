@@ -167,6 +167,39 @@ export default function AnalysisPage() {
         ← Back to Logger
       </Link>
 
+      {/* Voice Score - Prominent Display */}
+      {analysis.voiceScore && (
+        <div className="card" style={{ marginBottom: '1.5rem', textAlign: 'center', padding: '2rem' }}>
+          <h2 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Voice Consistency Score</h2>
+          <div style={{ 
+            fontSize: '4rem', 
+            fontWeight: '700',
+            background: analysis.voiceScore.score >= 80 ? 'linear-gradient(135deg, var(--success), #00ff88)' 
+              : analysis.voiceScore.score >= 60 ? 'linear-gradient(135deg, var(--warning), #ffcc00)'
+              : 'linear-gradient(135deg, var(--error), #ff6b6b)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            marginBottom: '0.5rem'
+          }}>
+            {analysis.voiceScore.score}%
+          </div>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
+            {analysis.voiceScore.score >= 80 ? 'Excellent! Your voice is shining through.' 
+              : analysis.voiceScore.score >= 60 ? 'Good progress. Keep refining!'
+              : 'Keep editing - your voice will emerge.'}
+          </p>
+          {analysis.voiceScore.factors.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center' }}>
+              {analysis.voiceScore.factors.map((factor, i) => (
+                <span key={i} className={`tag ${factor.impact > 0 ? 'tag-added' : 'tag-removed'}`}>
+                  {factor.name}: {factor.impact > 0 ? '+' : ''}{factor.impact}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Quick Stats */}
       <div className="stats-grid">
         <div className="stat-card">
@@ -194,6 +227,234 @@ export default function AnalysisPage() {
           <div className="stat-label">Tommo Mentions</div>
         </div>
       </div>
+
+      {/* Improvement Trend */}
+      {analysis.improvementTrend && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">📈 Improvement Trend</h2>
+            <span className={`tag ${analysis.improvementTrend.improving ? 'tag-added' : 'tag-removed'}`}>
+              {analysis.improvementTrend.improving ? '↓ Fewer edits needed' : '↑ More edits needed'}
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', textAlign: 'center' }}>
+            <div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '600', color: 'var(--text-muted)' }}>
+                {analysis.improvementTrend.firstHalfAvg}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Early Posts Avg</div>
+            </div>
+            <div>
+              <div style={{ 
+                fontSize: '2rem', 
+                fontWeight: '700',
+                color: analysis.improvementTrend.improving ? 'var(--success)' : 'var(--error)'
+              }}>
+                {analysis.improvementTrend.improving ? '↓' : '↑'} {Math.abs(parseFloat(analysis.improvementTrend.improvement))}%
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Change</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '600', color: analysis.improvementTrend.improving ? 'var(--success)' : 'var(--warning)' }}>
+                {analysis.improvementTrend.secondHalfAvg}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Recent Posts Avg</div>
+            </div>
+          </div>
+          <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+            {analysis.improvementTrend.improving 
+              ? "You're getting better at prompting Claude - your posts need fewer edits over time!"
+              : "Your recent posts need more edits. Consider updating your prompting strategy."}
+          </p>
+        </div>
+      )}
+
+      {/* Time Trends Chart */}
+      {analysis.timeTrends && analysis.timeTrends.length > 1 && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">📅 Activity Over Time</h2>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem', height: '120px', padding: '0 0.5rem' }}>
+            {analysis.timeTrends.slice(-12).map((week, i) => {
+              const maxPosts = Math.max(...analysis.timeTrends.map(w => w.posts));
+              const height = (week.posts / maxPosts) * 100;
+              return (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                    {week.posts}
+                  </div>
+                  <div style={{
+                    width: '100%',
+                    height: `${height}%`,
+                    minHeight: '4px',
+                    background: 'linear-gradient(180deg, var(--accent), var(--ig-purple))',
+                    borderRadius: '4px 4px 0 0',
+                    transition: 'height 0.3s ease'
+                  }} title={`Week of ${week.week}: ${week.posts} posts, ${week.avgEdits.toFixed(1)} avg edits`} />
+                  <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', marginTop: '0.25rem', writingMode: 'vertical-rl', transform: 'rotate(180deg)', height: '50px' }}>
+                    {new Date(week.week).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Length Changes */}
+      {analysis.lengthChanges && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">📏 Length Changes</h2>
+          </div>
+          <div className="main-grid" style={{ gap: '1rem' }}>
+            <div style={{ textAlign: 'center', padding: '1rem', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '0.5rem' }}>Characters</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '600' }}>
+                {analysis.lengthChanges.avgAiChars} → {analysis.lengthChanges.avgFinalChars}
+              </div>
+              <div style={{ 
+                fontSize: '0.85rem', 
+                color: analysis.lengthChanges.charChange < 0 ? 'var(--success)' : 'var(--warning)',
+                marginTop: '0.25rem'
+              }}>
+                {analysis.lengthChanges.charChange > 0 ? '+' : ''}{analysis.lengthChanges.charChange} ({analysis.lengthChanges.charChangePercent}%)
+              </div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '1rem', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '0.5rem' }}>Words</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '600' }}>
+                {analysis.lengthChanges.avgAiWords} → {analysis.lengthChanges.avgFinalWords}
+              </div>
+              <div style={{ 
+                fontSize: '0.85rem', 
+                color: analysis.lengthChanges.wordChange < 0 ? 'var(--success)' : 'var(--warning)',
+                marginTop: '0.25rem'
+              }}>
+                {analysis.lengthChanges.wordChange > 0 ? '+' : ''}{analysis.lengthChanges.wordChange} ({analysis.lengthChanges.wordChangePercent}%)
+              </div>
+            </div>
+          </div>
+          <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+            {analysis.lengthChanges.charChange < 0 
+              ? "You tend to shorten posts - keeping them concise!"
+              : analysis.lengthChanges.charChange > 20
+              ? "You often expand posts - adding more detail and personality."
+              : "Post lengths stay fairly consistent after editing."}
+          </p>
+        </div>
+      )}
+
+      {/* Topic Analysis */}
+      {analysis.topicAnalysis && analysis.topicAnalysis.length > 0 && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">🏷️ Topic Analysis</h2>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {analysis.topicAnalysis.slice(0, 8).map((topic, i) => {
+              const maxCount = analysis.topicAnalysis[0].count;
+              const width = (topic.count / maxCount) * 100;
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ width: '120px', fontSize: '0.85rem', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {topic.topic}
+                  </div>
+                  <div style={{ flex: 1, height: '24px', background: 'var(--bg-input)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${width}%`,
+                      height: '100%',
+                      background: parseFloat(topic.avgEdits) > parseFloat(analysis.avgEditCount) 
+                        ? 'linear-gradient(90deg, var(--warning), var(--ig-orange))'
+                        : 'linear-gradient(90deg, var(--success), #00ff88)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      paddingLeft: '0.5rem',
+                      fontSize: '0.75rem',
+                      color: 'white',
+                      fontWeight: '500'
+                    }}>
+                      {topic.count} post{topic.count > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                  <div style={{ width: '80px', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'right' }}>
+                    {topic.avgEdits} avg edits
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Topics highlighted in orange need more edits than average ({analysis.avgEditCount}).
+          </p>
+        </div>
+      )}
+
+      {/* Emoji Analysis */}
+      {analysis.emojiAnalysis && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">😊 Emoji Patterns</h2>
+          </div>
+          
+          <div className="main-grid" style={{ gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div style={{ textAlign: 'center', padding: '1rem', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
+                {analysis.emojiAnalysis.avgAiEmojis} → {analysis.emojiAnalysis.avgFinalEmojis}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Avg emojis per post</div>
+            </div>
+            
+            {analysis.emojiAnalysis.mostUsedFinal.length > 0 && (
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Your go-to emojis:</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {analysis.emojiAnalysis.mostUsedFinal.map(([emoji, count], i) => (
+                    <span key={i} style={{ 
+                      fontSize: '1.5rem', 
+                      padding: '0.25rem 0.5rem', 
+                      background: 'var(--bg-card-hover)', 
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: 'default'
+                    }} title={`Used ${count} times`}>
+                      {emoji}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="main-grid" style={{ gap: '1.5rem' }}>
+            {analysis.emojiAnalysis.added.length > 0 && (
+              <div>
+                <h3 className="section-title" style={{ color: 'var(--success)' }}>Emojis You Add</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {analysis.emojiAnalysis.added.map(([emoji, count], i) => (
+                    <span key={i} className="tag tag-added">
+                      {emoji} <span style={{ opacity: 0.6 }}>×{count}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {analysis.emojiAnalysis.removed.length > 0 && (
+              <div>
+                <h3 className="section-title" style={{ color: 'var(--error)' }}>Emojis You Remove</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {analysis.emojiAnalysis.removed.map(([emoji, count], i) => (
+                    <span key={i} className="tag tag-removed">
+                      {emoji} <span style={{ opacity: 0.6 }}>×{count}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="main-grid">
         {/* Things You Remove */}

@@ -69,6 +69,176 @@ function extractEmojis(text) {
   return text.match(emojiRegex) || [];
 }
 
+function extractAllEmojis(text) {
+  const emojiRegex = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu;
+  return text.match(emojiRegex) || [];
+}
+
+function analyseTimeTrends(posts) {
+  const byWeek = {};
+  const editsByWeek = {};
+  
+  posts.forEach(post => {
+    const date = new Date(post.created_at);
+    const weekStart = new Date(date);
+    weekStart.setDate(date.getDate() - date.getDay());
+    const weekKey = weekStart.toISOString().split('T')[0];
+    
+    byWeek[weekKey] = (byWeek[weekKey] || 0) + 1;
+    editsByWeek[weekKey] = (editsByWeek[weekKey] || []).concat(post.edit_count);
+  });
+  
+  const weeks = Object.keys(byWeek).sort();
+  return weeks.map(week => ({
+    week,
+    posts: byWeek[week],
+    avgEdits: editsByWeek[week].reduce((a, b) => a + b, 0) / editsByWeek[week].length
+  }));
+}
+
+function calculateVoiceScore(analysis) {
+  let score = 100;
+  const factors = [];
+  
+  // Penalize remaining marketing phrases (each costs 5 points)
+  const marketingPenalty = Math.min(30, analysis.marketingPhrasesRemaining * 5);
+  score -= marketingPenalty;
+  if (marketingPenalty > 0) factors.push({ name: 'Marketing phrases', impact: -marketingPenalty });
+  
+  // Penalize salesy emojis (each costs 3 points)
+  const emojiPenalty = Math.min(15, analysis.salesyEmojisRemaining * 3);
+  score -= emojiPenalty;
+  if (emojiPenalty > 0) factors.push({ name: 'Salesy emojis', impact: -emojiPenalty });
+  
+  // Reward British expressions (each adds 3 points, max 15)
+  const britishBonus = Math.min(15, analysis.britishExpressionsCount * 3);
+  score += britishBonus;
+  if (britishBonus > 0) factors.push({ name: 'British expressions', impact: +britishBonus });
+  
+  // Penalize excessive caps (more than 3 avg costs points)
+  if (analysis.avgFinalCaps > 3) {
+    const capsPenalty = Math.min(10, (analysis.avgFinalCaps - 3) * 2);
+    score -= capsPenalty;
+    factors.push({ name: 'Excessive caps', impact: -capsPenalty });
+  }
+  
+  return { score: Math.max(0, Math.min(100, Math.round(score))), factors };
+}
+
+function analyseImprovementTrend(posts) {
+  if (posts.length < 4) return null;
+  
+  const sorted = [...posts].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  const midpoint = Math.floor(sorted.length / 2);
+  
+  const firstHalf = sorted.slice(0, midpoint);
+  const secondHalf = sorted.slice(midpoint);
+  
+  const firstAvg = firstHalf.reduce((sum, p) => sum + p.edit_count, 0) / firstHalf.length;
+  const secondAvg = secondHalf.reduce((sum, p) => sum + p.edit_count, 0) / secondHalf.length;
+  
+  const improvement = ((firstAvg - secondAvg) / firstAvg) * 100;
+  
+  return {
+    firstHalfAvg: firstAvg.toFixed(1),
+    secondHalfAvg: secondAvg.toFixed(1),
+    improvement: improvement.toFixed(1),
+    improving: secondAvg < firstAvg
+  };
+}
+
+function analyseTopics(posts) {
+  const topicStats = {};
+  
+  posts.forEach(post => {
+    const topic = post.topic || 'Untitled';
+    if (!topicStats[topic]) {
+      topicStats[topic] = { count: 0, totalEdits: 0, edits: [] };
+    }
+    topicStats[topic].count++;
+    topicStats[topic].totalEdits += post.edit_count;
+    topicStats[topic].edits.push(post.edit_count);
+  });
+  
+  return Object.entries(topicStats)
+    .map(([topic, stats]) => ({
+      topic,
+      count: stats.count,
+      avgEdits: (stats.totalEdits / stats.count).toFixed(1),
+      minEdits: Math.min(...stats.edits),
+      maxEdits: Math.max(...stats.edits)
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function analyseLengthChanges(posts) {
+  let totalAiChars = 0, totalFinalChars = 0;
+  let totalAiWords = 0, totalFinalWords = 0;
+  
+  posts.forEach(post => {
+    totalAiChars += post.ai_version.length;
+    totalFinalChars += post.final_version.length;
+    totalAiWords += post.ai_version.split(/\s+/).filter(Boolean).length;
+    totalFinalWords += post.final_version.split(/\s+/).filter(Boolean).length;
+  });
+  
+  const avgAiChars = totalAiChars / posts.length;
+  const avgFinalChars = totalFinalChars / posts.length;
+  const avgAiWords = totalAiWords / posts.length;
+  const avgFinalWords = totalFinalWords / posts.length;
+  
+  return {
+    avgAiChars: Math.round(avgAiChars),
+    avgFinalChars: Math.round(avgFinalChars),
+    charChange: Math.round(avgFinalChars - avgAiChars),
+    charChangePercent: (((avgFinalChars - avgAiChars) / avgAiChars) * 100).toFixed(1),
+    avgAiWords: Math.round(avgAiWords),
+    avgFinalWords: Math.round(avgFinalWords),
+    wordChange: Math.round(avgFinalWords - avgAiWords),
+    wordChangePercent: (((avgFinalWords - avgAiWords) / avgAiWords) * 100).toFixed(1)
+  };
+}
+
+function analyseFullEmojis(aiVersions, finalVersions) {
+  const aiEmojis = {};
+  const finalEmojis = {};
+  
+  aiVersions.forEach(text => {
+    extractAllEmojis(text).forEach(emoji => {
+      aiEmojis[emoji] = (aiEmojis[emoji] || 0) + 1;
+    });
+  });
+  
+  finalVersions.forEach(text => {
+    extractAllEmojis(text).forEach(emoji => {
+      finalEmojis[emoji] = (finalEmojis[emoji] || 0) + 1;
+    });
+  });
+  
+  const added = Object.entries(finalEmojis)
+    .filter(([emoji, count]) => count > (aiEmojis[emoji] || 0))
+    .map(([emoji, count]) => [emoji, count - (aiEmojis[emoji] || 0)])
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+  
+  const removed = Object.entries(aiEmojis)
+    .filter(([emoji, count]) => count > (finalEmojis[emoji] || 0))
+    .map(([emoji, count]) => [emoji, count - (finalEmojis[emoji] || 0)])
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+  
+  const totalAi = Object.values(aiEmojis).reduce((a, b) => a + b, 0);
+  const totalFinal = Object.values(finalEmojis).reduce((a, b) => a + b, 0);
+  
+  return {
+    added,
+    removed,
+    avgAiEmojis: (totalAi / aiVersions.length).toFixed(1),
+    avgFinalEmojis: (totalFinal / finalVersions.length).toFixed(1),
+    mostUsedFinal: Object.entries(finalEmojis).sort((a, b) => b[1] - a[1]).slice(0, 8)
+  };
+}
+
 function analyseLineChanges(aiVersion, finalVersion) {
   const aiLines = aiVersion.trim().split('\n').filter(Boolean);
   const finalLines = finalVersion.trim().split('\n').filter(Boolean);
@@ -277,6 +447,28 @@ export async function GET() {
     const aiTommoMentions = aiVersions.filter(t => t.toLowerCase().includes('tommo')).length;
     const finalTommoMentions = finalVersions.filter(t => t.toLowerCase().includes('tommo')).length;
     
+    // New analytics
+    const timeTrends = analyseTimeTrends(posts);
+    const improvementTrend = analyseImprovementTrend(posts);
+    const topicAnalysis = analyseTopics(posts);
+    const lengthChanges = analyseLengthChanges(posts);
+    const emojiAnalysis = analyseFullEmojis(aiVersions, finalVersions);
+    
+    // Count remaining issues for voice score
+    const marketingPhrasesRemaining = Object.values(countOccurrences(finalVersions, text => findPhrases(text, MARKETING_PHRASES)))
+      .reduce((a, b) => a + b, 0);
+    const salesyEmojisRemaining = Object.values(countOccurrences(finalVersions, text => extractEmojis(text).filter(e => SALESY_EMOJIS.includes(e))))
+      .reduce((a, b) => a + b, 0);
+    const britishExpressionsCount = britishExpressionsAdded.reduce((sum, [_, count]) => sum + count, 0);
+    
+    const analysisForScore = {
+      marketingPhrasesRemaining,
+      salesyEmojisRemaining,
+      britishExpressionsCount,
+      avgFinalCaps
+    };
+    const voiceScore = calculateVoiceScore(analysisForScore);
+    
     const analysis = {
       totalPosts: posts.length,
       avgEditCount: avgEditCount.toFixed(1),
@@ -294,7 +486,14 @@ export async function GET() {
         ai: aiTommoMentions,
         final: finalTommoMentions,
         increased: finalTommoMentions > aiTommoMentions
-      }
+      },
+      // New analytics
+      timeTrends,
+      voiceScore,
+      improvementTrend,
+      topicAnalysis,
+      lengthChanges,
+      emojiAnalysis
     };
     
     const suggestions = generateSuggestions(analysis);
