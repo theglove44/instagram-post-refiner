@@ -18,6 +18,7 @@ export default function PerformancePage() {
   const [hashtagData, setHashtagData] = useState(null);
   const [loadingHashtags, setLoadingHashtags] = useState(false);
   const [dataHealth, setDataHealth] = useState(null);
+  const [derivedData, setDerivedData] = useState(null);
 
   useEffect(() => {
     checkInstagramConnection();
@@ -35,6 +36,7 @@ export default function PerformancePage() {
         loadMetrics();
         loadRecentPosts();
         loadAccountInsights();
+        loadDerivedMetrics();
       } else {
         setInstagramConnected(false);
         setLoading(false);
@@ -145,6 +147,18 @@ export default function PerformancePage() {
     }
   };
 
+  const loadDerivedMetrics = async () => {
+    try {
+      const res = await fetch('/api/instagram/derived');
+      const data = await res.json();
+      if (data.success) {
+        setDerivedData(data);
+      }
+    } catch (err) {
+      console.error('Failed to load derived metrics:', err);
+    }
+  };
+
   const calculateCorrelation = (postsData) => {
     if (!postsData || postsData.length < 3) {
       setCorrelationData(null);
@@ -226,6 +240,26 @@ export default function PerformancePage() {
       );
     }
     return formatNumber(value);
+  };
+
+  // Render rate value with percentage
+  const renderRate = (value, decimals = 2) => {
+    if (value === null || value === undefined) {
+      return <span className="metric-na" title="Cannot calculate: reach unavailable">N/A</span>;
+    }
+    return `${value.toFixed(decimals)}%`;
+  };
+
+  // Render percentile badge
+  const renderPercentile = (percentile, insufficientData = false) => {
+    if (insufficientData || percentile === null || percentile === undefined) {
+      return null;
+    }
+    const badgeClass = percentile >= 75 ? 'percentile-high' 
+      : percentile >= 50 ? 'percentile-mid' 
+      : percentile >= 25 ? 'percentile-low' 
+      : 'percentile-bottom';
+    return <span className={`percentile-badge ${badgeClass}`}>P{percentile}</span>;
   };
 
   if (loading) {
@@ -560,23 +594,62 @@ export default function PerformancePage() {
         </div>
       )}
 
-      {/* Published Posts with Metrics */}
+      {/* Rate Summary (28-day medians) */}
+      {derivedData?.summary && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">📈 Rate Summary (Last 28 Days)</h2>
+            {derivedData.delta && (
+              <span className={`delta-badge ${derivedData.delta.delta >= 0 ? 'positive' : 'negative'}`}>
+                {derivedData.delta.delta >= 0 ? '↑' : '↓'} {Math.abs(derivedData.delta.delta)}% vs prev
+              </span>
+            )}
+          </div>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.85rem' }}>
+            Median rates from {derivedData.summary.postCount} posts • Baseline: {derivedData.baselineSize} posts
+          </p>
+          <div className="rate-summary-grid">
+            <div className="rate-summary-item">
+              <span className="rate-summary-value">{renderRate(derivedData.summary.engagementRate)}</span>
+              <span className="rate-summary-label">ER (by reach)</span>
+            </div>
+            <div className="rate-summary-item">
+              <span className="rate-summary-value">{renderRate(derivedData.summary.saveRate)}</span>
+              <span className="rate-summary-label">Save Rate</span>
+            </div>
+            <div className="rate-summary-item">
+              <span className="rate-summary-value">{renderRate(derivedData.summary.shareRate, 3)}</span>
+              <span className="rate-summary-label">Share Rate</span>
+            </div>
+            <div className="rate-summary-item">
+              <span className="rate-summary-value">{renderRate(derivedData.summary.commentRate, 3)}</span>
+              <span className="rate-summary-label">Comment Rate</span>
+            </div>
+            <div className="rate-summary-item">
+              <span className="rate-summary-value">{renderRate(derivedData.summary.likeRate)}</span>
+              <span className="rate-summary-label">Like Rate</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Published Posts with Component Rates */}
       <div className="card" style={{ marginTop: '1.5rem' }}>
         <div className="card-header">
           <h2 className="card-title">📊 Published Posts</h2>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            {posts.length} post{posts.length !== 1 ? 's' : ''} tracked
+            {(derivedData?.posts || posts).length} post{(derivedData?.posts || posts).length !== 1 ? 's' : ''} tracked
           </span>
         </div>
 
-        {posts.length === 0 ? (
+        {(derivedData?.posts || posts).length === 0 ? (
           <div className="empty-state">
             <p>No published posts with metrics yet.<br/>
             Publish posts to Instagram to start tracking performance.</p>
           </div>
         ) : (
           <div className="performance-list">
-            {posts.map((post) => (
+            {(derivedData?.posts || posts).map((post) => (
               <div key={post.id} className="performance-item">
                 <div className="performance-item-header">
                   <div>
@@ -596,34 +669,56 @@ export default function PerformancePage() {
                 </div>
                 
                 {post.metrics ? (
-                  <div className="metrics-grid">
-                    <div className="metric-item">
-                      <span className="metric-value">{renderMetric(post.metrics.reach)}</span>
-                      <span className="metric-label">Reach</span>
+                  <>
+                    {/* Raw metrics row */}
+                    <div className="metrics-row-compact">
+                      <span title="Reach">🎯 {renderMetric(post.metrics.reach)}</span>
+                      <span title="Likes">❤️ {renderMetric(post.metrics.likes)}</span>
+                      <span title="Comments">💬 {renderMetric(post.metrics.comments)}</span>
+                      <span title="Saves">🔖 {renderMetric(post.metrics.saves)}</span>
+                      <span title="Shares">↗️ {renderMetric(post.metrics.shares)}</span>
                     </div>
-                    <div className="metric-item">
-                      <span className="metric-value">{renderMetric(post.metrics.impressions)}</span>
-                      <span className="metric-label">Impressions</span>
-                    </div>
-                    <div className="metric-item">
-                      <span className="metric-value">{renderMetric(post.metrics.likes)}</span>
-                      <span className="metric-label">Likes</span>
-                    </div>
-                    <div className="metric-item">
-                      <span className="metric-value">{renderMetric(post.metrics.comments)}</span>
-                      <span className="metric-label">Comments</span>
-                    </div>
-                    <div className="metric-item">
-                      <span className="metric-value">{renderMetric(post.metrics.saves)}</span>
-                      <span className="metric-label">Saves</span>
-                    </div>
-                    <div className="metric-item highlight">
-                      <span className="metric-value">
-                        {post.metrics.engagementRate !== null ? `${post.metrics.engagementRate}%` : renderMetric(null)}
-                      </span>
-                      <span className="metric-label">Engagement</span>
-                    </div>
-                  </div>
+                    
+                    {/* Component rates with percentiles */}
+                    {post.rates && (
+                      <div className="rates-grid">
+                        <div className="rate-item">
+                          <div className="rate-value-row">
+                            <span className="rate-value">{renderRate(post.rates.engagementRate)}</span>
+                            {renderPercentile(post.percentiles?.engagementRate, post.percentiles?.insufficientData)}
+                          </div>
+                          <span className="rate-label">ER (by reach)</span>
+                        </div>
+                        <div className="rate-item">
+                          <div className="rate-value-row">
+                            <span className="rate-value">{renderRate(post.rates.saveRate)}</span>
+                            {renderPercentile(post.percentiles?.saveRate, post.percentiles?.insufficientData)}
+                          </div>
+                          <span className="rate-label">Save Rate</span>
+                        </div>
+                        <div className="rate-item">
+                          <div className="rate-value-row">
+                            <span className="rate-value">{renderRate(post.rates.shareRate, 3)}</span>
+                            {renderPercentile(post.percentiles?.shareRate, post.percentiles?.insufficientData)}
+                          </div>
+                          <span className="rate-label">Share Rate</span>
+                        </div>
+                        <div className="rate-item">
+                          <div className="rate-value-row">
+                            <span className="rate-value">{renderRate(post.rates.commentRate, 3)}</span>
+                            {renderPercentile(post.percentiles?.commentRate, post.percentiles?.insufficientData)}
+                          </div>
+                          <span className="rate-label">Comment Rate</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {post.percentiles?.insufficientData && (
+                      <p className="insufficient-data-note">
+                        Percentiles unavailable (need 10+ posts for baseline)
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                     Metrics not yet available. Click refresh to fetch latest data.
