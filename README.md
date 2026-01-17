@@ -1,128 +1,241 @@
-# Instagram Post Refiner 📸
+<div align="center">
 
-A web app to track and refine your Instagram posts with persistent storage. Paste Claude-generated content, edit to match your voice, and log both versions to build authentic training data.
+# 📸 Instagram Post Refiner
 
-## How It Works
+**Transform AI-generated content into your authentic voice — and track what actually works.**
 
-1. **Paste** from Claude Chat → Copy Claude's initial output
-2. **Lock & Edit** → Lock the original, refine to your voice
-3. **Review** → See real-time diff of all your changes
-4. **Log** → Save original + final with edit count to Supabase
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)](https://react.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com/)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
-The logged posts create training data showing your editing patterns and voice refinements.
+[Features](#-features) • [Demo](#-how-it-works) • [Quick Start](#-quick-start) • [Instagram Integration](#-instagram-integration) • [Deploy](#-deploy-to-vercel)
 
-## Setup
+</div>
 
-### 1. Create a Supabase Project
+---
 
-1. Go to [supabase.com](https://supabase.com) and sign up
-2. Create a new project
-3. In the SQL Editor, run the SQL from `lib/supabase-schema.sql` to create the `posts` table
-4. Get your credentials from **Settings → API**:
-   - `NEXT_PUBLIC_SUPABASE_URL` (Project URL)
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Anon public key)
+## 🎯 The Problem
 
-### 2. Configure Environment Variables
+You use AI to draft Instagram posts, but the output never quite sounds like *you*. You edit it, post it, and then... forget what you changed. Weeks later, you're making the same edits again.
 
-Create `.env.local` in your project root:
+**Instagram Post Refiner solves this by:**
+
+1. **Capturing your voice** — Log original AI output alongside your refined version
+2. **Tracking your patterns** — See exactly what you change and how often
+3. **Measuring what works** — Connect to Instagram and correlate your edits with actual engagement
+4. **Optimizing your hashtags** — Discover which hashtags drive performance
+
+---
+
+## ✨ Features
+
+### Core Editing
+- **Side-by-side editor** — Original AI output on the left, your version on the right
+- **Real-time diff** — See every change highlighted as you type
+- **Edit tracking** — Automatic counting of meaningful edits
+- **Post history** — Browse, search, and filter all logged posts
+
+### 📊 Analytics Dashboard
+- **Voice analysis** — Track how your editing patterns evolve
+- **Edit distribution** — Visualize your refinement intensity
+- **Topic trends** — See what subjects you post about most
+
+### 📈 Performance Tracking (Instagram Connected)
+- **Link posts to Instagram** — Match logged posts with published content
+- **Engagement metrics** — Track likes, comments, saves, reach, and engagement rate
+- **Edit-to-performance correlation** — Discover if more edits = better performance
+- **Best posting times** — Analyze when your content performs best
+
+### # Hashtag Analytics
+- **Usage tracking** — See your most-used hashtags at a glance
+- **Trending detection** — Spot which hashtags you're using more lately
+- **Performance ranking** — Identify your best and worst performing hashtags
+- **Smart suggestions** — Know which hashtags to keep and which to replace
+
+---
+
+## 🔄 How It Works
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│                 │     │                 │     │                 │     │                 │
+│  1. PASTE       │ ──▶ │  2. EDIT        │ ──▶ │  3. LOG         │ ──▶ │  4. ANALYZE     │
+│                 │     │                 │     │                 │     │                 │
+│  Paste AI       │     │  Refine to      │     │  Save both      │     │  Link to IG &   │
+│  generated post │     │  your voice     │     │  versions       │     │  track metrics  │
+│                 │     │                 │     │                 │     │                 │
+└─────────────────┘     └─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+**The magic:** Every logged post becomes training data. Over time, you'll see exactly how you transform AI content — and which transformations lead to better engagement.
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+
+- A [Supabase](https://supabase.com) account (free tier works great)
+- (Optional) Instagram Business/Creator account for performance tracking
+
+### 1. Clone & Install
 
 ```bash
+git clone https://github.com/yourusername/instagram-post-refiner.git
+cd instagram-post-refiner
+npm install
+```
+
+### 2. Set Up Supabase
+
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Go to **SQL Editor** and run the contents of `lib/supabase-schema.sql`
+3. Get your credentials from **Settings → API**
+
+### 3. Configure Environment
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local`:
+```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-### 3. Install & Run
+### 4. Run
 
 ```bash
-# Install dependencies
-npm install
-
-# Run locally
 npm run dev
 ```
 
-Open http://localhost:3000
+Open [http://localhost:3000](http://localhost:3000) 🎉
 
-## Deploy to Vercel
+---
 
-1. Push code to GitHub
-2. Import repository at [vercel.com/new](https://vercel.com/new)
-3. Add the two environment variables from step 1 above
-4. Deploy!
+## 📸 Instagram Integration
 
-Your data will now persist permanently in Supabase across deployments.
+Connect your Instagram Business or Creator account to unlock performance tracking.
 
-## Project Structure
+### Setup
+
+1. Create an app at [developers.facebook.com](https://developers.facebook.com)
+2. Add the **Instagram Graph API** product
+3. Configure OAuth redirect URI: `https://your-domain.com/api/instagram/callback`
+4. Add to your environment:
+
+```env
+INSTAGRAM_APP_ID=your-facebook-app-id
+INSTAGRAM_APP_SECRET=your-facebook-app-secret
+INSTAGRAM_REDIRECT_URI=https://your-domain.com/api/instagram/callback
+```
+
+5. Go to **Settings** in the app and connect your account
+
+### What You Get
+
+| Feature | Description |
+|---------|-------------|
+| **Account Overview** | Followers, posts, 28-day reach and engagement |
+| **Post Metrics** | Per-post likes, comments, saves, shares, reach |
+| **Best Times** | Optimal posting days and hours based on your data |
+| **Hashtag Performance** | Which hashtags drive the most engagement |
+| **Edit Correlation** | Does editing more lead to better results? |
+
+---
+
+## 🌐 Deploy to Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/instagram-post-refiner)
+
+1. Click the button above (or import from GitHub)
+2. Add your environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `INSTAGRAM_APP_ID` (optional)
+   - `INSTAGRAM_APP_SECRET` (optional)
+   - `INSTAGRAM_REDIRECT_URI` (optional)
+3. Deploy!
+
+---
+
+## 📁 Project Structure
 
 ```
 instagram-post-refiner/
 ├── app/
 │   ├── api/
-│   │   ├── log/route.js           # POST: Save post to Supabase
-│   │   ├── posts/route.js         # GET: Retrieve posts from Supabase
-│   │   └── analyse/route.js       # GET: Compute analytics metrics
-│   ├── analysis/
-│   │   └── page.js                # Analytics dashboard UI
-│   ├── layout.js                  # Root layout with Analytics
-│   ├── layout.test.js             # Layout unit tests
-│   ├── page.js                    # Main UI (Edit, History, View tabs)
-│   └── globals.css                # Global styles and dark theme
+│   │   ├── hashtags/          # Hashtag analytics endpoint
+│   │   ├── instagram/         # Instagram OAuth & metrics
+│   │   │   ├── account/       # Account info
+│   │   │   ├── auth/          # OAuth initiation
+│   │   │   ├── callback/      # OAuth callback
+│   │   │   ├── insights/      # Account insights
+│   │   │   ├── metrics/       # Post metrics
+│   │   │   └── recent/        # Recent posts
+│   │   ├── log/               # Save logged posts
+│   │   ├── posts/             # Retrieve & link posts
+│   │   └── analyse/           # Analytics computation
+│   ├── analysis/              # Analytics dashboard
+│   ├── performance/           # Performance tracking page
+│   ├── settings/              # Instagram connection settings
+│   ├── page.js                # Main editor UI
+│   └── globals.css            # Styling
 ├── lib/
-│   ├── supabase.js                # Supabase client configuration
-│   ├── supabase-schema.sql        # Database schema
-│   ├── diff.js                    # Diff computation utilities
-│   └── system-prompt.js           # Voice guidelines (reference)
-├── .env.example                   # Environment variables template
-├── package.json                   # Dependencies and scripts
-├── next.config.mjs                # Next.js configuration
-├── CLAUDE.md                      # Developer guide
-└── README.md                      # User guide
+│   ├── supabase.js            # Database client
+│   ├── supabase-schema.sql    # Database schema
+│   ├── instagram.js           # Instagram API client
+│   └── hashtags.js            # Hashtag extraction utilities
+└── ...
 ```
 
-## Features
+---
 
-- Side-by-side original vs edited view
-- Live diff highlighting as you edit
-- Edit count tracking
-- Post history with clickable entries
-- Copy to clipboard
-- Dark mode UI
-- Analytics dashboard with post metrics
-- Performance monitoring via Vercel Analytics
+## 🛠 Tech Stack
 
-Data persists permanently in Supabase - no more ephemeral storage on Vercel.
+| Technology | Purpose |
+|------------|---------|
+| **Next.js 16** | Full-stack React framework |
+| **React 19** | UI components |
+| **Supabase** | PostgreSQL database & auth |
+| **Instagram Graph API** | Performance metrics |
+| **Vercel Analytics** | Performance monitoring |
 
-## Analytics & Monitoring
+---
 
-### Vercel Analytics
+## 🔒 Privacy
 
-This app includes Vercel Analytics for performance monitoring:
-- **Web Vitals**: Tracks Core Web Vitals (LCP, FID, CLS)
-- **Custom Events**: Monitors user interactions and feature usage
-- **No personal data**: Analytics respects user privacy (see Privacy section below)
+- **Your content stays yours** — All posts are stored in your own Supabase database
+- **No PII collected** — Analytics track performance, not personal data
+- **Instagram data** — Only accessed with your explicit OAuth consent
+- **Open source** — Audit the code yourself
 
-The `<Analytics />` component is included in `app/layout.js` and requires no additional configuration.
+---
 
-### Supabase Integration
+## 🤝 Contributing
 
-Supabase provides persistent data storage for all logged posts:
-- Configured in `lib/supabase.js`
-- Used by all API routes (`/api/log`, `/api/posts`, `/api/analyse`)
-- Requires environment variables: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- For local development, ensure `.env.local` is configured (see Setup section)
+Contributions are welcome! Feel free to:
 
-## Privacy & Analytics Disclosure
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-This application uses Vercel Analytics to monitor performance and usage patterns. No personally identifiable information (PII) is collected. The analytics data helps us understand how users interact with the app to improve performance and user experience.
+---
 
-**What is tracked:**
-- Page views and navigation patterns
-- Performance metrics (load times, responsiveness)
-- General browser/device information (no personal data)
+## 📄 License
 
-**What is NOT tracked:**
-- Post content (everything stays in your Supabase database)
-- Personally identifiable information
-- Cookies are not used for tracking
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
-For more information on Vercel Analytics privacy, see [Vercel Analytics Documentation](https://vercel.com/analytics).
+---
+
+<div align="center">
+
+**Built for content creators who want their AI-assisted posts to actually sound like them.**
+
+[⬆ Back to top](#-instagram-post-refiner)
+
+</div>
