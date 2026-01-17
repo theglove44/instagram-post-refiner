@@ -83,13 +83,18 @@ export async function GET() {
     const recentStats = getHashtagStats(recentPosts);
     const olderStats = getHashtagStats(olderPosts);
     
-    // Find trending (appearing more in recent vs older)
+    // Find trending (appearing more in recent vs older) - show underlying counts
     const trending = recentStats.all
       .map(recent => {
         const older = olderStats.all.find(o => o.hashtag === recent.hashtag);
         const olderCount = older?.count || 0;
         const growth = olderCount > 0 ? ((recent.count - olderCount) / olderCount * 100) : (recent.count > 0 ? 100 : 0);
-        return { ...recent, growth: Math.round(growth) };
+        return { 
+          ...recent, 
+          growth: Math.round(growth),
+          recentCount: recent.count,
+          previousCount: olderCount,
+        };
       })
       .filter(h => h.count >= 2)
       .sort((a, b) => b.growth - a.growth)

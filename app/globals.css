@@ -2658,3 +2658,77 @@ textarea:focus-visible {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* =====================================================
+   Sample Gating & Low-N Indicators
+   ===================================================== */
+
+.insufficient-data-banner {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  color: #f59e0b;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.best-time-sample {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.day-sample-size {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.day-bar-container.low-n {
+  opacity: 0.5;
+}
+
+.day-bar-container.low-n .day-name,
+.day-bar-container.low-n .day-engagement {
+  color: var(--text-muted);
+}
+
+.hour-item.low-n {
+  opacity: 0.6;
+  background: var(--bg-input);
+}
+
+.hour-posts.warning {
+  color: #f59e0b;
+}
+
+.low-n-badge {
+  font-size: 0.65rem;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  margin-left: 0.5rem;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Hashtag Lift Styles */
+.hashtag-lift {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.hashtag-lift.positive {
+  color: var(--success);
+}
+
+.hashtag-lift.negative {
+  color: var(--error);
+}
+
+.hashtag-performance-item .hashtag-posts {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}

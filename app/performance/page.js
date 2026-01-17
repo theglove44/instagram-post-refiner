@@ -476,42 +476,65 @@ export default function PerformancePage() {
             <h2 className="card-title">⏰ Best Times to Post</h2>
           </div>
           <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-            Based on engagement rates from your recent posts
+            Based on engagement rates from {timeAnalysis.totalPostsAnalyzed || 0} posts 
+            (min n={timeAnalysis.minNRequired || 5} required for "best")
           </p>
           
-          <div className="best-times-grid">
-            <div className="best-time-card highlight">
-              <div className="best-time-label">Best Day</div>
-              <div className="best-time-value">{timeAnalysis.bestDay || 'N/A'}</div>
-              <div className="best-time-engagement">{formatNumber(timeAnalysis.bestDayEngagement)} avg interactions</div>
+          {timeAnalysis.insufficientData ? (
+            <div className="insufficient-data-banner">
+              Not enough data yet. Need at least {timeAnalysis.minNRequired || 5} posts per time bucket to determine best times.
             </div>
-            <div className="best-time-card highlight">
-              <div className="best-time-label">Best Hour</div>
-              <div className="best-time-value">{timeAnalysis.bestHour || 'N/A'}</div>
-              <div className="best-time-engagement">{formatNumber(timeAnalysis.bestHourEngagement)} avg interactions</div>
+          ) : (
+            <div className="best-times-grid">
+              <div className="best-time-card highlight">
+                <div className="best-time-label">Best Day</div>
+                <div className="best-time-value">{timeAnalysis.bestDay || 'N/A'}</div>
+                <div className="best-time-engagement">
+                  {timeAnalysis.bestDayEngagementRate != null ? `${timeAnalysis.bestDayEngagementRate}% ER` : 'N/A'}
+                </div>
+                <div className="best-time-sample">n={timeAnalysis.bestDayPostCount || 0}</div>
+              </div>
+              <div className="best-time-card highlight">
+                <div className="best-time-label">Best Hour</div>
+                <div className="best-time-value">{timeAnalysis.bestHour || 'N/A'}</div>
+                <div className="best-time-engagement">
+                  {timeAnalysis.bestHourEngagementRate != null ? `${timeAnalysis.bestHourEngagementRate}% ER` : 'N/A'}
+                </div>
+                <div className="best-time-sample">n={timeAnalysis.bestHourPostCount || 0}</div>
+              </div>
             </div>
-          </div>
+          )}
           
           {/* Daily breakdown */}
           {timeAnalysis.dailyBreakdown && timeAnalysis.dailyBreakdown.length > 0 && (
             <div style={{ marginTop: '1.5rem' }}>
-              <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>Engagement by Day</h4>
+              <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                Engagement Rate by Day
+              </h4>
               <div className="day-breakdown">
-                {timeAnalysis.dailyBreakdown.map((day, i) => (
-                  <div key={day.day} className="day-bar-container">
-                    <div className="day-name">{day.day.slice(0, 3)}</div>
-                    <div className="day-bar">
-                      <div 
-                        className="day-bar-fill"
-                        style={{ 
-                          height: `${(parseFloat(day.avgEngagement) / parseFloat(timeAnalysis.dailyBreakdown[0].avgEngagement)) * 100}%`,
-                          opacity: i === 0 ? 1 : 0.5 + (0.5 * (1 - i / timeAnalysis.dailyBreakdown.length))
-                        }}
-                      />
+                {timeAnalysis.dailyBreakdown.map((day) => {
+                  const maxRate = Math.max(...timeAnalysis.dailyBreakdown.map(d => d.avgEngagementRate || 0));
+                  return (
+                    <div 
+                      key={day.day} 
+                      className={`day-bar-container ${!day.meetsMinN ? 'low-n' : ''}`}
+                      title={!day.meetsMinN ? `Only ${day.postCount} posts (need ${timeAnalysis.minNRequired})` : ''}
+                    >
+                      <div className="day-name">{day.day.slice(0, 3)}</div>
+                      <div className="day-bar">
+                        <div 
+                          className="day-bar-fill"
+                          style={{ 
+                            height: maxRate > 0 ? `${(day.avgEngagementRate / maxRate) * 100}%` : '0%',
+                            opacity: day.meetsMinN ? 1 : 0.4,
+                          }}
+                        />
+                      </div>
+                      <div className="day-engagement">{day.avgEngagementRate}%</div>
+                      <div className="day-sample-size">n={day.postCount}</div>
                     </div>
-                    <div className="day-engagement">{formatNumber(day.avgEngagement)}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -522,11 +545,17 @@ export default function PerformancePage() {
               <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>Top Posting Hours</h4>
               <div className="hours-list">
                 {timeAnalysis.hourlyBreakdown.map((hour, i) => (
-                  <div key={hour.hour} className="hour-item">
+                  <div 
+                    key={hour.hour} 
+                    className={`hour-item ${!hour.meetsMinN ? 'low-n' : ''}`}
+                  >
                     <span className="hour-rank">#{i + 1}</span>
                     <span className="hour-time">{hour.hour.toString().padStart(2, '0')}:00</span>
-                    <span className="hour-engagement">{formatNumber(hour.avgEngagement)} avg interactions</span>
-                    <span className="hour-posts">({hour.postCount} posts)</span>
+                    <span className="hour-engagement">{hour.avgEngagementRate}% ER</span>
+                    <span className={`hour-posts ${!hour.meetsMinN ? 'warning' : ''}`}>
+                      n={hour.postCount}
+                    </span>
+                    {!hour.meetsMinN && <span className="low-n-badge">low n</span>}
                   </div>
                 ))}
               </div>
@@ -805,7 +834,7 @@ export default function PerformancePage() {
               </div>
             </div>
 
-            {/* Trending Hashtags */}
+            {/* Trending Hashtags - show underlying counts */}
             {hashtagData.trending && hashtagData.trending.length > 0 && (
               <div style={{ marginTop: '1.5rem' }}>
                 <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
@@ -815,7 +844,9 @@ export default function PerformancePage() {
                   {hashtagData.trending.slice(0, 5).map((tag) => (
                     <div key={tag.hashtag} className="hashtag-trend-item">
                       <span className="hashtag-name">{tag.hashtag}</span>
-                      <span className="hashtag-usage">{tag.count} uses</span>
+                      <span className="hashtag-usage">
+                        {tag.previousCount} → {tag.recentCount}
+                      </span>
                       <span className={`hashtag-growth ${tag.growth > 0 ? 'positive' : tag.growth < 0 ? 'negative' : ''}`}>
                         {tag.growth > 0 ? '↑' : tag.growth < 0 ? '↓' : '→'} {Math.abs(tag.growth)}%
                       </span>
@@ -825,45 +856,52 @@ export default function PerformancePage() {
               </div>
             )}
 
-            {/* Hashtag Performance Correlation */}
-            {hashtagData.correlations && hashtagData.correlations.bestPerforming?.length > 0 && (
+            {/* Hashtag Lift vs Baseline */}
+            {hashtagData.correlations && (
               <div style={{ marginTop: '1.5rem' }}>
                 <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                  🏆 Best Performing Hashtags
+                  📊 Hashtags with Positive Lift (min n={hashtagData.correlations.minNRequired || 5})
                 </h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                  Based on {hashtagData.postsWithMetrics} linked posts with engagement data
+                  Baseline ER: {hashtagData.correlations.baselineMean}% from {hashtagData.correlations.totalWithMetrics} posts
                 </p>
-                <div className="hashtag-performance-list">
-                  {hashtagData.correlations.bestPerforming.slice(0, 8).map((tag, i) => (
-                    <div key={tag.hashtag} className="hashtag-performance-item">
-                      <span className="hashtag-rank">#{i + 1}</span>
-                      <span className="hashtag-name">{tag.hashtag}</span>
-                      <div className="hashtag-metrics">
-                        <span className="hashtag-engagement">{tag.avgEngagement}% eng</span>
-                        <span className="hashtag-reach">{formatNumber(tag.avgReach)} reach</span>
-                        <span className="hashtag-posts">{tag.postCount} post{tag.postCount !== 1 ? 's' : ''}</span>
+                
+                {hashtagData.correlations.bestPerforming?.length > 0 ? (
+                  <div className="hashtag-performance-list">
+                    {hashtagData.correlations.bestPerforming.slice(0, 8).map((tag, i) => (
+                      <div key={tag.hashtag} className="hashtag-performance-item">
+                        <span className="hashtag-rank">#{i + 1}</span>
+                        <span className="hashtag-name">{tag.hashtag}</span>
+                        <div className="hashtag-metrics">
+                          <span className="hashtag-lift positive">+{tag.liftScore}% lift</span>
+                          <span className="hashtag-engagement">{tag.tagMean}% ER</span>
+                          <span className="hashtag-posts">n={tag.postCount}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="insufficient-data-note">
+                    No hashtags with positive lift and n≥{hashtagData.correlations.minNRequired || 5} yet.
+                  </p>
+                )}
               </div>
             )}
 
-            {/* Worst Performing (if enough data) */}
-            {hashtagData.correlations && hashtagData.correlations.worstPerforming?.length > 3 && (
+            {/* Negative Lift Hashtags */}
+            {hashtagData.correlations && hashtagData.correlations.worstPerforming?.length > 0 && (
               <div style={{ marginTop: '1.5rem' }}>
                 <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                  ⚠️ Consider Replacing
+                  ⚠️ Negative Lift (Consider Replacing)
                 </h3>
                 <div className="hashtag-performance-list">
                   {hashtagData.correlations.worstPerforming.slice(0, 5).map((tag) => (
                     <div key={tag.hashtag} className="hashtag-performance-item low-performing">
                       <span className="hashtag-name">{tag.hashtag}</span>
                       <div className="hashtag-metrics">
-                        <span className="hashtag-engagement">{tag.avgEngagement}% eng</span>
-                        <span className="hashtag-reach">{formatNumber(tag.avgReach)} reach</span>
-                        <span className="hashtag-posts">{tag.postCount} post{tag.postCount !== 1 ? 's' : ''}</span>
+                        <span className="hashtag-lift negative">{tag.liftScore}% lift</span>
+                        <span className="hashtag-engagement">{tag.tagMean}% ER</span>
+                        <span className="hashtag-posts">n={tag.postCount}</span>
                       </div>
                     </div>
                   ))}

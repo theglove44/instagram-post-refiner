@@ -95,10 +95,24 @@ export async function GET(request) {
   }
 }
 
+// Constants for sample gating and shrinkage
+const MIN_N = 5; // Minimum posts to label as "best"
+const SHRINKAGE_K = 10; // Shrinkage constant
+
+// Calculate shrinkage score: regress toward global mean for small samples
+function shrinkageScore(bucketMean, globalMean, n, k = SHRINKAGE_K) {
+  // score = (n/(n+k)) * bucket_mean + (k/(n+k)) * global_mean
+  return (n / (n + k)) * bucketMean + (k / (n + k)) * globalMean;
+}
+
 function analyzePostingTimes(posts) {
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const hourBuckets = {};
   const dayBuckets = {};
+  
+  // Use engagement rate by reach (not raw interactions)
+  let globalSum = 0;
+  let globalCount = 0;
   
   posts.forEach(post => {
     if (!post.timestamp) return;
@@ -107,50 +121,80 @@ function analyzePostingTimes(posts) {
     const hour = date.getHours();
     const day = date.getDay();
     
-    // Use likes + comments as simple engagement metric (more reliable than rate)
-    const engagement = (post.likes || 0) + (post.comments || 0);
+    // Use engagement rate by reach if available, otherwise skip
+    const engagementRate = post.engagementRate;
+    if (engagementRate === null || engagementRate === undefined) return;
+    
+    globalSum += engagementRate;
+    globalCount++;
     
     // Group by hour
     if (!hourBuckets[hour]) {
-      hourBuckets[hour] = { totalEngagement: 0, count: 0 };
+      hourBuckets[hour] = { sum: 0, count: 0 };
     }
-    hourBuckets[hour].totalEngagement += engagement;
+    hourBuckets[hour].sum += engagementRate;
     hourBuckets[hour].count++;
     
     // Group by day
     if (!dayBuckets[day]) {
-      dayBuckets[day] = { totalEngagement: 0, count: 0 };
+      dayBuckets[day] = { sum: 0, count: 0 };
     }
-    dayBuckets[day].totalEngagement += engagement;
+    dayBuckets[day].sum += engagementRate;
     dayBuckets[day].count++;
   });
   
-  // Calculate averages and find best times
-  const hourlyAvg = Object.entries(hourBuckets).map(([hour, data]) => ({
-    hour: parseInt(hour),
-    avgEngagement: Math.round(data.totalEngagement / data.count),
-    postCount: data.count,
-  })).sort((a, b) => b.avgEngagement - a.avgEngagement);
+  const globalMean = globalCount > 0 ? globalSum / globalCount : 0;
   
-  const dailyAvg = Object.entries(dayBuckets).map(([day, data]) => ({
-    day: dayNames[parseInt(day)],
-    dayIndex: parseInt(day),
-    avgEngagement: Math.round(data.totalEngagement / data.count),
-    postCount: data.count,
-  })).sort((a, b) => b.avgEngagement - a.avgEngagement);
+  // Calculate shrinkage-adjusted scores for hours
+  const hourlyData = Object.entries(hourBuckets).map(([hour, data]) => {
+    const bucketMean = data.sum / data.count;
+    const score = shrinkageScore(bucketMean, globalMean, data.count);
+    return {
+      hour: parseInt(hour),
+      avgEngagementRate: parseFloat(bucketMean.toFixed(2)),
+      shrinkageScore: parseFloat(score.toFixed(2)),
+      postCount: data.count,
+      meetsMinN: data.count >= MIN_N,
+    };
+  }).sort((a, b) => b.shrinkageScore - a.shrinkageScore);
   
-  // Format best hour
-  const bestHour = hourlyAvg[0];
+  // Calculate shrinkage-adjusted scores for days
+  const dailyData = Object.entries(dayBuckets).map(([day, data]) => {
+    const bucketMean = data.sum / data.count;
+    const score = shrinkageScore(bucketMean, globalMean, data.count);
+    return {
+      day: dayNames[parseInt(day)],
+      dayIndex: parseInt(day),
+      avgEngagementRate: parseFloat(bucketMean.toFixed(2)),
+      shrinkageScore: parseFloat(score.toFixed(2)),
+      postCount: data.count,
+      meetsMinN: data.count >= MIN_N,
+    };
+  }).sort((a, b) => b.shrinkageScore - a.shrinkageScore);
+  
+  // Best hour/day: only from buckets meeting MIN_N
+  const validHours = hourlyData.filter(h => h.meetsMinN);
+  const validDays = dailyData.filter(d => d.meetsMinN);
+  
+  const bestHour = validHours[0];
+  const bestDay = validDays[0];
+  
   const bestHourFormatted = bestHour ? 
     `${bestHour.hour.toString().padStart(2, '0')}:00 - ${((bestHour.hour + 1) % 24).toString().padStart(2, '0')}:00` : 
     null;
   
   return {
     bestHour: bestHourFormatted,
-    bestHourEngagement: bestHour?.avgEngagement,
-    bestDay: dailyAvg[0]?.day,
-    bestDayEngagement: dailyAvg[0]?.avgEngagement,
-    hourlyBreakdown: hourlyAvg.slice(0, 5), // Top 5 hours
-    dailyBreakdown: dailyAvg,
+    bestHourEngagementRate: bestHour?.avgEngagementRate,
+    bestHourPostCount: bestHour?.postCount,
+    bestDay: bestDay?.day,
+    bestDayEngagementRate: bestDay?.avgEngagementRate,
+    bestDayPostCount: bestDay?.postCount,
+    hourlyBreakdown: hourlyData.slice(0, 8), // Top 8 hours
+    dailyBreakdown: dailyData,
+    globalMean: parseFloat(globalMean.toFixed(2)),
+    totalPostsAnalyzed: globalCount,
+    minNRequired: MIN_N,
+    insufficientData: validHours.length === 0 && validDays.length === 0,
   };
 }
