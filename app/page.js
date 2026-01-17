@@ -382,6 +382,14 @@ export default function Home() {
             <span className="tab-icon">📊</span>
             Analysis
           </Link>
+          <Link href="/performance" className="tab">
+            <span className="tab-icon">📈</span>
+            Performance
+          </Link>
+          <Link href="/settings" className="tab">
+            <span className="tab-icon">⚙️</span>
+            Settings
+          </Link>
         </div>
       </div>
 

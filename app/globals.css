@@ -1518,3 +1518,551 @@ textarea:focus-visible {
     gap: 1rem;
   }
 }
+
+/* ========================================
+   Instagram Integration Styles
+   ======================================== */
+
+/* Settings Page - Instagram Account Card */
+.instagram-account-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.instagram-profile-pic {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--accent);
+}
+
+.instagram-account-info {
+  flex: 1;
+}
+
+.instagram-username {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.instagram-stats {
+  display: flex;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.instagram-connected-date {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.instagram-warning {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  display: inline-block;
+}
+
+.instagram-requirements {
+  padding: 1rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  margin-top: 1rem;
+}
+
+.error-message {
+  padding: 0.75rem 1rem;
+  background: var(--error-soft);
+  color: var(--error);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--error);
+}
+
+/* Performance Page Styles */
+.correlation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.correlation-card {
+  padding: 1.5rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-md);
+  text-align: center;
+  border: 1px solid var(--border);
+  transition: all 0.2s var(--ease-out);
+}
+
+.correlation-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.correlation-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.correlation-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--ig-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.25rem;
+}
+
+.correlation-sublabel {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.correlation-meta {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 0.75rem;
+}
+
+.performance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.performance-item {
+  padding: 1.25rem;
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: all 0.2s var(--ease-out);
+}
+
+.performance-item:hover {
+  border-color: var(--border-hover);
+}
+
+.performance-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.performance-topic {
+  font-weight: 600;
+  color: var(--text);
+  margin-right: 0.75rem;
+}
+
+.performance-edits {
+  font-size: 0.85rem;
+  color: var(--warning);
+  background: var(--warning-soft);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.metric-item {
+  text-align: center;
+  padding: 0.75rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+}
+
+.metric-item.highlight {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+}
+
+.metric-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.metric-item.highlight .metric-value {
+  color: var(--accent);
+}
+
+.metric-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.performance-item-footer {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+/* Recent Instagram Posts Grid */
+.recent-posts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.recent-post-card {
+  padding: 1rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: all 0.2s var(--ease-out);
+}
+
+.recent-post-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.recent-post-caption {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.recent-post-metrics {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.recent-post-metrics span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.recent-post-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.recent-post-type {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.recent-post-link {
+  font-size: 0.8rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.recent-post-link:hover {
+  text-decoration: underline;
+}
+
+.recent-post-engagement {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.recent-post-date {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+/* Account Overview Styles */
+.account-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1rem;
+}
+
+.account-stat {
+  text-align: center;
+  padding: 1rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.account-stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.account-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Demographics Styles */
+.demographics-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.demographics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.demo-card {
+  padding: 1rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-md);
+}
+
+.demo-title {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.demo-bar {
+  height: 8px;
+  background: var(--ig-purple);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.demo-bar-fill.male {
+  height: 100%;
+  background: var(--accent);
+}
+
+.demo-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.demo-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 0.25rem 0;
+}
+
+/* Best Times Styles */
+.best-times-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.best-time-card {
+  padding: 1.5rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-md);
+  text-align: center;
+  border: 1px solid var(--border);
+}
+
+.best-time-card.highlight {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.best-time-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.5rem;
+}
+
+.best-time-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.best-time-engagement {
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+/* Day Breakdown Chart */
+.day-breakdown {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 120px;
+  gap: 0.5rem;
+  padding: 0 1rem;
+}
+
+.day-bar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.day-name {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.day-bar {
+  flex: 1;
+  width: 100%;
+  max-width: 40px;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.day-bar-fill {
+  width: 100%;
+  background: linear-gradient(to top, var(--accent), var(--ig-purple));
+  border-radius: var(--radius-sm);
+  transition: height 0.3s ease;
+}
+
+.day-engagement {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+/* Hours List */
+.hours-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.hour-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+}
+
+.hour-rank {
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 30px;
+}
+
+.hour-time {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 50px;
+}
+
+.hour-engagement {
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.hour-posts {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+/* Responsive for Performance Page */
+@media (max-width: 768px) {
+  .correlation-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .instagram-account-card {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .recent-posts-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .account-overview-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .demographics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .best-times-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .day-breakdown {
+    height: 100px;
+  }
+  
+  .hour-item {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .hour-engagement {
+    flex: none;
+    width: 100%;
+  }
+}
