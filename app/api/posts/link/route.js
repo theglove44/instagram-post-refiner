@@ -11,7 +11,7 @@ export async function POST(request) {
     
     const supabase = getSupabaseClient();
     
-    // Update the post with Instagram link
+    // Update the post with Instagram link (use post_id which is the UUID)
     const { data, error } = await supabase
       .from('posts')
       .update({
@@ -20,7 +20,7 @@ export async function POST(request) {
         published_at: instagramMediaId ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', postId)
+      .eq('post_id', postId)
       .select()
       .single();
     
@@ -60,7 +60,7 @@ export async function DELETE(request) {
         published_at: null,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', postId)
+      .eq('post_id', postId)
       .select()
       .single();
     

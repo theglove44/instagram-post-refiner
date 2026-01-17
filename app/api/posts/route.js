@@ -21,6 +21,9 @@ export async function GET() {
       finalVersion: post.final_version,
       editCount: post.edit_count,
       createdAt: post.created_at,
+      instagramMediaId: post.instagram_media_id,
+      instagramPermalink: post.instagram_permalink,
+      publishedAt: post.published_at,
     }));
 
     return Response.json({ posts });
