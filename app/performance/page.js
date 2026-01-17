@@ -15,9 +15,12 @@ export default function PerformancePage() {
   const [error, setError] = useState(null);
   const [instagramConnected, setInstagramConnected] = useState(false);
   const [correlationData, setCorrelationData] = useState(null);
+  const [hashtagData, setHashtagData] = useState(null);
+  const [loadingHashtags, setLoadingHashtags] = useState(false);
 
   useEffect(() => {
     checkInstagramConnection();
+    loadHashtagData();
   }, []);
 
   const checkInstagramConnection = async () => {
@@ -110,6 +113,21 @@ export default function PerformancePage() {
       setError(err.message);
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const loadHashtagData = async () => {
+    setLoadingHashtags(true);
+    try {
+      const res = await fetch('/api/hashtags');
+      const data = await res.json();
+      if (data.success) {
+        setHashtagData(data);
+      }
+    } catch (err) {
+      console.error('Failed to load hashtag data:', err);
+    } finally {
+      setLoadingHashtags(false);
     }
   };
 
@@ -515,6 +533,139 @@ export default function PerformancePage() {
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Hashtag Analytics */}
+      <div className="card" style={{ marginTop: '1.5rem' }}>
+        <div className="card-header">
+          <h2 className="card-title"># Hashtag Analytics</h2>
+          <button 
+            className="btn btn-secondary btn-sm"
+            onClick={loadHashtagData}
+            disabled={loadingHashtags}
+          >
+            {loadingHashtags ? '🔄' : '🔄 Refresh'}
+          </button>
+        </div>
+
+        {loadingHashtags && !hashtagData ? (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <span className="loading-spinner" style={{ width: '32px', height: '32px' }} />
+            <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>Analyzing hashtags...</p>
+          </div>
+        ) : !hashtagData || hashtagData.stats?.totalUnique === 0 ? (
+          <div className="empty-state">
+            <p>No hashtags found in your posts yet.<br/>Add hashtags to your posts to see analytics here.</p>
+          </div>
+        ) : (
+          <>
+            {/* Hashtag Overview Stats */}
+            <div className="hashtag-overview">
+              <div className="hashtag-stat">
+                <span className="hashtag-stat-value">{hashtagData.stats.totalUnique}</span>
+                <span className="hashtag-stat-label">Unique Hashtags</span>
+              </div>
+              <div className="hashtag-stat">
+                <span className="hashtag-stat-value">{hashtagData.stats.totalUsage}</span>
+                <span className="hashtag-stat-label">Total Usage</span>
+              </div>
+              <div className="hashtag-stat">
+                <span className="hashtag-stat-value">{hashtagData.stats.avgPerPost}</span>
+                <span className="hashtag-stat-label">Avg per Post</span>
+              </div>
+              <div className="hashtag-stat">
+                <span className="hashtag-stat-value">{hashtagData.postsWithHashtags}</span>
+                <span className="hashtag-stat-label">Posts with #</span>
+              </div>
+            </div>
+
+            {/* Most Used Hashtags */}
+            <div style={{ marginTop: '1.5rem' }}>
+              <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Most Used Hashtags</h3>
+              <div className="hashtag-cloud">
+                {hashtagData.stats.top.slice(0, 15).map((tag, i) => (
+                  <span 
+                    key={tag.hashtag} 
+                    className="hashtag-pill"
+                    style={{ 
+                      fontSize: `${Math.max(0.75, Math.min(1.2, 0.75 + tag.count * 0.1))}rem`,
+                      opacity: Math.max(0.6, 1 - i * 0.03),
+                    }}
+                  >
+                    {tag.hashtag}
+                    <span className="hashtag-count">{tag.count}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Trending Hashtags */}
+            {hashtagData.trending && hashtagData.trending.length > 0 && (
+              <div style={{ marginTop: '1.5rem' }}>
+                <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                  📈 Trending (Last 30 Days)
+                </h3>
+                <div className="hashtag-list">
+                  {hashtagData.trending.slice(0, 5).map((tag) => (
+                    <div key={tag.hashtag} className="hashtag-trend-item">
+                      <span className="hashtag-name">{tag.hashtag}</span>
+                      <span className="hashtag-usage">{tag.count} uses</span>
+                      <span className={`hashtag-growth ${tag.growth > 0 ? 'positive' : tag.growth < 0 ? 'negative' : ''}`}>
+                        {tag.growth > 0 ? '↑' : tag.growth < 0 ? '↓' : '→'} {Math.abs(tag.growth)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Hashtag Performance Correlation */}
+            {hashtagData.correlations && hashtagData.correlations.bestPerforming?.length > 0 && (
+              <div style={{ marginTop: '1.5rem' }}>
+                <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                  🏆 Best Performing Hashtags
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                  Based on {hashtagData.postsWithMetrics} linked posts with engagement data
+                </p>
+                <div className="hashtag-performance-list">
+                  {hashtagData.correlations.bestPerforming.slice(0, 8).map((tag, i) => (
+                    <div key={tag.hashtag} className="hashtag-performance-item">
+                      <span className="hashtag-rank">#{i + 1}</span>
+                      <span className="hashtag-name">{tag.hashtag}</span>
+                      <div className="hashtag-metrics">
+                        <span className="hashtag-engagement">{tag.avgEngagement}% eng</span>
+                        <span className="hashtag-reach">{formatNumber(tag.avgReach)} reach</span>
+                        <span className="hashtag-posts">{tag.postCount} post{tag.postCount !== 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Worst Performing (if enough data) */}
+            {hashtagData.correlations && hashtagData.correlations.worstPerforming?.length > 3 && (
+              <div style={{ marginTop: '1.5rem' }}>
+                <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                  ⚠️ Consider Replacing
+                </h3>
+                <div className="hashtag-performance-list">
+                  {hashtagData.correlations.worstPerforming.slice(0, 5).map((tag) => (
+                    <div key={tag.hashtag} className="hashtag-performance-item low-performing">
+                      <span className="hashtag-name">{tag.hashtag}</span>
+                      <div className="hashtag-metrics">
+                        <span className="hashtag-engagement">{tag.avgEngagement}% eng</span>
+                        <span className="hashtag-reach">{formatNumber(tag.avgReach)} reach</span>
+                        <span className="hashtag-posts">{tag.postCount} post{tag.postCount !== 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

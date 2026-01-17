@@ -2188,3 +2188,184 @@ textarea:focus-visible {
   align-items: center;
   gap: 0.25rem;
 }
+
+/* ========================================
+   Hashtag Analytics Styles
+   ======================================== */
+
+.hashtag-overview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.hashtag-stat {
+  text-align: center;
+  padding: 1rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.hashtag-stat-value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.hashtag-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.hashtag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.hashtag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--accent);
+  font-weight: 500;
+  transition: all 0.2s var(--ease-out);
+}
+
+.hashtag-pill:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.hashtag-count {
+  font-size: 0.7em;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  padding: 0.15rem 0.4rem;
+  border-radius: 10px;
+}
+
+.hashtag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.hashtag-trend-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+}
+
+.hashtag-name {
+  font-weight: 600;
+  color: var(--accent);
+  min-width: 120px;
+}
+
+.hashtag-usage {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+.hashtag-growth {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.hashtag-growth.positive {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.hashtag-growth.negative {
+  color: var(--error);
+  background: var(--error-soft);
+}
+
+.hashtag-performance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.hashtag-performance-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent);
+}
+
+.hashtag-performance-item.low-performing {
+  border-left-color: var(--warning);
+}
+
+.hashtag-rank {
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 30px;
+}
+
+.hashtag-metrics {
+  display: flex;
+  gap: 1rem;
+  margin-left: auto;
+  font-size: 0.8rem;
+}
+
+.hashtag-engagement {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.hashtag-reach {
+  color: var(--text-secondary);
+}
+
+.hashtag-posts {
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .hashtag-overview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .hashtag-trend-item {
+    flex-wrap: wrap;
+  }
+  
+  .hashtag-name {
+    min-width: auto;
+  }
+  
+  .hashtag-performance-item {
+    flex-wrap: wrap;
+  }
+  
+  .hashtag-metrics {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 0.5rem;
+  }
+}
