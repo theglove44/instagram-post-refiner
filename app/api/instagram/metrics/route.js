@@ -1,5 +1,32 @@
 import { getSupabaseClient } from '@/lib/supabase';
-import { getMediaInsights, getMediaDetails, getRecentMedia } from '@/lib/instagram';
+import { getMediaInsights, getMediaDetails } from '@/lib/instagram';
+
+// Helper to convert undefined/missing to null (never 0)
+function nullIfMissing(value) {
+  return value !== undefined && value !== null ? value : null;
+}
+
+// Calculate engagement rate only if we have valid data
+function calculateEngagementRate(likes, comments, saves, reach) {
+  // Only calculate if we have reach and at least one engagement metric
+  if (reach === null || reach === undefined || reach === 0) return null;
+  
+  const validLikes = likes ?? 0;
+  const validComments = comments ?? 0;
+  const validSaves = saves ?? 0;
+  
+  // If all engagement metrics are null, we can't calculate
+  if (likes === null && comments === null && saves === null) return null;
+  
+  const totalEngagement = validLikes + validComments + validSaves;
+  return ((totalEngagement / reach) * 100).toFixed(2);
+}
+
+// Count missing metrics in a record
+function countMissingMetrics(metrics) {
+  const fields = ['impressions', 'reach', 'views', 'likes', 'comments', 'saves', 'shares'];
+  return fields.filter(f => metrics[f] === null || metrics[f] === undefined).length;
+}
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -45,10 +72,19 @@ export async function GET(request) {
         getMediaDetails(accessToken, post.instagram_media_id),
       ]);
       
-      // Calculate engagement rate
-      const totalEngagement = (details.likes || 0) + (details.comments || 0) + (insights?.saved || 0);
-      const reach = insights?.reach || 1;
-      const engagementRate = ((totalEngagement / reach) * 100).toFixed(2);
+      const metrics = {
+        impressions: nullIfMissing(insights?.impressions),
+        reach: nullIfMissing(insights?.reach),
+        views: nullIfMissing(insights?.plays),
+        likes: nullIfMissing(details?.likes ?? details?.like_count),
+        comments: nullIfMissing(details?.comments ?? details?.comments_count),
+        saves: nullIfMissing(insights?.saved),
+        shares: nullIfMissing(insights?.shares),
+      };
+      
+      const engagementRate = calculateEngagementRate(
+        metrics.likes, metrics.comments, metrics.saves, metrics.reach
+      );
       
       // Store metrics snapshot
       await supabase
@@ -56,28 +92,16 @@ export async function GET(request) {
         .insert({
           post_id: post.id,
           instagram_media_id: post.instagram_media_id,
-          impressions: insights?.impressions || 0,
-          reach: insights?.reach || 0,
-          views: insights?.plays || 0,
-          likes: details.likes || 0,
-          comments: details.comments || 0,
-          saves: insights?.saved || 0,
-          shares: insights?.shares || 0,
+          ...metrics,
           engagement_rate: engagementRate,
         });
       
       return Response.json({
         success: true,
         metrics: {
-          impressions: insights?.impressions || 0,
-          reach: insights?.reach || 0,
-          views: insights?.plays || 0,
-          likes: details.likes || 0,
-          comments: details.comments || 0,
-          saves: insights?.saved || 0,
-          shares: insights?.shares || 0,
+          ...metrics,
           engagementRate,
-          permalink: details.permalink,
+          permalink: details?.permalink,
         }
       });
     }
@@ -128,9 +152,18 @@ export async function GET(request) {
       };
     });
     
+    // Get last sync status
+    const { data: lastSync } = await supabase
+      .from('sync_status')
+      .select('*')
+      .eq('sync_type', 'metrics')
+      .order('completed_at', { ascending: false })
+      .limit(1);
+    
     return Response.json({
       success: true,
       posts: postsData,
+      lastSync: lastSync?.[0] || null,
     });
     
   } catch (error) {
@@ -144,8 +177,21 @@ export async function GET(request) {
 
 // Refresh metrics for all published posts
 export async function POST() {
+  const supabase = getSupabaseClient();
+  let syncId = null;
+  
   try {
-    const supabase = getSupabaseClient();
+    // Create sync status record
+    const { data: syncRecord } = await supabase
+      .from('sync_status')
+      .insert({
+        sync_type: 'metrics',
+        status: 'running',
+      })
+      .select()
+      .single();
+    
+    syncId = syncRecord?.id;
     
     // Get Instagram account
     const { data: accounts } = await supabase
@@ -154,6 +200,7 @@ export async function POST() {
       .limit(1);
     
     if (!accounts || accounts.length === 0) {
+      await updateSyncStatus(supabase, syncId, 'error', 0, 0, 1, { message: 'No Instagram account connected' });
       return Response.json(
         { error: 'No Instagram account connected' },
         { status: 400 }
@@ -170,13 +217,15 @@ export async function POST() {
       .not('instagram_media_id', 'is', null);
     
     if (!publishedPosts || publishedPosts.length === 0) {
-      return Response.json({ success: true, updated: 0 });
+      await updateSyncStatus(supabase, syncId, 'success', 0, 0, 0);
+      return Response.json({ success: true, updated: 0, syncId });
     }
     
     let updated = 0;
+    let totalMissing = 0;
     const errors = [];
     
-    // Fetch metrics for each post (with rate limiting consideration)
+    // Fetch metrics for each post
     for (const post of publishedPosts) {
       try {
         const [insights, details] = await Promise.all([
@@ -184,22 +233,28 @@ export async function POST() {
           getMediaDetails(accessToken, post.instagram_media_id),
         ]);
         
-        const totalEngagement = (details.likes || 0) + (details.comments || 0) + (insights?.saved || 0);
-        const reach = insights?.reach || 1;
-        const engagementRate = ((totalEngagement / reach) * 100).toFixed(2);
+        const metrics = {
+          impressions: nullIfMissing(insights?.impressions),
+          reach: nullIfMissing(insights?.reach),
+          views: nullIfMissing(insights?.plays),
+          likes: nullIfMissing(details?.likes ?? details?.like_count),
+          comments: nullIfMissing(details?.comments ?? details?.comments_count),
+          saves: nullIfMissing(insights?.saved),
+          shares: nullIfMissing(insights?.shares),
+        };
+        
+        const engagementRate = calculateEngagementRate(
+          metrics.likes, metrics.comments, metrics.saves, metrics.reach
+        );
+        
+        totalMissing += countMissingMetrics(metrics);
         
         await supabase
           .from('post_metrics')
           .insert({
             post_id: post.id,
             instagram_media_id: post.instagram_media_id,
-            impressions: insights?.impressions || 0,
-            reach: insights?.reach || 0,
-            views: insights?.plays || 0,
-            likes: details.likes || 0,
-            comments: details.comments || 0,
-            saves: insights?.saved || 0,
-            shares: insights?.shares || 0,
+            ...metrics,
             engagement_rate: engagementRate,
           });
         
@@ -209,17 +264,49 @@ export async function POST() {
       }
     }
     
+    // Update sync status
+    await updateSyncStatus(
+      supabase, 
+      syncId, 
+      errors.length === publishedPosts.length ? 'error' : 'success',
+      updated,
+      totalMissing,
+      errors.length,
+      errors.length > 0 ? { errors } : null
+    );
+    
     return Response.json({
       success: true,
       updated,
+      metricsMissing: totalMissing,
       errors: errors.length > 0 ? errors : undefined,
+      syncId,
     });
     
   } catch (error) {
     console.error('Metrics refresh error:', error);
+    if (syncId) {
+      await updateSyncStatus(supabase, syncId, 'error', 0, 0, 1, { message: error.message });
+    }
     return Response.json(
       { error: error.message },
       { status: 500 }
     );
   }
+}
+
+async function updateSyncStatus(supabase, syncId, status, postsProcessed, metricsMissing, errorsCount, errorDetails = null) {
+  if (!syncId) return;
+  
+  await supabase
+    .from('sync_status')
+    .update({
+      status,
+      completed_at: new Date().toISOString(),
+      posts_processed: postsProcessed,
+      metrics_missing: metricsMissing,
+      errors_count: errorsCount,
+      error_details: errorDetails,
+    })
+    .eq('id', syncId);
 }

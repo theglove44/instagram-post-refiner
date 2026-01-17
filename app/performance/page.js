@@ -17,10 +17,12 @@ export default function PerformancePage() {
   const [correlationData, setCorrelationData] = useState(null);
   const [hashtagData, setHashtagData] = useState(null);
   const [loadingHashtags, setLoadingHashtags] = useState(false);
+  const [dataHealth, setDataHealth] = useState(null);
 
   useEffect(() => {
     checkInstagramConnection();
     loadHashtagData();
+    loadDataHealth();
   }, []);
 
   const checkInstagramConnection = async () => {
@@ -131,6 +133,18 @@ export default function PerformancePage() {
     }
   };
 
+  const loadDataHealth = async () => {
+    try {
+      const res = await fetch('/api/instagram/health');
+      const data = await res.json();
+      if (data.success) {
+        setDataHealth(data.health);
+      }
+    } catch (err) {
+      console.error('Failed to load data health:', err);
+    }
+  };
+
   const calculateCorrelation = (postsData) => {
     if (!postsData || postsData.length < 3) {
       setCorrelationData(null);
@@ -148,41 +162,70 @@ export default function PerformancePage() {
     const mediumEdits = postsWithMetrics.filter(p => p.editCount > 3 && p.editCount <= 7);
     const highEdits = postsWithMetrics.filter(p => p.editCount > 7);
 
+    // Calculate averages ignoring null values
     const avgEngagement = (posts) => {
-      if (posts.length === 0) return 0;
-      return posts.reduce((sum, p) => sum + parseFloat(p.metrics?.engagementRate || 0), 0) / posts.length;
+      const validPosts = posts.filter(p => 
+        p.metrics?.engagementRate !== null && p.metrics?.engagementRate !== undefined
+      );
+      if (validPosts.length === 0) return null;
+      return validPosts.reduce((sum, p) => sum + parseFloat(p.metrics.engagementRate), 0) / validPosts.length;
     };
 
     const avgReach = (posts) => {
-      if (posts.length === 0) return 0;
-      return posts.reduce((sum, p) => sum + (p.metrics?.reach || 0), 0) / posts.length;
+      const validPosts = posts.filter(p => 
+        p.metrics?.reach !== null && p.metrics?.reach !== undefined
+      );
+      if (validPosts.length === 0) return null;
+      return validPosts.reduce((sum, p) => sum + p.metrics.reach, 0) / validPosts.length;
     };
+
+    const lowEng = avgEngagement(lowEdits);
+    const medEng = avgEngagement(mediumEdits);
+    const highEng = avgEngagement(highEdits);
+    const lowReach = avgReach(lowEdits);
+    const medReach = avgReach(mediumEdits);
+    const highReach = avgReach(highEdits);
+    const overallEng = avgEngagement(postsWithMetrics);
 
     setCorrelationData({
       lowEdits: {
         count: lowEdits.length,
-        avgEngagement: avgEngagement(lowEdits).toFixed(2),
-        avgReach: Math.round(avgReach(lowEdits)),
+        avgEngagement: lowEng !== null ? lowEng.toFixed(2) : null,
+        avgReach: lowReach !== null ? Math.round(lowReach) : null,
       },
       mediumEdits: {
         count: mediumEdits.length,
-        avgEngagement: avgEngagement(mediumEdits).toFixed(2),
-        avgReach: Math.round(avgReach(mediumEdits)),
+        avgEngagement: medEng !== null ? medEng.toFixed(2) : null,
+        avgReach: medReach !== null ? Math.round(medReach) : null,
       },
       highEdits: {
         count: highEdits.length,
-        avgEngagement: avgEngagement(highEdits).toFixed(2),
-        avgReach: Math.round(avgReach(highEdits)),
+        avgEngagement: highEng !== null ? highEng.toFixed(2) : null,
+        avgReach: highReach !== null ? Math.round(highReach) : null,
       },
       totalPosts: postsWithMetrics.length,
-      overallAvgEngagement: avgEngagement(postsWithMetrics).toFixed(2),
+      overallAvgEngagement: overallEng !== null ? overallEng.toFixed(2) : null,
     });
   };
 
+  // Format number for display, handling null/undefined
   const formatNumber = (num) => {
+    if (num === null || num === undefined) return null;
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num?.toString() || '0';
+    return num.toString();
+  };
+
+  // Render metric value or N/A with tooltip
+  const renderMetric = (value, label = '') => {
+    if (value === null || value === undefined) {
+      return (
+        <span className="metric-na" title="Not provided by Instagram API for this media/account or not available yet.">
+          N/A
+        </span>
+      );
+    }
+    return formatNumber(value);
   };
 
   if (loading) {
@@ -251,6 +294,63 @@ export default function PerformancePage() {
       {error && (
         <div className="card" style={{ marginTop: '1.5rem', background: 'var(--error-soft)', borderColor: 'var(--error)' }}>
           <p style={{ color: 'var(--error)' }}>Error: {error}</p>
+        </div>
+      )}
+
+      {/* Data Health Panel */}
+      {dataHealth && (
+        <div className="card data-health-card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">🩺 Data Health</h2>
+            <span className={`health-status ${dataHealth.lastSyncStatus}`}>
+              {dataHealth.lastSyncStatus === 'success' ? '✓ Healthy' : 
+               dataHealth.lastSyncStatus === 'error' ? '⚠ Issues' : 
+               '○ No sync yet'}
+            </span>
+          </div>
+          <div className="data-health-grid">
+            <div className="health-stat">
+              <span className="health-stat-label">Last Sync</span>
+              <span className="health-stat-value">
+                {dataHealth.lastSyncAt 
+                  ? new Date(dataHealth.lastSyncAt).toLocaleString('en-GB', { 
+                      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' 
+                    })
+                  : 'Never'}
+              </span>
+            </div>
+            <div className="health-stat">
+              <span className="health-stat-label">Missing Metrics</span>
+              <span className="health-stat-value" style={{ color: dataHealth.nullMetricsPercent > 30 ? 'var(--warning)' : 'var(--text)' }}>
+                {dataHealth.nullMetricsPercent}%
+              </span>
+            </div>
+            <div className="health-stat">
+              <span className="health-stat-label">Recent Errors</span>
+              <span className="health-stat-value" style={{ color: dataHealth.recentErrors > 0 ? 'var(--error)' : 'var(--success)' }}>
+                {dataHealth.recentErrors}
+              </span>
+            </div>
+          </div>
+          {dataHealth.fieldHealth && dataHealth.fieldHealth.some(f => f.missing > 0) && (
+            <details className="health-details">
+              <summary>View metric availability</summary>
+              <div className="field-health-list">
+                {dataHealth.fieldHealth.map(field => (
+                  <div key={field.field} className="field-health-item">
+                    <span className="field-name">{field.field}</span>
+                    <div className="field-bar">
+                      <div 
+                        className="field-bar-fill" 
+                        style={{ width: `${field.availablePercent}%` }}
+                      />
+                    </div>
+                    <span className="field-percent">{field.availablePercent}%</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
       )}
 
@@ -414,26 +514,32 @@ export default function PerformancePage() {
           <div className="correlation-grid">
             <div className="correlation-card">
               <div className="correlation-label">Low Edits (1-3)</div>
-              <div className="correlation-value">{correlationData.lowEdits.avgEngagement}%</div>
+              <div className="correlation-value">
+                {correlationData.lowEdits.avgEngagement !== null ? `${correlationData.lowEdits.avgEngagement}%` : renderMetric(null)}
+              </div>
               <div className="correlation-sublabel">avg engagement</div>
               <div className="correlation-meta">
-                {correlationData.lowEdits.count} posts • {formatNumber(correlationData.lowEdits.avgReach)} avg reach
+                {correlationData.lowEdits.count} posts • {correlationData.lowEdits.avgReach !== null ? `${formatNumber(correlationData.lowEdits.avgReach)} avg reach` : 'N/A reach'}
               </div>
             </div>
             <div className="correlation-card">
               <div className="correlation-label">Medium Edits (4-7)</div>
-              <div className="correlation-value">{correlationData.mediumEdits.avgEngagement}%</div>
+              <div className="correlation-value">
+                {correlationData.mediumEdits.avgEngagement !== null ? `${correlationData.mediumEdits.avgEngagement}%` : renderMetric(null)}
+              </div>
               <div className="correlation-sublabel">avg engagement</div>
               <div className="correlation-meta">
-                {correlationData.mediumEdits.count} posts • {formatNumber(correlationData.mediumEdits.avgReach)} avg reach
+                {correlationData.mediumEdits.count} posts • {correlationData.mediumEdits.avgReach !== null ? `${formatNumber(correlationData.mediumEdits.avgReach)} avg reach` : 'N/A reach'}
               </div>
             </div>
             <div className="correlation-card">
               <div className="correlation-label">High Edits (8+)</div>
-              <div className="correlation-value">{correlationData.highEdits.avgEngagement}%</div>
+              <div className="correlation-value">
+                {correlationData.highEdits.avgEngagement !== null ? `${correlationData.highEdits.avgEngagement}%` : renderMetric(null)}
+              </div>
               <div className="correlation-sublabel">avg engagement</div>
               <div className="correlation-meta">
-                {correlationData.highEdits.count} posts • {formatNumber(correlationData.highEdits.avgReach)} avg reach
+                {correlationData.highEdits.count} posts • {correlationData.highEdits.avgReach !== null ? `${formatNumber(correlationData.highEdits.avgReach)} avg reach` : 'N/A reach'}
               </div>
             </div>
           </div>
@@ -441,7 +547,9 @@ export default function PerformancePage() {
           <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
               <strong>Insight:</strong>{' '}
-              {parseFloat(correlationData.highEdits.avgEngagement) > parseFloat(correlationData.lowEdits.avgEngagement)
+              {correlationData.highEdits.avgEngagement === null || correlationData.lowEdits.avgEngagement === null
+                ? 'Not enough data with metrics yet. Link more posts to Instagram to see patterns.'
+                : parseFloat(correlationData.highEdits.avgEngagement) > parseFloat(correlationData.lowEdits.avgEngagement)
                 ? 'Posts with more edits tend to perform better! Your refinement process is paying off.'
                 : parseFloat(correlationData.lowEdits.avgEngagement) > parseFloat(correlationData.highEdits.avgEngagement)
                 ? 'Posts with fewer edits are performing well. Claude may be getting better at matching your voice.'
@@ -490,27 +598,29 @@ export default function PerformancePage() {
                 {post.metrics ? (
                   <div className="metrics-grid">
                     <div className="metric-item">
-                      <span className="metric-value">{formatNumber(post.metrics.reach)}</span>
+                      <span className="metric-value">{renderMetric(post.metrics.reach)}</span>
                       <span className="metric-label">Reach</span>
                     </div>
                     <div className="metric-item">
-                      <span className="metric-value">{formatNumber(post.metrics.impressions)}</span>
+                      <span className="metric-value">{renderMetric(post.metrics.impressions)}</span>
                       <span className="metric-label">Impressions</span>
                     </div>
                     <div className="metric-item">
-                      <span className="metric-value">{formatNumber(post.metrics.likes)}</span>
+                      <span className="metric-value">{renderMetric(post.metrics.likes)}</span>
                       <span className="metric-label">Likes</span>
                     </div>
                     <div className="metric-item">
-                      <span className="metric-value">{formatNumber(post.metrics.comments)}</span>
+                      <span className="metric-value">{renderMetric(post.metrics.comments)}</span>
                       <span className="metric-label">Comments</span>
                     </div>
                     <div className="metric-item">
-                      <span className="metric-value">{formatNumber(post.metrics.saves)}</span>
+                      <span className="metric-value">{renderMetric(post.metrics.saves)}</span>
                       <span className="metric-label">Saves</span>
                     </div>
                     <div className="metric-item highlight">
-                      <span className="metric-value">{post.metrics.engagementRate}%</span>
+                      <span className="metric-value">
+                        {post.metrics.engagementRate !== null ? `${post.metrics.engagementRate}%` : renderMetric(null)}
+                      </span>
                       <span className="metric-label">Engagement</span>
                     </div>
                   </div>

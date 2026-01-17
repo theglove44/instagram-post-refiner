@@ -71,25 +71,53 @@ CREATE POLICY "Allow public update instagram_accounts" ON instagram_accounts
 CREATE POLICY "Allow public delete instagram_accounts" ON instagram_accounts
   FOR DELETE USING (true);
 
--- Store post performance metrics
+-- Store post performance metrics (NULL = metric not available, not 0)
 CREATE TABLE post_metrics (
   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   post_id BIGINT REFERENCES posts(id) ON DELETE CASCADE,
   instagram_media_id TEXT NOT NULL,
-  -- Engagement metrics
-  impressions INT DEFAULT 0,
-  reach INT DEFAULT 0,
-  views INT DEFAULT 0,
-  likes INT DEFAULT 0,
-  comments INT DEFAULT 0,
-  saves INT DEFAULT 0,
-  shares INT DEFAULT 0,
+  -- Engagement metrics (NULL means not available from API)
+  impressions INT,
+  reach INT,
+  views INT,
+  likes INT,
+  comments INT,
+  saves INT,
+  shares INT,
   -- Calculated metrics
   engagement_rate DECIMAL(5,2),
   -- Tracking
   fetched_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   UNIQUE(post_id, fetched_at)
 );
+
+-- Sync status tracking for Data Health
+CREATE TABLE sync_status (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  sync_type TEXT NOT NULL, -- 'metrics', 'recent', 'insights', 'account'
+  started_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  completed_at TIMESTAMP WITH TIME ZONE,
+  status TEXT NOT NULL DEFAULT 'running', -- 'running', 'success', 'error'
+  posts_processed INT DEFAULT 0,
+  metrics_missing INT DEFAULT 0,
+  errors_count INT DEFAULT 0,
+  error_details JSONB,
+  raw_response JSONB -- Store raw API response for debugging
+);
+
+CREATE INDEX sync_status_type_idx ON sync_status(sync_type);
+CREATE INDEX sync_status_completed_idx ON sync_status(completed_at DESC);
+
+ALTER TABLE sync_status ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read sync_status" ON sync_status
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow public insert sync_status" ON sync_status
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public update sync_status" ON sync_status
+  FOR UPDATE USING (true);
 
 -- Create index for metrics lookups
 CREATE INDEX post_metrics_post_id_idx ON post_metrics(post_id);

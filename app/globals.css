@@ -2369,3 +2369,146 @@ textarea:focus-visible {
     margin-top: 0.5rem;
   }
 }
+
+/* ========================================
+   Data Health & N/A Metric Styles
+   ======================================== */
+
+.metric-na {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.85em;
+  cursor: help;
+}
+
+.data-health-card {
+  border-left: 3px solid var(--border);
+}
+
+.data-health-card:has(.health-status.success) {
+  border-left-color: var(--success);
+}
+
+.data-health-card:has(.health-status.error) {
+  border-left-color: var(--error);
+}
+
+.health-status {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+.health-status.success {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.health-status.error {
+  color: var(--error);
+  background: var(--error-soft);
+}
+
+.health-status.never {
+  color: var(--text-muted);
+  background: var(--bg-input);
+}
+
+.data-health-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.health-stat {
+  text-align: center;
+  padding: 0.75rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+}
+
+.health-stat-label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.25rem;
+}
+
+.health-stat-value {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.health-details {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.health-details summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  user-select: none;
+}
+
+.health-details summary:hover {
+  color: var(--text-secondary);
+}
+
+.health-details[open] summary {
+  margin-bottom: 1rem;
+}
+
+.field-health-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field-health-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.field-name {
+  min-width: 90px;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.field-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-input);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.field-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--success));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.field-percent {
+  min-width: 40px;
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .data-health-grid {
+    grid-template-columns: 1fr;
+  }
+}
