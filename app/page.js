@@ -60,6 +60,12 @@ export default function Home() {
   const [compareSelection, setCompareSelection] = useState([]);
   const [quickStats, setQuickStats] = useState(null);
   const [theme, setTheme] = useState('dark');
+  
+  // Instagram linking states
+  const [instagramPosts, setInstagramPosts] = useState([]);
+  const [loadingInstagram, setLoadingInstagram] = useState(false);
+  const [linkingPost, setLinkingPost] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
 
   // Load history and stats on mount
   useEffect(() => {
@@ -103,6 +109,91 @@ export default function Home() {
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
+  };
+
+  // Load recent Instagram posts for linking
+  const loadInstagramPosts = async () => {
+    setLoadingInstagram(true);
+    try {
+      const res = await fetch('/api/instagram/recent?limit=25');
+      const data = await res.json();
+      if (data.posts) {
+        setInstagramPosts(data.posts);
+      }
+    } catch (error) {
+      console.error('Failed to load Instagram posts:', error);
+    } finally {
+      setLoadingInstagram(false);
+    }
+  };
+
+  // Link a logged post to an Instagram post
+  const linkToInstagram = async (instagramPost) => {
+    if (!selectedPost) return;
+    setLinkingPost(true);
+    try {
+      const res = await fetch('/api/posts/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId: selectedPost.id,
+          instagramMediaId: instagramPost.id,
+          instagramPermalink: instagramPost.permalink,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Post linked to Instagram!');
+        setSelectedPost({ 
+          ...selectedPost, 
+          instagramMediaId: instagramPost.id,
+          instagramPermalink: instagramPost.permalink,
+        });
+        setShowLinkModal(false);
+        loadHistory();
+      } else {
+        showToast(data.error || 'Failed to link', 'error');
+      }
+    } catch (error) {
+      showToast('Failed to link post', 'error');
+    } finally {
+      setLinkingPost(false);
+    }
+  };
+
+  // Unlink a post from Instagram
+  const unlinkFromInstagram = async () => {
+    if (!selectedPost) return;
+    setLinkingPost(true);
+    try {
+      const res = await fetch(`/api/posts/link?postId=${selectedPost.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Post unlinked from Instagram');
+        setSelectedPost({ 
+          ...selectedPost, 
+          instagramMediaId: null,
+          instagramPermalink: null,
+        });
+        loadHistory();
+      } else {
+        showToast(data.error || 'Failed to unlink', 'error');
+      }
+    } catch (error) {
+      showToast('Failed to unlink post', 'error');
+    } finally {
+      setLinkingPost(false);
+    }
+  };
+
+  // Open link modal and load Instagram posts
+  const openLinkModal = () => {
+    setShowLinkModal(true);
+    if (instagramPosts.length === 0) {
+      loadInstagramPosts();
+    }
   };
 
   // Export functions
@@ -744,6 +835,48 @@ export default function Home() {
               ))}
             </div>
           </div>
+
+          {/* Instagram Link Section */}
+          <div className="card" style={{ marginTop: '1.5rem' }}>
+            <div className="card-header">
+              <h2 className="card-title">📸 Instagram Link</h2>
+            </div>
+            {selectedPost.instagramPermalink ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ color: 'var(--success)' }}>✓ Linked to Instagram</span>
+                  <a 
+                    href={selectedPost.instagramPermalink} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="btn btn-secondary btn-sm"
+                  >
+                    View on IG →
+                  </a>
+                </div>
+                <button 
+                  className="btn btn-secondary btn-sm"
+                  onClick={unlinkFromInstagram}
+                  disabled={linkingPost}
+                  style={{ color: 'var(--error)' }}
+                >
+                  {linkingPost ? 'Unlinking...' : '✕ Unlink'}
+                </button>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                  Link this post to an Instagram post to track performance metrics
+                </p>
+                <button 
+                  className="btn btn-primary"
+                  onClick={openLinkModal}
+                >
+                  🔗 Link to Instagram Post
+                </button>
+              </div>
+            )}
+          </div>
           
           <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
             <button 
@@ -885,6 +1018,71 @@ export default function Home() {
       {toast && (
         <div className={`toast toast-${toast.type}`}>
           {toast.type === 'success' ? '✓' : '✕'} {toast.message}
+        </div>
+      )}
+
+      {/* Instagram Link Modal */}
+      {showLinkModal && (
+        <div className="modal-overlay" onClick={() => setShowLinkModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Link to Instagram Post</h2>
+              <button className="modal-close" onClick={() => setShowLinkModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                Select the Instagram post that matches this logged post:
+              </p>
+              <div style={{ background: 'var(--bg-input)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', marginBottom: '1.5rem' }}>
+                <strong style={{ color: 'var(--text-secondary)' }}>{selectedPost?.topic}</strong>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                  {selectedPost?.finalVersion.substring(0, 100)}...
+                </p>
+              </div>
+              
+              {loadingInstagram ? (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  <span className="loading-spinner" style={{ width: '32px', height: '32px' }} />
+                  <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>Loading Instagram posts...</p>
+                </div>
+              ) : instagramPosts.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  <p style={{ color: 'var(--text-muted)' }}>No Instagram posts found. Make sure your Instagram account is connected in Settings.</p>
+                </div>
+              ) : (
+                <div className="instagram-posts-list">
+                  {instagramPosts.map((post) => (
+                    <div 
+                      key={post.id} 
+                      className="instagram-post-option"
+                      onClick={() => linkToInstagram(post)}
+                    >
+                      <div className="instagram-post-caption">
+                        {post.caption || '(No caption)'}
+                      </div>
+                      <div className="instagram-post-meta">
+                        <span>❤️ {post.likes}</span>
+                        <span>💬 {post.comments}</span>
+                        <span>{new Date(post.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowLinkModal(false)}>
+                Cancel
+              </button>
+              <button 
+                className="btn btn-secondary" 
+                onClick={loadInstagramPosts}
+                disabled={loadingInstagram}
+              >
+                {loadingInstagram ? 'Refreshing...' : '🔄 Refresh'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
