@@ -124,20 +124,24 @@ export async function GET() {
         if (hasCities) {
           const citiesData = await citiesResponse.value.json();
           const cityResults = parseDemographicBreakdown(citiesData);
-          demographics.topCities = cityResults
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 5)
-            .map(r => ({ city: r.dimensionValues[0], count: r.value }));
+          if (cityResults.length > 0) {
+            demographics.topCities = cityResults
+              .sort((a, b) => b.value - a.value)
+              .slice(0, 5)
+              .map(r => ({ city: r.dimensionValues[0], count: r.value }));
+          }
         }
 
         // Parse countries
         if (hasCountries) {
           const countriesData = await countriesResponse.value.json();
           const countryResults = parseDemographicBreakdown(countriesData);
-          demographics.topCountries = countryResults
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 5)
-            .map(r => ({ country: r.dimensionValues[0], count: r.value }));
+          if (countryResults.length > 0) {
+            demographics.topCountries = countryResults
+              .sort((a, b) => b.value - a.value)
+              .slice(0, 5)
+              .map(r => ({ country: r.dimensionValues[0], count: r.value }));
+          }
         }
 
         // Parse age and gender
@@ -145,24 +149,31 @@ export async function GET() {
           const ageGenderData = await ageGenderResponse.value.json();
           const ageGenderResults = parseDemographicBreakdown(ageGenderData);
 
-          let male = 0, female = 0;
-          const ageGroups = {};
+          if (ageGenderResults.length > 0) {
+            let male = 0, female = 0;
+            const ageGroups = {};
 
-          ageGenderResults.forEach(result => {
-            // dimension_values contains [age_range, gender] e.g. ["25-34", "M"]
-            const [age, gender] = result.dimensionValues;
+            ageGenderResults.forEach(result => {
+              // dimension_values contains [age_range, gender] e.g. ["25-34", "M"]
+              const [age, gender] = result.dimensionValues;
 
-            if (gender === 'M') male += result.value;
-            if (gender === 'F') female += result.value;
+              if (gender === 'M') male += result.value;
+              if (gender === 'F') female += result.value;
 
-            if (!ageGroups[age]) ageGroups[age] = 0;
-            ageGroups[age] += result.value;
-          });
+              if (!ageGroups[age]) ageGroups[age] = 0;
+              ageGroups[age] += result.value;
+            });
 
-          demographics.gender = { male, female };
-          demographics.ageGroups = Object.entries(ageGroups)
-            .sort((a, b) => b[1] - a[1])
-            .map(([age, count]) => ({ age, count }));
+            demographics.gender = { male, female };
+            demographics.ageGroups = Object.entries(ageGroups)
+              .sort((a, b) => b[1] - a[1])
+              .map(([age, count]) => ({ age, count }));
+          }
+        }
+
+        // If no demographic data was actually parsed, reset to null
+        if (Object.keys(demographics).length === 0) {
+          demographics = null;
         }
       }
     } catch (err) {
