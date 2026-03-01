@@ -58,8 +58,6 @@ export async function GET(request) {
             saves: saves || null,
             shares: shares || null,
             totalInteractions: insights?.total_interactions || null,
-            avgWatchTime: insights?.ig_reels_avg_watch_time || null,
-            replays: insights?.clips_replays_count || null,
             engagementRate: engagementRate ? parseFloat(engagementRate) : null,
           };
         } catch (err) {
