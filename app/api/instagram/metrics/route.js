@@ -231,62 +231,56 @@ export async function POST() {
     let totalMissing = 0;
     const errors = [];
 
-    // Process in batches to stay under Meta's ~200 calls/user/hour rate limit
-    // Each post makes 2 API calls (insights + details), so batch of 5 = 10 calls
-    const BATCH_SIZE = 5;
-    const BATCH_DELAY_MS = 1000;
+    // Rate limiting derived from Meta's ~200 calls/user/hour budget:
+    // - Each post = 2 API calls (insights + details)
+    // - Budget per post = 200 / 2 = 100 posts/hour
+    // - Min interval = 3600s / 100 = 36s per post
+    // Process sequentially with a delay to stay safely under the limit.
+    const API_CALLS_PER_POST = 2;
+    const HOURLY_BUDGET = 200;
+    const DELAY_PER_POST_MS = Math.ceil((3600 / (HOURLY_BUDGET / API_CALLS_PER_POST)) * 1000); // ~36s
 
-    for (let i = 0; i < publishedPosts.length; i += BATCH_SIZE) {
-      const batch = publishedPosts.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < publishedPosts.length; i++) {
+      const post = publishedPosts[i];
+      try {
+        const [insights, details] = await Promise.all([
+          getMediaInsights(accessToken, post.instagram_media_id),
+          getMediaDetails(accessToken, post.instagram_media_id),
+        ]);
 
-      const results = await Promise.allSettled(
-        batch.map(async (post) => {
-          const [insights, details] = await Promise.all([
-            getMediaInsights(accessToken, post.instagram_media_id),
-            getMediaDetails(accessToken, post.instagram_media_id),
-          ]);
+        const metrics = {
+          impressions: nullIfMissing(insights?.impressions),
+          reach: nullIfMissing(insights?.reach),
+          views: nullIfMissing(insights?.plays),
+          likes: nullIfMissing(details?.likes ?? details?.like_count),
+          comments: nullIfMissing(details?.comments ?? details?.comments_count),
+          saves: nullIfMissing(insights?.saved),
+          shares: nullIfMissing(insights?.shares),
+        };
 
-          const metrics = {
-            impressions: nullIfMissing(insights?.impressions),
-            reach: nullIfMissing(insights?.reach),
-            views: nullIfMissing(insights?.plays),
-            likes: nullIfMissing(details?.likes ?? details?.like_count),
-            comments: nullIfMissing(details?.comments ?? details?.comments_count),
-            saves: nullIfMissing(insights?.saved),
-            shares: nullIfMissing(insights?.shares),
-          };
+        const engagementRate = calculateEngagementRate(
+          metrics.likes, metrics.comments, metrics.saves, metrics.shares, metrics.reach
+        );
 
-          const engagementRate = calculateEngagementRate(
-            metrics.likes, metrics.comments, metrics.saves, metrics.shares, metrics.reach
-          );
+        totalMissing += countMissingMetrics(metrics);
 
-          totalMissing += countMissingMetrics(metrics);
+        await supabase
+          .from('post_metrics')
+          .insert({
+            post_id: post.id,
+            instagram_media_id: post.instagram_media_id,
+            ...metrics,
+            engagement_rate: engagementRate,
+          });
 
-          await supabase
-            .from('post_metrics')
-            .insert({
-              post_id: post.id,
-              instagram_media_id: post.instagram_media_id,
-              ...metrics,
-              engagement_rate: engagementRate,
-            });
-
-          return post.id;
-        })
-      );
-
-      // Count successes and collect errors from this batch
-      for (let j = 0; j < results.length; j++) {
-        if (results[j].status === 'fulfilled') {
-          updated++;
-        } else {
-          errors.push({ postId: batch[j].id, error: results[j].reason?.message || 'Unknown error' });
-        }
+        updated++;
+      } catch (err) {
+        errors.push({ postId: post.id, error: err.message });
       }
 
-      // Delay between batches to respect rate limits
-      if (i + BATCH_SIZE < publishedPosts.length) {
-        await delay(BATCH_DELAY_MS);
+      // Delay between posts to respect rate limits (skip after last post)
+      if (i < publishedPosts.length - 1) {
+        await delay(DELAY_PER_POST_MS);
       }
     }
 
