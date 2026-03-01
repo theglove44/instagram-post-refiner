@@ -106,7 +106,6 @@ export async function GET(request) {
         comments: nullIfMissing(details?.comments ?? details?.comments_count),
         saves: nullIfMissing(insights?.saved),
         shares: nullIfMissing(insights?.shares),
-        total_interactions: nullIfMissing(insights?.total_interactions),
       };
 
       const engagementRate = calculateEngagementRate(
