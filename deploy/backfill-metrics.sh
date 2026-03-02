@@ -6,7 +6,7 @@ set -euo pipefail
 # that have never been synced or haven't been updated recently.
 #
 # Intended to run via cron during off-hours, e.g.:
-#   0 2 * * * /home/christof21/instagram-post-refiner/deploy/backfill-metrics.sh >> /var/log/instagram-backfill.log 2>&1
+#   0 2 * * * /home/christof21/instagram-post-refiner/deploy/backfill-metrics.sh >> ~/instagram-backfill.log 2>&1
 #
 # Uses a 365-day window so it gradually catches up on older posts.
 # The API skips posts that already have metrics unless they're
