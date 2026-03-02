@@ -13,7 +13,7 @@ set -euo pipefail
 # within the lookback window.
 # ─────────────────────────────────────────────────────────────
 
-HOSTNAME="https://insta.mjoln1r.com"
+HOSTNAME="${BACKFILL_URL:-http://localhost:3000}"
 DAYS=365
 
 echo "[$(date -Iseconds)] Starting nightly metrics backfill (${DAYS} days)..."
@@ -26,7 +26,7 @@ HTTP_CODE=$(echo "$RESPONSE" | tail -1)
 BODY=$(echo "$RESPONSE" | sed '$d')
 
 if [ "$HTTP_CODE" -eq 200 ]; then
-  SYNC_ID=$(echo "$BODY" | grep -o '"syncId":[0-9]*' | cut -d: -f2)
+  SYNC_ID=$(echo "$BODY" | grep -o '"syncId":[0-9]*' | cut -d: -f2 || true)
   echo "[$(date -Iseconds)] Backfill started (syncId: ${SYNC_ID:-unknown}, HTTP $HTTP_CODE)"
 else
   echo "[$(date -Iseconds)] ERROR: Backfill failed (HTTP $HTTP_CODE): $BODY"
