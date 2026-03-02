@@ -73,13 +73,15 @@ export async function GET(request) {
       ]);
       
       const metrics = {
-        impressions: nullIfMissing(insights?.impressions),
+        // impressions is deprecated since April 2025; column kept for historical data only
+        impressions: null,
         reach: nullIfMissing(insights?.reach),
-        views: nullIfMissing(insights?.plays),
+        views: nullIfMissing(insights?.views),
         likes: nullIfMissing(details?.likes ?? details?.like_count),
         comments: nullIfMissing(details?.comments ?? details?.comments_count),
         saves: nullIfMissing(insights?.saved),
         shares: nullIfMissing(insights?.shares),
+        total_interactions: nullIfMissing(insights?.total_interactions),
       };
       
       const engagementRate = calculateEngagementRate(
@@ -119,6 +121,7 @@ export async function GET(request) {
           comments,
           saves,
           shares,
+          total_interactions,
           engagement_rate,
           fetched_at
         )
@@ -146,6 +149,7 @@ export async function GET(request) {
           comments: latestMetrics.comments,
           saves: latestMetrics.saves,
           shares: latestMetrics.shares,
+          totalInteractions: latestMetrics.total_interactions,
           engagementRate: latestMetrics.engagement_rate,
           lastUpdated: latestMetrics.fetched_at,
         } : null,
@@ -234,13 +238,15 @@ export async function POST() {
         ]);
         
         const metrics = {
-          impressions: nullIfMissing(insights?.impressions),
+          // impressions is deprecated since April 2025; column kept for historical data only
+          impressions: null,
           reach: nullIfMissing(insights?.reach),
-          views: nullIfMissing(insights?.plays),
+          views: nullIfMissing(insights?.views),
           likes: nullIfMissing(details?.likes ?? details?.like_count),
           comments: nullIfMissing(details?.comments ?? details?.comments_count),
           saves: nullIfMissing(insights?.saved),
           shares: nullIfMissing(insights?.shares),
+          total_interactions: nullIfMissing(insights?.total_interactions),
         };
         
         const engagementRate = calculateEngagementRate(

@@ -84,6 +84,7 @@ CREATE TABLE post_metrics (
   comments INT,
   saves INT,
   shares INT,
+  total_interactions INT,
   -- Calculated metrics
   engagement_rate DECIMAL(5,2),
   -- Tracking
@@ -139,3 +140,8 @@ CREATE POLICY "Allow public insert post_metrics" ON post_metrics
 -- ALTER TABLE posts ADD COLUMN IF NOT EXISTS instagram_permalink TEXT;
 -- ALTER TABLE posts ADD COLUMN IF NOT EXISTS published_at TIMESTAMP WITH TIME ZONE;
 -- CREATE INDEX IF NOT EXISTS posts_instagram_media_id_idx ON posts(instagram_media_id);
+
+-- =====================================================
+-- Migration: add total_interactions to post_metrics
+-- =====================================================
+-- ALTER TABLE post_metrics ADD COLUMN IF NOT EXISTS total_interactions INT;
