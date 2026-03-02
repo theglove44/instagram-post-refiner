@@ -3,6 +3,16 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
+// Safe JSON parser — handles non-JSON error responses from the server
+async function safeJson(res) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(text.slice(0, 200) || `Request failed with status ${res.status}`);
+  }
+}
+
 export default function PerformancePage() {
   const [posts, setPosts] = useState([]);
   const [recentPosts, setRecentPosts] = useState([]);
@@ -29,7 +39,7 @@ export default function PerformancePage() {
   const checkInstagramConnection = async () => {
     try {
       const res = await fetch('/api/instagram/account');
-      const data = await res.json();
+      const data = await safeJson(res);
       
       if (data.connected) {
         setInstagramConnected(true);
@@ -51,7 +61,7 @@ export default function PerformancePage() {
     setLoadingRecent(true);
     try {
       const res = await fetch('/api/instagram/recent?limit=25');
-      const data = await res.json();
+      const data = await safeJson(res);
       
       if (data.error) {
         console.error('Recent posts error:', data.error);
@@ -72,7 +82,7 @@ export default function PerformancePage() {
     setLoadingInsights(true);
     try {
       const res = await fetch('/api/instagram/insights');
-      const data = await res.json();
+      const data = await safeJson(res);
       
       if (data.error) {
         console.error('Account insights error:', data.error);
@@ -89,7 +99,7 @@ export default function PerformancePage() {
   const loadMetrics = async () => {
     try {
       const res = await fetch('/api/instagram/metrics');
-      const data = await res.json();
+      const data = await safeJson(res);
       
       if (data.error) {
         throw new Error(data.error);
@@ -108,7 +118,7 @@ export default function PerformancePage() {
     setRefreshing(true);
     try {
       const res = await fetch('/api/instagram/metrics', { method: 'POST' });
-      const data = await res.json();
+      const data = await safeJson(res);
       
       if (data.success) {
         await loadMetrics();
@@ -124,7 +134,7 @@ export default function PerformancePage() {
     setLoadingHashtags(true);
     try {
       const res = await fetch('/api/hashtags');
-      const data = await res.json();
+      const data = await safeJson(res);
       if (data.success) {
         setHashtagData(data);
       }
@@ -138,7 +148,7 @@ export default function PerformancePage() {
   const loadDataHealth = async () => {
     try {
       const res = await fetch('/api/instagram/health');
-      const data = await res.json();
+      const data = await safeJson(res);
       if (data.success) {
         setDataHealth(data.health);
       }
@@ -150,7 +160,7 @@ export default function PerformancePage() {
   const loadDerivedMetrics = async () => {
     try {
       const res = await fetch('/api/instagram/derived');
-      const data = await res.json();
+      const data = await safeJson(res);
       if (data.success) {
         setDerivedData(data);
       }
