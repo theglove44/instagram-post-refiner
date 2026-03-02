@@ -33,10 +33,9 @@ fi
 # cloudflared
 if ! command -v cloudflared &>/dev/null; then
     echo "  Installing cloudflared..."
-    curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
-    echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflared.list
-    sudo apt-get update
-    sudo apt-get install -y cloudflared
+    curl -fsSL -o /tmp/cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+    sudo dpkg -i /tmp/cloudflared.deb
+    rm /tmp/cloudflared.deb
 else
     echo "  cloudflared already installed: $(cloudflared --version)"
 fi
