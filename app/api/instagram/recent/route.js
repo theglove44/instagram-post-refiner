@@ -31,7 +31,8 @@ export async function GET(request) {
     const postsWithInsights = await Promise.all(
       recentMedia.map(async (media) => {
         try {
-          const insights = await getMediaInsights(accessToken, media.id);
+          const insightsResult = await getMediaInsights(accessToken, media.id);
+          const insights = insightsResult?.insights ?? insightsResult;
           const likes = media.like_count || 0;
           const comments = media.comments_count || 0;
           const saves = insights?.saved || 0;

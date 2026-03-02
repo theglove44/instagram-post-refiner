@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabase';
-import { getMediaInsights, getMediaDetails } from '@/lib/instagram';
+import { getMediaInsights, getMediaDetails, getTokenExpiryDate } from '@/lib/instagram';
 
 // Delay helper for rate limiting Meta API calls (~200 calls/user/hour)
 function delay(ms) {
@@ -34,6 +34,21 @@ function countMissingMetrics(metrics) {
   return fields.filter(f => metrics[f] === null || metrics[f] === undefined).length;
 }
 
+/**
+ * Persist a refreshed access token to the instagram_accounts table.
+ * Called whenever graphFetchWithRefresh returns a newToken.
+ */
+async function persistRefreshedToken(supabase, accountId, newToken, expiresIn) {
+  const updateData = { access_token: newToken };
+  if (expiresIn) {
+    updateData.token_expires_at = getTokenExpiryDate(expiresIn);
+  }
+  await supabase
+    .from('instagram_accounts')
+    .update(updateData)
+    .eq('id', accountId);
+}
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const postId = searchParams.get('postId');
@@ -55,7 +70,7 @@ export async function GET(request) {
     }
 
     const account = accounts[0];
-    const accessToken = account.access_token;
+    let accessToken = account.access_token;
 
     // If postId provided, get metrics for specific post
     if (postId) {
@@ -72,11 +87,21 @@ export async function GET(request) {
         );
       }
 
-      // Get insights and details
-      const [insights, details] = await Promise.all([
+      // Get insights and details (both now return { insights/details, newToken, expiresIn })
+      const [insightsResult, detailsResult] = await Promise.all([
         getMediaInsights(accessToken, post.instagram_media_id),
         getMediaDetails(accessToken, post.instagram_media_id),
       ]);
+
+      const insights = insightsResult.insights;
+      const details = detailsResult.details;
+
+      // Persist refreshed token if either call triggered a refresh
+      const refreshedToken = insightsResult.newToken || detailsResult.newToken;
+      if (refreshedToken) {
+        const expiresIn = insightsResult.expiresIn || detailsResult.expiresIn;
+        await persistRefreshedToken(supabase, account.id, refreshedToken, expiresIn);
+      }
 
       const metrics = {
         // impressions is deprecated since April 2025; column kept for historical data only
@@ -218,7 +243,7 @@ export async function POST() {
     }
 
     const account = accounts[0];
-    const accessToken = account.access_token;
+    let accessToken = account.access_token;
 
     // Get all published posts
     const { data: publishedPosts } = await supabase
@@ -247,10 +272,21 @@ export async function POST() {
     for (let i = 0; i < publishedPosts.length; i++) {
       const post = publishedPosts[i];
       try {
-        const [insights, details] = await Promise.all([
+        const [insightsResult, detailsResult] = await Promise.all([
           getMediaInsights(accessToken, post.instagram_media_id),
           getMediaDetails(accessToken, post.instagram_media_id),
         ]);
+
+        const insights = insightsResult.insights;
+        const details = detailsResult.details;
+
+        // If a token refresh occurred, persist it and use the new token going forward
+        const refreshedToken = insightsResult.newToken || detailsResult.newToken;
+        if (refreshedToken) {
+          const expiresIn = insightsResult.expiresIn || detailsResult.expiresIn;
+          await persistRefreshedToken(supabase, account.id, refreshedToken, expiresIn);
+          accessToken = refreshedToken;
+        }
 
         const metrics = {
           // impressions is deprecated since April 2025; column kept for historical data only
