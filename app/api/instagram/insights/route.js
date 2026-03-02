@@ -3,6 +3,16 @@ import { getSupabaseClient } from '@/lib/supabase';
 const GRAPH_API_BASE = 'https://graph.facebook.com/v21.0';
 
 /**
+ * Fetch helper for Graph API calls using Authorization Bearer header.
+ */
+async function graphFetch(url, accessToken) {
+  const response = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${accessToken}` },
+  });
+  return response.json();
+}
+
+/**
  * Parse the follower_demographics response format.
  * Returns an array of { dimensionValues, value } from the breakdown results.
  */
@@ -48,28 +58,34 @@ export async function GET() {
       ageGenderResponse,
     ] = await Promise.allSettled([
       // Account info
-      fetch(
-        `${baseUrl}?fields=id,username,profile_picture_url,followers_count,follows_count,media_count,biography&access_token=${accessToken}`
+      graphFetch(
+        `${baseUrl}?fields=id,username,profile_picture_url,followers_count,follows_count,media_count,biography`,
+        accessToken
       ),
       // Reach (last 28 days)
-      fetch(
-        `${baseUrl}/insights?metric=reach&period=days_28&access_token=${accessToken}`
+      graphFetch(
+        `${baseUrl}/insights?metric=reach&period=days_28`,
+        accessToken
       ),
       // Accounts engaged (last 28 days)
-      fetch(
-        `${baseUrl}/insights?metric=accounts_engaged&period=days_28&access_token=${accessToken}`
+      graphFetch(
+        `${baseUrl}/insights?metric=accounts_engaged&period=days_28`,
+        accessToken
       ),
       // Demographics: cities (replaces deprecated audience_city)
-      fetch(
-        `${baseUrl}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=city&access_token=${accessToken}`
+      graphFetch(
+        `${baseUrl}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=city`,
+        accessToken
       ),
       // Demographics: countries (replaces deprecated audience_country)
-      fetch(
-        `${baseUrl}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=country&access_token=${accessToken}`
+      graphFetch(
+        `${baseUrl}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=country`,
+        accessToken
       ),
       // Demographics: age and gender (replaces deprecated audience_gender_age)
-      fetch(
-        `${baseUrl}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=age,gender&access_token=${accessToken}`
+      graphFetch(
+        `${baseUrl}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=age,gender`,
+        accessToken
       ),
     ]);
 
@@ -77,7 +93,7 @@ export async function GET() {
     if (accountResponse.status !== 'fulfilled') {
       throw new Error('Failed to fetch account info');
     }
-    const accountData = await accountResponse.value.json();
+    const accountData = accountResponse.value;
     if (accountData.error) {
       throw new Error(accountData.error.message);
     }
@@ -90,7 +106,7 @@ export async function GET() {
 
     try {
       if (reachResponse.status === 'fulfilled') {
-        const reachData = await reachResponse.value.json();
+        const reachData = reachResponse.value;
         if (reachData.data?.[0]?.values?.[0]?.value) {
           insights.reach = reachData.data[0].values[0].value;
         }
@@ -101,7 +117,7 @@ export async function GET() {
 
     try {
       if (engagedResponse.status === 'fulfilled') {
-        const engagedData = await engagedResponse.value.json();
+        const engagedData = engagedResponse.value;
         if (engagedData.data?.[0]?.values?.[0]?.value) {
           insights.accountsEngaged = engagedData.data[0].values[0].value;
         }
@@ -122,7 +138,7 @@ export async function GET() {
 
         // Parse cities
         if (hasCities) {
-          const citiesData = await citiesResponse.value.json();
+          const citiesData = citiesResponse.value;
           const cityResults = parseDemographicBreakdown(citiesData);
           if (cityResults.length > 0) {
             demographics.topCities = cityResults
@@ -134,7 +150,7 @@ export async function GET() {
 
         // Parse countries
         if (hasCountries) {
-          const countriesData = await countriesResponse.value.json();
+          const countriesData = countriesResponse.value;
           const countryResults = parseDemographicBreakdown(countriesData);
           if (countryResults.length > 0) {
             demographics.topCountries = countryResults
@@ -146,7 +162,7 @@ export async function GET() {
 
         // Parse age and gender
         if (hasAgeGender) {
-          const ageGenderData = await ageGenderResponse.value.json();
+          const ageGenderData = ageGenderResponse.value;
           const ageGenderResults = parseDemographicBreakdown(ageGenderData);
 
           if (ageGenderResults.length > 0) {
