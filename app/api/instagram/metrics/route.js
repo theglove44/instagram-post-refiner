@@ -214,8 +214,11 @@ export async function GET(request) {
  * Background metrics processing. Runs after the HTTP response is sent.
  * On a real server (not serverless), this continues executing even after
  * the response is returned to the client.
+ *
+ * Only refreshes posts published in the last `days` days (default 30)
+ * plus any posts that have never had metrics fetched.
  */
-async function processMetricsInBackground(syncId) {
+async function processMetricsInBackground(syncId, { days = 30 } = {}) {
   const supabase = getSupabaseClient();
 
   try {
@@ -232,10 +235,36 @@ async function processMetricsInBackground(syncId) {
     const account = accounts[0];
     let accessToken = account.access_token;
 
-    const { data: publishedPosts } = await supabase
+    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+    // Get posts published within the window
+    const { data: recentPosts } = await supabase
       .from('posts')
       .select('id, instagram_media_id')
-      .not('instagram_media_id', 'is', null);
+      .not('instagram_media_id', 'is', null)
+      .gte('published_at', cutoffDate);
+
+    // Get posts that have never had metrics fetched (regardless of age)
+    const { data: allPublished } = await supabase
+      .from('posts')
+      .select('id, instagram_media_id')
+      .not('instagram_media_id', 'is', null)
+      .lt('published_at', cutoffDate);
+
+    // Filter to those with no metrics at all
+    let neverFetched = [];
+    if (allPublished && allPublished.length > 0) {
+      const { data: existingMetrics } = await supabase
+        .from('post_metrics')
+        .select('post_id')
+        .in('post_id', allPublished.map(p => p.id));
+
+      const hasMetrics = new Set((existingMetrics || []).map(m => m.post_id));
+      neverFetched = allPublished.filter(p => !hasMetrics.has(p.id));
+    }
+
+    // Combine: recent posts + never-fetched older posts
+    const publishedPosts = [...(recentPosts || []), ...neverFetched];
 
     if (!publishedPosts || publishedPosts.length === 0) {
       await updateSyncStatus(supabase, syncId, 'success', 0, 0, 0);
@@ -320,13 +349,23 @@ async function processMetricsInBackground(syncId) {
   }
 }
 
-// Refresh metrics for all published posts.
+// Refresh metrics for recent published posts.
 // Returns immediately with a syncId; processing continues in the background.
 // The frontend polls GET /api/instagram/health to track progress.
-export async function POST() {
+// Accepts optional JSON body: { days: 30 } to control the lookback window.
+export async function POST(request) {
   const supabase = getSupabaseClient();
 
   try {
+    // Parse optional body
+    let days = 30;
+    try {
+      const body = await request.json();
+      if (body.days) days = Math.max(1, Math.min(365, body.days));
+    } catch {
+      // No body or invalid JSON — use default
+    }
+
     // Create sync status record
     const { data: syncRecord } = await supabase
       .from('sync_status')
@@ -340,7 +379,7 @@ export async function POST() {
     const syncId = syncRecord?.id;
 
     // Fire and forget — processing continues after response is sent
-    processMetricsInBackground(syncId);
+    processMetricsInBackground(syncId, { days });
 
     return Response.json({ success: true, syncId, status: 'running' });
   } catch (error) {
