@@ -173,6 +173,19 @@ sudo systemctl start cloudflared || sudo systemctl restart cloudflared
 
 echo ""
 
+# ─── 7. Cron Job for Nightly Backfill ────────────────────────
+
+echo "▸ Setting up nightly metrics backfill cron job..."
+
+BACKFILL_LOG="$HOME/instagram-backfill.log"
+CRON_CMD="0 2 * * * $APP_DIR/deploy/backfill-metrics.sh >> $BACKFILL_LOG 2>&1"
+
+# Add cron job if not already present (grep -v || true to avoid exit on empty crontab)
+( (crontab -l 2>/dev/null || true) | grep -v "backfill-metrics" || true ; echo "$CRON_CMD") | crontab -
+
+echo "  Cron job installed: runs daily at 2:00 AM"
+echo ""
+
 # ─── Done ─────────────────────────────────────────────────────
 
 echo "══════════════════════════════════════════════════════════"

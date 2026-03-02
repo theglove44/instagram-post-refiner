@@ -457,6 +457,8 @@ The API structure (`POST /api/log`, `GET /api/posts`, `GET /api/analyse`) can be
 - Return consistent JSON structure with `success` field
 - Include meaningful error messages
 - Log API calls for debugging
+- **Rate-limited external APIs**: Always design for volume from the start. Never build "process all records" endpoints without considering scale. Use background processing, configurable time windows, and cron-based backfill. The Meta Graph API allows ~200 calls/user/hour (~36s between posts), so bulk operations must be async with polling for status.
+- **Cloudflare proxy timeout**: Free tier has a 100s HTTP response timeout. Long-running operations must return immediately and process in the background (viable on self-hosted VM, not serverless).
 
 ### File Organization
 
