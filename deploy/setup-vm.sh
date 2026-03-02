@@ -145,11 +145,11 @@ fi
 TUNNEL_ID=$(cloudflared tunnel list | grep "$TUNNEL_NAME" | awk '{print $1}')
 echo "  Tunnel ID: $TUNNEL_ID"
 
-# Write tunnel config
-mkdir -p "$HOME/.cloudflared"
-cat > "$HOME/.cloudflared/config.yml" << EOF
+# Write tunnel config to /etc/cloudflared (where the systemd service expects it)
+sudo mkdir -p /etc/cloudflared
+sudo tee /etc/cloudflared/config.yml > /dev/null << EOF
 tunnel: $TUNNEL_ID
-credentials-file: $HOME/.cloudflared/$TUNNEL_ID.json
+credentials-file: /etc/cloudflared/$TUNNEL_ID.json
 
 ingress:
   - hostname: $HOSTNAME
@@ -157,7 +157,10 @@ ingress:
   - service: http_status:404
 EOF
 
-echo "  Tunnel config written to ~/.cloudflared/config.yml"
+sudo cp "$HOME/.cloudflared/$TUNNEL_ID.json" /etc/cloudflared/
+sudo cp "$HOME/.cloudflared/cert.pem" /etc/cloudflared/
+
+echo "  Tunnel config written to /etc/cloudflared/config.yml"
 
 # Create DNS route
 echo "  Creating DNS route for $HOSTNAME..."
