@@ -41,7 +41,7 @@ export async function GET(request) {
           // Calculate engagement rate (only if we have reach data)
           let engagementRate = null;
           if (reach > 0) {
-            const totalEngagement = likes + comments + saves;
+            const totalEngagement = likes + comments + saves + shares;
             engagementRate = ((totalEngagement / reach) * 100).toFixed(1);
           }
           

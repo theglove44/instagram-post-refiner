@@ -1,24 +1,30 @@
 import { getSupabaseClient } from '@/lib/supabase';
 import { getMediaInsights, getMediaDetails } from '@/lib/instagram';
 
+// Delay helper for rate limiting Meta API calls (~200 calls/user/hour)
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // Helper to convert undefined/missing to null (never 0)
 function nullIfMissing(value) {
   return value !== undefined && value !== null ? value : null;
 }
 
 // Calculate engagement rate only if we have valid data
-function calculateEngagementRate(likes, comments, saves, reach) {
+function calculateEngagementRate(likes, comments, saves, shares, reach) {
   // Only calculate if we have reach and at least one engagement metric
   if (reach === null || reach === undefined || reach === 0) return null;
-  
+
   const validLikes = likes ?? 0;
   const validComments = comments ?? 0;
   const validSaves = saves ?? 0;
-  
+  const validShares = shares ?? 0;
+
   // If all engagement metrics are null, we can't calculate
-  if (likes === null && comments === null && saves === null) return null;
-  
-  const totalEngagement = validLikes + validComments + validSaves;
+  if (likes === null && comments === null && saves === null && shares === null) return null;
+
+  const totalEngagement = validLikes + validComments + validSaves + validShares;
   return ((totalEngagement / reach) * 100).toFixed(2);
 }
 
@@ -31,26 +37,26 @@ function countMissingMetrics(metrics) {
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const postId = searchParams.get('postId');
-  
+
   try {
     const supabase = getSupabaseClient();
-    
+
     // Get Instagram account
     const { data: accounts } = await supabase
       .from('instagram_accounts')
       .select('*')
       .limit(1);
-    
+
     if (!accounts || accounts.length === 0) {
       return Response.json(
         { error: 'No Instagram account connected' },
         { status: 400 }
       );
     }
-    
+
     const account = accounts[0];
     const accessToken = account.access_token;
-    
+
     // If postId provided, get metrics for specific post
     if (postId) {
       const { data: post } = await supabase
@@ -58,20 +64,20 @@ export async function GET(request) {
         .select('*')
         .eq('id', postId)
         .single();
-      
+
       if (!post || !post.instagram_media_id) {
         return Response.json(
           { error: 'Post not found or not published to Instagram' },
           { status: 404 }
         );
       }
-      
+
       // Get insights and details
       const [insights, details] = await Promise.all([
         getMediaInsights(accessToken, post.instagram_media_id),
         getMediaDetails(accessToken, post.instagram_media_id),
       ]);
-      
+
       const metrics = {
         // impressions is deprecated since April 2025; column kept for historical data only
         impressions: null,
@@ -83,11 +89,11 @@ export async function GET(request) {
         shares: nullIfMissing(insights?.shares),
         total_interactions: nullIfMissing(insights?.total_interactions),
       };
-      
+
       const engagementRate = calculateEngagementRate(
-        metrics.likes, metrics.comments, metrics.saves, metrics.reach
+        metrics.likes, metrics.comments, metrics.saves, metrics.shares, metrics.reach
       );
-      
+
       // Store metrics snapshot
       await supabase
         .from('post_metrics')
@@ -97,7 +103,7 @@ export async function GET(request) {
           ...metrics,
           engagement_rate: engagementRate,
         });
-      
+
       return Response.json({
         success: true,
         metrics: {
@@ -107,7 +113,7 @@ export async function GET(request) {
         }
       });
     }
-    
+
     // Otherwise, return all posts with their latest metrics
     const { data: postsWithMetrics } = await supabase
       .from('posts')
@@ -128,13 +134,13 @@ export async function GET(request) {
       `)
       .not('instagram_media_id', 'is', null)
       .order('published_at', { ascending: false });
-    
+
     // Get latest metrics for each post
     const postsData = (postsWithMetrics || []).map(post => {
       const latestMetrics = post.post_metrics?.sort(
         (a, b) => new Date(b.fetched_at) - new Date(a.fetched_at)
       )[0] || null;
-      
+
       return {
         id: post.id,
         topic: post.topic,
@@ -155,7 +161,7 @@ export async function GET(request) {
         } : null,
       };
     });
-    
+
     // Get last sync status
     const { data: lastSync } = await supabase
       .from('sync_status')
@@ -163,13 +169,13 @@ export async function GET(request) {
       .eq('sync_type', 'metrics')
       .order('completed_at', { ascending: false })
       .limit(1);
-    
+
     return Response.json({
       success: true,
       posts: postsData,
       lastSync: lastSync?.[0] || null,
     });
-    
+
   } catch (error) {
     console.error('Metrics error:', error);
     return Response.json(
@@ -183,7 +189,7 @@ export async function GET(request) {
 export async function POST() {
   const supabase = getSupabaseClient();
   let syncId = null;
-  
+
   try {
     // Create sync status record
     const { data: syncRecord } = await supabase
@@ -194,15 +200,15 @@ export async function POST() {
       })
       .select()
       .single();
-    
+
     syncId = syncRecord?.id;
-    
+
     // Get Instagram account
     const { data: accounts } = await supabase
       .from('instagram_accounts')
       .select('*')
       .limit(1);
-    
+
     if (!accounts || accounts.length === 0) {
       await updateSyncStatus(supabase, syncId, 'error', 0, 0, 1, { message: 'No Instagram account connected' });
       return Response.json(
@@ -210,33 +216,42 @@ export async function POST() {
         { status: 400 }
       );
     }
-    
+
     const account = accounts[0];
     const accessToken = account.access_token;
-    
+
     // Get all published posts
     const { data: publishedPosts } = await supabase
       .from('posts')
       .select('id, instagram_media_id')
       .not('instagram_media_id', 'is', null);
-    
+
     if (!publishedPosts || publishedPosts.length === 0) {
       await updateSyncStatus(supabase, syncId, 'success', 0, 0, 0);
       return Response.json({ success: true, updated: 0, syncId });
     }
-    
+
     let updated = 0;
     let totalMissing = 0;
     const errors = [];
-    
-    // Fetch metrics for each post
-    for (const post of publishedPosts) {
+
+    // Rate limiting derived from Meta's ~200 calls/user/hour budget:
+    // - Each post = 2 API calls (insights + details)
+    // - Budget per post = 200 / 2 = 100 posts/hour
+    // - Min interval = 3600s / 100 = 36s per post
+    // Process sequentially with a delay to stay safely under the limit.
+    const API_CALLS_PER_POST = 2;
+    const HOURLY_BUDGET = 200;
+    const DELAY_PER_POST_MS = Math.ceil((3600 / (HOURLY_BUDGET / API_CALLS_PER_POST)) * 1000); // ~36s
+
+    for (let i = 0; i < publishedPosts.length; i++) {
+      const post = publishedPosts[i];
       try {
         const [insights, details] = await Promise.all([
           getMediaInsights(accessToken, post.instagram_media_id),
           getMediaDetails(accessToken, post.instagram_media_id),
         ]);
-        
+
         const metrics = {
           // impressions is deprecated since April 2025; column kept for historical data only
           impressions: null,
@@ -248,13 +263,13 @@ export async function POST() {
           shares: nullIfMissing(insights?.shares),
           total_interactions: nullIfMissing(insights?.total_interactions),
         };
-        
+
         const engagementRate = calculateEngagementRate(
-          metrics.likes, metrics.comments, metrics.saves, metrics.reach
+          metrics.likes, metrics.comments, metrics.saves, metrics.shares, metrics.reach
         );
-        
+
         totalMissing += countMissingMetrics(metrics);
-        
+
         await supabase
           .from('post_metrics')
           .insert({
@@ -263,24 +278,29 @@ export async function POST() {
             ...metrics,
             engagement_rate: engagementRate,
           });
-        
+
         updated++;
       } catch (err) {
         errors.push({ postId: post.id, error: err.message });
       }
+
+      // Delay between posts to respect rate limits (skip after last post)
+      if (i < publishedPosts.length - 1) {
+        await delay(DELAY_PER_POST_MS);
+      }
     }
-    
+
     // Update sync status
     await updateSyncStatus(
-      supabase, 
-      syncId, 
+      supabase,
+      syncId,
       errors.length === publishedPosts.length ? 'error' : 'success',
       updated,
       totalMissing,
       errors.length,
       errors.length > 0 ? { errors } : null
     );
-    
+
     return Response.json({
       success: true,
       updated,
@@ -288,7 +308,7 @@ export async function POST() {
       errors: errors.length > 0 ? errors : undefined,
       syncId,
     });
-    
+
   } catch (error) {
     console.error('Metrics refresh error:', error);
     if (syncId) {
@@ -303,7 +323,7 @@ export async function POST() {
 
 async function updateSyncStatus(supabase, syncId, status, postsProcessed, metricsMissing, errorsCount, errorDetails = null) {
   if (!syncId) return;
-  
+
   await supabase
     .from('sync_status')
     .update({
