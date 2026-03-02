@@ -29,6 +29,7 @@ export default function PerformancePage() {
   const [loadingHashtags, setLoadingHashtags] = useState(false);
   const [dataHealth, setDataHealth] = useState(null);
   const [derivedData, setDerivedData] = useState(null);
+  const [refreshDays, setRefreshDays] = useState(30);
 
   useEffect(() => {
     checkInstagramConnection();
@@ -118,7 +119,11 @@ export default function PerformancePage() {
     setRefreshing(true);
     setError(null);
     try {
-      const res = await fetch('/api/instagram/metrics', { method: 'POST' });
+      const res = await fetch('/api/instagram/metrics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: refreshDays }),
+      });
       const data = await safeJson(res);
 
       if (!data.success) {
@@ -341,13 +346,34 @@ export default function PerformancePage() {
           <h1>📈 Performance</h1>
           <p>Track how your posts perform on Instagram</p>
         </div>
-        <button 
-          className="btn btn-secondary"
-          onClick={refreshMetrics}
-          disabled={refreshing}
-        >
-          {refreshing ? '🔄 Refreshing...' : '🔄 Refresh Metrics'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <select
+            value={refreshDays}
+            onChange={(e) => setRefreshDays(Number(e.target.value))}
+            disabled={refreshing}
+            style={{
+              padding: '0.5rem 0.75rem',
+              borderRadius: '8px',
+              border: '1px solid var(--border)',
+              background: 'var(--card-bg)',
+              color: 'var(--text-primary)',
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+            }}
+          >
+            <option value={7}>Last 7 days</option>
+            <option value={30}>Last 30 days</option>
+            <option value={90}>Last 90 days</option>
+            <option value={365}>Last year</option>
+          </select>
+          <button
+            className="btn btn-secondary"
+            onClick={refreshMetrics}
+            disabled={refreshing}
+          >
+            {refreshing ? '🔄 Refreshing...' : '🔄 Refresh Metrics'}
+          </button>
+        </div>
       </header>
 
       <Link href="/" className="back-link">
