@@ -210,25 +210,15 @@ export async function GET(request) {
   }
 }
 
-// Refresh metrics for all published posts
-export async function POST() {
+/**
+ * Background metrics processing. Runs after the HTTP response is sent.
+ * On a real server (not serverless), this continues executing even after
+ * the response is returned to the client.
+ */
+async function processMetricsInBackground(syncId) {
   const supabase = getSupabaseClient();
-  let syncId = null;
 
   try {
-    // Create sync status record
-    const { data: syncRecord } = await supabase
-      .from('sync_status')
-      .insert({
-        sync_type: 'metrics',
-        status: 'running',
-      })
-      .select()
-      .single();
-
-    syncId = syncRecord?.id;
-
-    // Get Instagram account
     const { data: accounts } = await supabase
       .from('instagram_accounts')
       .select('*')
@@ -236,16 +226,12 @@ export async function POST() {
 
     if (!accounts || accounts.length === 0) {
       await updateSyncStatus(supabase, syncId, 'error', 0, 0, 1, { message: 'No Instagram account connected' });
-      return Response.json(
-        { error: 'No Instagram account connected' },
-        { status: 400 }
-      );
+      return;
     }
 
     const account = accounts[0];
     let accessToken = account.access_token;
 
-    // Get all published posts
     const { data: publishedPosts } = await supabase
       .from('posts')
       .select('id, instagram_media_id')
@@ -253,18 +239,14 @@ export async function POST() {
 
     if (!publishedPosts || publishedPosts.length === 0) {
       await updateSyncStatus(supabase, syncId, 'success', 0, 0, 0);
-      return Response.json({ success: true, updated: 0, syncId });
+      return;
     }
 
     let updated = 0;
     let totalMissing = 0;
     const errors = [];
 
-    // Rate limiting derived from Meta's ~200 calls/user/hour budget:
-    // - Each post = 2 API calls (insights + details)
-    // - Budget per post = 200 / 2 = 100 posts/hour
-    // - Min interval = 3600s / 100 = 36s per post
-    // Process sequentially with a delay to stay safely under the limit.
+    // Rate limiting derived from Meta's ~200 calls/user/hour budget
     const API_CALLS_PER_POST = 2;
     const HOURLY_BUDGET = 200;
     const DELAY_PER_POST_MS = Math.ceil((3600 / (HOURLY_BUDGET / API_CALLS_PER_POST)) * 1000); // ~36s
@@ -280,7 +262,6 @@ export async function POST() {
         const insights = insightsResult.insights;
         const details = detailsResult.details;
 
-        // If a token refresh occurred, persist it and use the new token going forward
         const refreshedToken = insightsResult.newToken || detailsResult.newToken;
         if (refreshedToken) {
           const expiresIn = insightsResult.expiresIn || detailsResult.expiresIn;
@@ -289,7 +270,6 @@ export async function POST() {
         }
 
         const metrics = {
-          // impressions is deprecated since April 2025; column kept for historical data only
           impressions: null,
           reach: nullIfMissing(insights?.reach),
           views: nullIfMissing(insights?.views),
@@ -320,13 +300,11 @@ export async function POST() {
         errors.push({ postId: post.id, error: err.message });
       }
 
-      // Delay between posts to respect rate limits (skip after last post)
       if (i < publishedPosts.length - 1) {
         await delay(DELAY_PER_POST_MS);
       }
     }
 
-    // Update sync status
     await updateSyncStatus(
       supabase,
       syncId,
@@ -336,20 +314,37 @@ export async function POST() {
       errors.length,
       errors.length > 0 ? { errors } : null
     );
+  } catch (error) {
+    console.error('Background metrics refresh error:', error);
+    await updateSyncStatus(getSupabaseClient(), syncId, 'error', 0, 0, 1, { message: error.message });
+  }
+}
 
-    return Response.json({
-      success: true,
-      updated,
-      metricsMissing: totalMissing,
-      errors: errors.length > 0 ? errors : undefined,
-      syncId,
-    });
+// Refresh metrics for all published posts.
+// Returns immediately with a syncId; processing continues in the background.
+// The frontend polls GET /api/instagram/health to track progress.
+export async function POST() {
+  const supabase = getSupabaseClient();
 
+  try {
+    // Create sync status record
+    const { data: syncRecord } = await supabase
+      .from('sync_status')
+      .insert({
+        sync_type: 'metrics',
+        status: 'running',
+      })
+      .select()
+      .single();
+
+    const syncId = syncRecord?.id;
+
+    // Fire and forget — processing continues after response is sent
+    processMetricsInBackground(syncId);
+
+    return Response.json({ success: true, syncId, status: 'running' });
   } catch (error) {
     console.error('Metrics refresh error:', error);
-    if (syncId) {
-      await updateSyncStatus(supabase, syncId, 'error', 0, 0, 1, { message: error.message });
-    }
     return Response.json(
       { error: error.message },
       { status: 500 }

@@ -116,13 +116,32 @@ export default function PerformancePage() {
 
   const refreshMetrics = async () => {
     setRefreshing(true);
+    setError(null);
     try {
       const res = await fetch('/api/instagram/metrics', { method: 'POST' });
       const data = await safeJson(res);
-      
-      if (data.success) {
-        await loadMetrics();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to start metrics refresh');
       }
+
+      // Poll sync status until complete
+      const syncId = data.syncId;
+      while (true) {
+        await new Promise(r => setTimeout(r, 5000)); // poll every 5s
+        const healthRes = await fetch('/api/instagram/health');
+        const healthData = await safeJson(healthRes);
+        const metricSync = healthData.health?.syncHistory?.metrics;
+
+        if (metricSync && metricSync.id === syncId && metricSync.status !== 'running') {
+          if (metricSync.status === 'error') {
+            throw new Error(metricSync.error_details?.message || 'Metrics refresh failed');
+          }
+          break;
+        }
+      }
+
+      await loadMetrics();
     } catch (err) {
       setError(err.message);
     } finally {
