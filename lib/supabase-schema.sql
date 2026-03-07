@@ -85,6 +85,7 @@ CREATE TABLE post_metrics (
   saves INT,
   shares INT,
   total_interactions INT,
+  media_type TEXT,
   -- Calculated metrics
   engagement_rate DECIMAL(5,2),
   -- Tracking
@@ -145,3 +146,8 @@ CREATE POLICY "Allow public insert post_metrics" ON post_metrics
 -- Migration: add total_interactions to post_metrics
 -- =====================================================
 -- ALTER TABLE post_metrics ADD COLUMN IF NOT EXISTS total_interactions INT;
+
+-- =====================================================
+-- Migration: add media_type to post_metrics
+-- =====================================================
+-- ALTER TABLE post_metrics ADD COLUMN IF NOT EXISTS media_type TEXT;

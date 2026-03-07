@@ -113,6 +113,7 @@ export async function GET(request) {
         saves: nullIfMissing(insights?.saved),
         shares: nullIfMissing(insights?.shares),
         total_interactions: nullIfMissing(insights?.total_interactions),
+        media_type: detailsResult.details?.mediaType || null,
       };
 
       const engagementRate = calculateEngagementRate(
@@ -307,6 +308,7 @@ async function processMetricsInBackground(syncId, { days = 30 } = {}) {
           saves: nullIfMissing(insights?.saved),
           shares: nullIfMissing(insights?.shares),
           total_interactions: nullIfMissing(insights?.total_interactions),
+          media_type: detailsResult.details?.mediaType || null,
         };
 
         const engagementRate = calculateEngagementRate(
