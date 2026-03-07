@@ -173,17 +173,17 @@ sudo systemctl start cloudflared || sudo systemctl restart cloudflared
 
 echo ""
 
-# ─── 7. Cron Job for Nightly Backfill ────────────────────────
+# ─── 7. Systemd Timer for Nightly Metrics Sync ───────────────
 
-echo "▸ Setting up nightly metrics backfill cron job..."
+echo "▸ Setting up nightly metrics sync timer..."
 
-BACKFILL_LOG="$HOME/instagram-backfill.log"
-CRON_CMD="0 2 * * * $APP_DIR/deploy/backfill-metrics.sh >> $BACKFILL_LOG 2>&1"
+sudo cp "$APP_DIR/deploy/instagram-metrics-sync.service" /etc/systemd/system/
+sudo cp "$APP_DIR/deploy/instagram-metrics-sync.timer" /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now instagram-metrics-sync.timer
 
-# Add cron job if not already present (grep -v || true to avoid exit on empty crontab)
-( (crontab -l 2>/dev/null || true) | grep -v "backfill-metrics" || true ; echo "$CRON_CMD") | crontab -
-
-echo "  Cron job installed: runs daily at 2:00 AM"
+echo "  Systemd timer installed: runs daily at 03:00 UTC (with up to 5min jitter)"
+echo "  Check status: systemctl status instagram-metrics-sync.timer"
 echo ""
 
 # ─── Done ─────────────────────────────────────────────────────
