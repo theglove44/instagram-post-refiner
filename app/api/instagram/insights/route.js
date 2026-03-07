@@ -1,16 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabase';
-
-const GRAPH_API_BASE = 'https://graph.facebook.com/v21.0';
-
-/**
- * Fetch helper for Graph API calls using Authorization Bearer header.
- */
-async function graphFetch(url, accessToken) {
-  const response = await fetch(url, {
-    headers: { 'Authorization': `Bearer ${accessToken}` },
-  });
-  return response.json();
-}
+import { graphFetch, GRAPH_API_BASE } from '@/lib/instagram';
 
 /**
  * Parse the follower_demographics response format.
