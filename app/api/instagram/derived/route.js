@@ -25,7 +25,6 @@ export async function GET(request) {
         instagram_permalink,
         instagram_media_id,
         post_metrics (
-          impressions,
           reach,
           views,
           likes,
@@ -69,7 +68,6 @@ export async function GET(request) {
         publishedAt: post.published_at,
         instagramPermalink: post.instagram_permalink,
         metrics: latestMetrics ? {
-          impressions: latestMetrics.impressions,
           reach: latestMetrics.reach,
           views: latestMetrics.views,
           likes: latestMetrics.likes,

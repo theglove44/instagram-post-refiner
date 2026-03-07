@@ -24,14 +24,13 @@ export async function GET() {
     // Get overall metrics health (count NULLs in recent metrics)
     const { data: recentMetrics } = await supabase
       .from('post_metrics')
-      .select('impressions, reach, views, likes, comments, saves, shares')
+      .select('reach, views, likes, comments, saves, shares')
       .order('fetched_at', { ascending: false })
       .limit(50);
     
     let totalFields = 0;
     let nullFields = 0;
     const fieldNulls = {
-      impressions: 0,
       reach: 0,
       views: 0,
       likes: 0,
