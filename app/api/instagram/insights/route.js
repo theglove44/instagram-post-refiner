@@ -1,6 +1,8 @@
 import { getSupabaseClient } from '@/lib/supabase';
 import { graphFetch, GRAPH_API_BASE } from '@/lib/instagram';
 
+const CACHE_MAX_AGE_HOURS = 24;
+
 /**
  * Parse the follower_demographics response format.
  * Returns an array of { dimensionValues, value } from the breakdown results.
@@ -15,9 +17,66 @@ function parseDemographicBreakdown(data) {
   }));
 }
 
-export async function GET() {
+/**
+ * Check cache for all insight types. Returns null if any are missing or stale.
+ */
+async function getCachedInsights(supabase, userId) {
+  const { data: rows, error } = await supabase
+    .from('account_insights_cache')
+    .select('*')
+    .eq('instagram_user_id', userId);
+
+  if (error || !rows || rows.length === 0) {
+    return null;
+  }
+
+  const requiredTypes = ['profile', 'reach_engaged', 'demographics'];
+  const cacheMap = {};
+  const now = Date.now();
+  const maxAgeMs = CACHE_MAX_AGE_HOURS * 60 * 60 * 1000;
+
+  for (const row of rows) {
+    const age = now - new Date(row.fetched_at).getTime();
+    if (age > maxAgeMs) {
+      return null; // At least one entry is stale
+    }
+    cacheMap[row.insight_type] = row.data;
+  }
+
+  // Check all required types are present
+  for (const type of requiredTypes) {
+    if (!cacheMap[type]) {
+      return null;
+    }
+  }
+
+  return cacheMap;
+}
+
+/**
+ * Upsert a single cache entry.
+ */
+async function setCachedInsight(supabase, userId, type, data) {
+  await supabase
+    .from('account_insights_cache')
+    .upsert(
+      {
+        instagram_user_id: userId,
+        insight_type: type,
+        data,
+        fetched_at: new Date().toISOString(),
+      },
+      { onConflict: 'instagram_user_id,insight_type' }
+    );
+}
+
+export async function GET(request) {
   try {
     const supabase = getSupabaseClient();
+
+    // Check for ?refresh=true query param
+    const { searchParams } = new URL(request.url);
+    const forceRefresh = searchParams.get('refresh') === 'true';
 
     // Get Instagram account
     const { data: accounts } = await supabase
@@ -35,9 +94,25 @@ export async function GET() {
     const account = accounts[0];
     const accessToken = account.access_token;
     const userId = account.instagram_user_id;
+
+    // Check cache unless force refresh
+    if (!forceRefresh) {
+      const cached = await getCachedInsights(supabase, userId);
+      if (cached) {
+        console.log('Account insights served from cache');
+        return Response.json({
+          success: true,
+          cached: true,
+          account: cached.profile,
+          insights: cached.reach_engaged,
+          demographics: cached.demographics,
+        });
+      }
+    }
+
+    // Cache miss or force refresh — fetch from Meta
     const baseUrl = `${GRAPH_API_BASE}/${userId}`;
 
-    // Fetch all independent API calls in parallel
     const [
       accountResponse,
       reachResponse,
@@ -46,32 +121,26 @@ export async function GET() {
       countriesResponse,
       ageGenderResponse,
     ] = await Promise.allSettled([
-      // Account info
       graphFetch(
         `${baseUrl}?fields=id,username,profile_picture_url,followers_count,follows_count,media_count,biography`,
         accessToken
       ),
-      // Reach (last 28 days)
       graphFetch(
         `${baseUrl}/insights?metric=reach&period=days_28`,
         accessToken
       ),
-      // Accounts engaged (last 28 days)
       graphFetch(
         `${baseUrl}/insights?metric=accounts_engaged&period=days_28`,
         accessToken
       ),
-      // Demographics: cities (replaces deprecated audience_city)
       graphFetch(
         `${baseUrl}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=city`,
         accessToken
       ),
-      // Demographics: countries (replaces deprecated audience_country)
       graphFetch(
         `${baseUrl}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=country`,
         accessToken
       ),
-      // Demographics: age and gender (replaces deprecated audience_gender_age)
       graphFetch(
         `${baseUrl}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=age,gender`,
         accessToken
@@ -125,7 +194,6 @@ export async function GET() {
       if (hasCities || hasCountries || hasAgeGender) {
         demographics = {};
 
-        // Parse cities
         if (hasCities) {
           const citiesData = citiesResponse.value;
           const cityResults = parseDemographicBreakdown(citiesData);
@@ -137,7 +205,6 @@ export async function GET() {
           }
         }
 
-        // Parse countries
         if (hasCountries) {
           const countriesData = countriesResponse.value;
           const countryResults = parseDemographicBreakdown(countriesData);
@@ -149,7 +216,6 @@ export async function GET() {
           }
         }
 
-        // Parse age and gender
         if (hasAgeGender) {
           const ageGenderData = ageGenderResponse.value;
           const ageGenderResults = parseDemographicBreakdown(ageGenderData);
@@ -159,7 +225,6 @@ export async function GET() {
             const ageGroups = {};
 
             ageGenderResults.forEach(result => {
-              // dimension_values contains [age_range, gender] e.g. ["25-34", "M"]
               const [age, gender] = result.dimensionValues;
 
               if (gender === 'M') male += result.value;
@@ -176,7 +241,6 @@ export async function GET() {
           }
         }
 
-        // If no demographic data was actually parsed, reset to null
         if (Object.keys(demographics).length === 0) {
           demographics = null;
         }
@@ -185,20 +249,33 @@ export async function GET() {
       console.log('Demographics not available:', err.message);
     }
 
+    // Build response objects matching the original format
+    const profileData = {
+      username: accountData.username,
+      profilePicture: accountData.profile_picture_url,
+      followers: accountData.followers_count,
+      following: accountData.follows_count,
+      posts: accountData.media_count,
+      bio: accountData.biography,
+    };
+
+    const insightsData = {
+      reach: insights.reach || 0,
+      accountsEngaged: insights.accountsEngaged || 0,
+    };
+
+    // Write to cache (fire-and-forget, don't block the response)
+    Promise.all([
+      setCachedInsight(supabase, userId, 'profile', profileData),
+      setCachedInsight(supabase, userId, 'reach_engaged', insightsData),
+      setCachedInsight(supabase, userId, 'demographics', demographics),
+    ]).catch(err => console.error('Failed to write insights cache:', err));
+
     return Response.json({
       success: true,
-      account: {
-        username: accountData.username,
-        profilePicture: accountData.profile_picture_url,
-        followers: accountData.followers_count,
-        following: accountData.follows_count,
-        posts: accountData.media_count,
-        bio: accountData.biography,
-      },
-      insights: {
-        reach: insights.reach || 0,
-        accountsEngaged: insights.accountsEngaged || 0,
-      },
+      cached: false,
+      account: profileData,
+      insights: insightsData,
       demographics,
     });
 
