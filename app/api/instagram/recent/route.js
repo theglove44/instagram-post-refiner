@@ -1,6 +1,15 @@
 import { getSupabaseClient } from '@/lib/supabase';
 import { getRecentMedia, getMediaInsights } from '@/lib/instagram';
 
+// Delay helper for rate limiting Meta API calls
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Process posts in batches to avoid hitting Meta's ~200 calls/user/hour rate limit
+const BATCH_SIZE = 3;
+const BATCH_DELAY_MS = 2000;
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const limit = parseInt(searchParams.get('limit') || '25', 10);
@@ -27,54 +36,65 @@ export async function GET(request) {
     // Fetch recent media
     const recentMedia = await getRecentMedia(accessToken, account.instagram_user_id, limit);
     
-    // Fetch insights for each post (in parallel, but limit concurrency)
-    const postsWithInsights = await Promise.all(
-      recentMedia.map(async (media) => {
-        try {
-          const insightsResult = await getMediaInsights(accessToken, media.id);
-          const insights = insightsResult?.insights ?? insightsResult;
-          const likes = media.like_count || 0;
-          const comments = media.comments_count || 0;
-          const saves = insights?.saved || 0;
-          const shares = insights?.shares || 0;
-          const reach = insights?.reach || 0;
-          
-          // Calculate engagement rate (only if we have reach data)
-          let engagementRate = null;
-          if (reach > 0) {
-            const totalEngagement = likes + comments + saves + shares;
-            engagementRate = ((totalEngagement / reach) * 100).toFixed(1);
+    // Fetch insights for each post in batches to respect Meta API rate limits
+    const postsWithInsights = [];
+
+    for (let i = 0; i < recentMedia.length; i += BATCH_SIZE) {
+      const batch = recentMedia.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(async (media) => {
+          try {
+            const insightsResult = await getMediaInsights(accessToken, media.id);
+            const insights = insightsResult?.insights ?? insightsResult;
+            const likes = media.like_count || 0;
+            const comments = media.comments_count || 0;
+            const saves = insights?.saved || 0;
+            const shares = insights?.shares || 0;
+            const reach = insights?.reach || 0;
+
+            // Calculate engagement rate (only if we have reach data)
+            let engagementRate = null;
+            if (reach > 0) {
+              const totalEngagement = likes + comments + saves + shares;
+              engagementRate = ((totalEngagement / reach) * 100).toFixed(1);
+            }
+
+            return {
+              id: media.id,
+              caption: media.caption?.slice(0, 150) + (media.caption?.length > 150 ? '...' : ''),
+              mediaType: media.media_type,
+              permalink: media.permalink,
+              timestamp: media.timestamp,
+              likes,
+              comments,
+              views: insights?.views || null,
+              reach: reach || null,
+              saves: saves || null,
+              shares: shares || null,
+              totalInteractions: insights?.total_interactions || null,
+              engagementRate: engagementRate ? parseFloat(engagementRate) : null,
+            };
+          } catch (err) {
+            // Some posts may not have insights available
+            return {
+              id: media.id,
+              caption: media.caption?.slice(0, 150) + (media.caption?.length > 150 ? '...' : ''),
+              mediaType: media.media_type,
+              permalink: media.permalink,
+              timestamp: media.timestamp,
+              likes: media.like_count || 0,
+              comments: media.comments_count || 0,
+            };
           }
-          
-          return {
-            id: media.id,
-            caption: media.caption?.slice(0, 150) + (media.caption?.length > 150 ? '...' : ''),
-            mediaType: media.media_type,
-            permalink: media.permalink,
-            timestamp: media.timestamp,
-            likes,
-            comments,
-            views: insights?.views || null,
-            reach: reach || null,
-            saves: saves || null,
-            shares: shares || null,
-            totalInteractions: insights?.total_interactions || null,
-            engagementRate: engagementRate ? parseFloat(engagementRate) : null,
-          };
-        } catch (err) {
-          // Some posts may not have insights available
-          return {
-            id: media.id,
-            caption: media.caption?.slice(0, 150) + (media.caption?.length > 150 ? '...' : ''),
-            mediaType: media.media_type,
-            permalink: media.permalink,
-            timestamp: media.timestamp,
-            likes: media.like_count || 0,
-            comments: media.comments_count || 0,
-          };
-        }
-      })
-    );
+        })
+      );
+      postsWithInsights.push(...batchResults);
+
+      // Delay between batches to stay under rate limits
+      if (i + BATCH_SIZE < recentMedia.length) {
+        await delay(BATCH_DELAY_MS);
+      }
+    }
     
     // Calculate time-based analytics
     const timeAnalysis = analyzePostingTimes(postsWithInsights);
