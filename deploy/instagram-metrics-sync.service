@@ -1,0 +1,12 @@
+[Unit]
+Description=Instagram Post Logger — Nightly metrics sync
+After=network-online.target instagram-logger.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/curl -s -X POST http://localhost:3000/api/instagram/metrics -H "Content-Type: application/json" -d '{"days": 30}'
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target
