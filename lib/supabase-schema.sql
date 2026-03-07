@@ -151,3 +151,41 @@ CREATE POLICY "Allow public insert post_metrics" ON post_metrics
 -- Migration: add media_type to post_metrics
 -- =====================================================
 -- ALTER TABLE post_metrics ADD COLUMN IF NOT EXISTS media_type TEXT;
+
+-- =====================================================
+-- Account insights cache (reduces Meta API calls)
+-- =====================================================
+
+CREATE TABLE account_insights_cache (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  instagram_user_id TEXT NOT NULL,
+  insight_type TEXT NOT NULL,
+  data JSONB NOT NULL,
+  fetched_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  UNIQUE(instagram_user_id, insight_type)
+);
+
+ALTER TABLE account_insights_cache ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read account_insights_cache" ON account_insights_cache
+  FOR SELECT USING (true);
+CREATE POLICY "Allow public insert account_insights_cache" ON account_insights_cache
+  FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update account_insights_cache" ON account_insights_cache
+  FOR UPDATE USING (true);
+
+-- =====================================================
+-- Migration: add account_insights_cache table
+-- =====================================================
+-- CREATE TABLE IF NOT EXISTS account_insights_cache (
+--   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+--   instagram_user_id TEXT NOT NULL,
+--   insight_type TEXT NOT NULL,
+--   data JSONB NOT NULL,
+--   fetched_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+--   UNIQUE(instagram_user_id, insight_type)
+-- );
+-- ALTER TABLE account_insights_cache ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Allow public read account_insights_cache" ON account_insights_cache FOR SELECT USING (true);
+-- CREATE POLICY "Allow public insert account_insights_cache" ON account_insights_cache FOR INSERT WITH CHECK (true);
+-- CREATE POLICY "Allow public update account_insights_cache" ON account_insights_cache FOR UPDATE USING (true);
