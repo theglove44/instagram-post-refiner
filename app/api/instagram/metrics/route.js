@@ -121,7 +121,7 @@ export async function GET(request) {
       );
 
       // Store metrics snapshot
-      await supabase
+      const { error: insertError } = await supabase
         .from('post_metrics')
         .insert({
           post_id: post.id,
@@ -129,6 +129,10 @@ export async function GET(request) {
           ...metrics,
           engagement_rate: engagementRate,
         });
+
+      if (insertError) {
+        console.error('Failed to insert metrics:', insertError.message);
+      }
 
       return Response.json({
         success: true,
@@ -317,7 +321,7 @@ async function processMetricsInBackground(syncId, { days = 30 } = {}) {
 
         totalMissing += countMissingMetrics(metrics);
 
-        await supabase
+        const { error: insertError } = await supabase
           .from('post_metrics')
           .insert({
             post_id: post.id,
@@ -325,6 +329,10 @@ async function processMetricsInBackground(syncId, { days = 30 } = {}) {
             ...metrics,
             engagement_rate: engagementRate,
           });
+
+        if (insertError) {
+          throw new Error(`Insert failed: ${insertError.message}`);
+        }
 
         updated++;
       } catch (err) {
