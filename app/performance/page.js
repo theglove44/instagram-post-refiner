@@ -985,6 +985,134 @@ export default function PerformancePage() {
         </div>
       )}
 
+      {/* Caption Length Analysis (#33) */}
+      {derivedData?.captionAnalysis && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">📏 Caption Length vs Performance</h2>
+          </div>
+
+          {derivedData.captionAnalysis.buckets.every(b => b.count === 0) ? (
+            <div className="empty-state">
+              <p>No posts with caption data and metrics yet.<br />
+              Publish posts to Instagram to start seeing caption length patterns.</p>
+            </div>
+          ) : (
+            <>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
+                Median engagement rate by caption length bucket
+              </p>
+
+              <div className="analysis-bar-list">
+                {derivedData.captionAnalysis.buckets.map(bucket => {
+                  const maxEngagement = Math.max(
+                    ...derivedData.captionAnalysis.buckets
+                      .filter(b => b.medianEngagement !== null)
+                      .map(b => b.medianEngagement),
+                    1
+                  );
+                  const widthPct = bucket.medianEngagement !== null
+                    ? Math.max((bucket.medianEngagement / maxEngagement) * 100, 4)
+                    : 0;
+                  const isOptimal = bucket.label === derivedData.captionAnalysis.optimalBucket;
+
+                  return (
+                    <div key={bucket.label} className={`analysis-bar-item ${isOptimal ? 'optimal' : ''}`}>
+                      <div className="analysis-bar-label">
+                        <span className="analysis-bar-name">{bucket.label}</span>
+                        <span className="analysis-bar-meta">{bucket.count} post{bucket.count !== 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="analysis-bar-track">
+                        {bucket.medianEngagement !== null ? (
+                          <div
+                            className={`analysis-bar-fill ${isOptimal ? 'optimal' : ''}`}
+                            style={{ width: `${widthPct}%` }}
+                          >
+                            <span className="analysis-bar-value">{bucket.medianEngagement.toFixed(2)}%</span>
+                          </div>
+                        ) : (
+                          <span className="analysis-bar-na">No data</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {derivedData.captionAnalysis.optimalBucket && (
+                <div className="recommendation-text">
+                  <strong>Recommendation:</strong> {derivedData.captionAnalysis.recommendation}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Posting Frequency Analysis (#34) */}
+      {derivedData?.frequencyAnalysis && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">📅 Posting Frequency vs Performance</h2>
+          </div>
+
+          {derivedData.frequencyAnalysis.buckets.every(b => b.count === 0) ? (
+            <div className="empty-state">
+              <p>No weekly posting data available yet.<br />
+              Publish posts across multiple weeks to see frequency patterns.</p>
+            </div>
+          ) : (
+            <>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
+                Median engagement rate grouped by how many posts you published per week
+              </p>
+
+              <div className="analysis-bar-list">
+                {derivedData.frequencyAnalysis.buckets.map(bucket => {
+                  const maxEngagement = Math.max(
+                    ...derivedData.frequencyAnalysis.buckets
+                      .filter(b => b.medianEngagement !== null)
+                      .map(b => b.medianEngagement),
+                    1
+                  );
+                  const widthPct = bucket.medianEngagement !== null
+                    ? Math.max((bucket.medianEngagement / maxEngagement) * 100, 4)
+                    : 0;
+                  const isOptimal = bucket.label === derivedData.frequencyAnalysis.optimalBucket;
+
+                  return (
+                    <div key={bucket.label} className={`analysis-bar-item ${isOptimal ? 'optimal' : ''}`}>
+                      <div className="analysis-bar-label">
+                        <span className="analysis-bar-name">{bucket.label}</span>
+                        <span className="analysis-bar-meta">{bucket.count} week{bucket.count !== 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="analysis-bar-track">
+                        {bucket.medianEngagement !== null ? (
+                          <div
+                            className={`analysis-bar-fill ${isOptimal ? 'optimal' : ''}`}
+                            style={{ width: `${widthPct}%` }}
+                          >
+                            <span className="analysis-bar-value">{bucket.medianEngagement.toFixed(2)}%</span>
+                          </div>
+                        ) : (
+                          <span className="analysis-bar-na">No data</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {derivedData.frequencyAnalysis.optimalBucket && (
+                <div className="recommendation-text">
+                  <strong>Recommendation:</strong> {derivedData.frequencyAnalysis.recommendation}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* Rate Summary (28-day medians) */}
       {derivedData?.summary && (
         <div className="card" style={{ marginTop: '1.5rem' }}>

@@ -2935,3 +2935,88 @@ textarea:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* Analysis Bar Chart Styles (#33, #34) */
+.analysis-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.analysis-bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.analysis-bar-item.optimal .analysis-bar-name {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.analysis-bar-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.analysis-bar-name {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.analysis-bar-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.analysis-bar-track {
+  height: 28px;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.analysis-bar-fill {
+  height: 100%;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 0.6rem;
+  min-width: fit-content;
+  transition: width 0.4s var(--ease-out);
+}
+
+.analysis-bar-fill.optimal {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+}
+
+.analysis-bar-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.analysis-bar-na {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  padding-left: 0.6rem;
+}
+
+.recommendation-text {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: var(--accent-soft);
+  border: 1px solid rgba(225, 48, 108, 0.25);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
