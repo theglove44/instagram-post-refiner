@@ -56,8 +56,11 @@ async function backfillHistory(supabase, userId, accessToken, currentFollowers) 
   const baseUrl = `${GRAPH_API_BASE}/${userId}`;
 
   // Fetch daily follower deltas for the last 30 days
+  // Must specify since/until — without them Meta only returns ~2 days
+  const now = Math.floor(Date.now() / 1000);
+  const thirtyDaysAgo = now - 30 * 86400;
   const response = await graphFetch(
-    `${baseUrl}/insights?metric=follower_count&period=day`,
+    `${baseUrl}/insights?metric=follower_count&period=day&since=${thirtyDaysAgo}&until=${now}`,
     accessToken
   );
 
