@@ -48,13 +48,77 @@ export async function GET() {
 }
 
 /**
+ * Backfill ~30 days of historical follower counts using Meta's daily
+ * follower_count insight. Works backwards from the current count.
+ * Upserts so it won't overwrite existing snapshots.
+ */
+async function backfillHistory(supabase, userId, accessToken, currentFollowers) {
+  const baseUrl = `${GRAPH_API_BASE}/${userId}`;
+
+  // Fetch daily follower deltas for the last 30 days
+  const response = await graphFetch(
+    `${baseUrl}/insights?metric=follower_count&period=day`,
+    accessToken
+  );
+
+  if (response.error || !response.data?.[0]?.values) {
+    console.log('Backfill: follower_count insight not available:', response.error?.message);
+    return { backfilled: 0 };
+  }
+
+  // Values are ordered oldest-first, each has { end_time, value } where value is the delta
+  const dailyDeltas = response.data[0].values;
+  if (!dailyDeltas || dailyDeltas.length === 0) {
+    return { backfilled: 0 };
+  }
+
+  // Work backwards from current count to reconstruct absolute counts
+  // dailyDeltas[last] is the most recent day's change
+  const rows = [];
+  let runningCount = currentFollowers;
+
+  // Process from newest to oldest
+  for (let i = dailyDeltas.length - 1; i >= 0; i--) {
+    const delta = dailyDeltas[i];
+    const date = delta.end_time.split('T')[0]; // "2026-03-07T08:00:00+0000" -> "2026-03-07"
+
+    rows.push({
+      instagram_user_id: userId,
+      followers_count: runningCount,
+      snapshot_date: date,
+    });
+
+    // Subtract this day's gain to get the previous day's count
+    runningCount -= (delta.value || 0);
+  }
+
+  // Upsert all rows (won't overwrite existing snapshots)
+  const { error } = await supabase
+    .from('account_snapshots')
+    .upsert(rows, { onConflict: 'instagram_user_id,snapshot_date', ignoreDuplicates: true });
+
+  if (error) {
+    console.error('Backfill upsert error:', error.message);
+    return { backfilled: 0, error: error.message };
+  }
+
+  console.log(`Backfilled ${rows.length} days of follower history for ${userId}`);
+  return { backfilled: rows.length };
+}
+
+/**
  * POST /api/instagram/snapshot
  * Takes a point-in-time snapshot of account stats and 28-day insights,
  * then upserts into account_snapshots (one row per user per day).
+ *
+ * On first run (empty table) or with ?backfill=true, also backfills
+ * ~30 days of historical follower counts from Meta's daily insights.
  */
-export async function POST() {
+export async function POST(request) {
   try {
     const supabase = getSupabaseClient();
+    const { searchParams } = new URL(request.url);
+    const forceBackfill = searchParams.get('backfill') === 'true';
 
     // Get Instagram account
     const { data: accounts } = await supabase
@@ -125,7 +189,7 @@ export async function POST() {
       console.log('Accounts engaged insight not available for snapshot:', err.message);
     }
 
-    // Upsert snapshot (one per user per day)
+    // Upsert today's snapshot (one per user per day)
     const snapshotRow = {
       instagram_user_id: userId,
       followers_count: accountData.followers_count ?? null,
@@ -147,7 +211,28 @@ export async function POST() {
 
     console.log(`Account snapshot saved for ${userId} on ${snapshot.snapshot_date}`);
 
-    return Response.json({ success: true, snapshot });
+    // Backfill historical data if table was empty or manually requested
+    let backfillResult = null;
+    if (forceBackfill) {
+      backfillResult = await backfillHistory(supabase, userId, accessToken, accountData.followers_count);
+    } else {
+      // Auto-backfill on first run: check if this is the only snapshot
+      const { count } = await supabase
+        .from('account_snapshots')
+        .select('id', { count: 'exact', head: true })
+        .eq('instagram_user_id', userId);
+
+      if (count <= 1) {
+        console.log('First snapshot detected — running automatic backfill');
+        backfillResult = await backfillHistory(supabase, userId, accessToken, accountData.followers_count);
+      }
+    }
+
+    return Response.json({
+      success: true,
+      snapshot,
+      ...(backfillResult && { backfill: backfillResult }),
+    });
   } catch (error) {
     console.error('Snapshot POST error:', error);
     return Response.json(
