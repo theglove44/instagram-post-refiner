@@ -303,3 +303,50 @@ CREATE POLICY "Allow public delete match_suggestions" ON match_suggestions
 -- Migration: add media_type to match_suggestions
 -- =====================================================
 -- ALTER TABLE match_suggestions ADD COLUMN IF NOT EXISTS media_type TEXT;
+
+-- =====================================================
+-- Niche hashtag library (manual input)
+-- =====================================================
+
+CREATE TABLE hashtag_library (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  hashtag TEXT NOT NULL UNIQUE,
+  source TEXT,    -- e.g. "competitor: @account" or "research"
+  category TEXT,  -- e.g. "food", "london", "lifestyle", "seasonal"
+  notes TEXT,
+  added_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE INDEX hashtag_library_category_idx ON hashtag_library(category);
+
+ALTER TABLE hashtag_library ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read hashtag_library" ON hashtag_library
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow public insert hashtag_library" ON hashtag_library
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public update hashtag_library" ON hashtag_library
+  FOR UPDATE USING (true);
+
+CREATE POLICY "Allow public delete hashtag_library" ON hashtag_library
+  FOR DELETE USING (true);
+
+-- =====================================================
+-- Migration: add hashtag_library table
+-- =====================================================
+-- CREATE TABLE IF NOT EXISTS hashtag_library (
+--   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+--   hashtag TEXT NOT NULL UNIQUE,
+--   source TEXT,
+--   category TEXT,
+--   notes TEXT,
+--   added_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+-- );
+-- CREATE INDEX IF NOT EXISTS hashtag_library_category_idx ON hashtag_library(category);
+-- ALTER TABLE hashtag_library ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Allow public read hashtag_library" ON hashtag_library FOR SELECT USING (true);
+-- CREATE POLICY "Allow public insert hashtag_library" ON hashtag_library FOR INSERT WITH CHECK (true);
+-- CREATE POLICY "Allow public update hashtag_library" ON hashtag_library FOR UPDATE USING (true);
+-- CREATE POLICY "Allow public delete hashtag_library" ON hashtag_library FOR DELETE USING (true);

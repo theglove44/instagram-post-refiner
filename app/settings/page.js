@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+
+const CATEGORY_PRESETS = ['food', 'location', 'lifestyle', 'seasonal', 'niche', 'branded'];
 
 export default function SettingsPage() {
   const [instagramAccount, setInstagramAccount] = useState(null);
@@ -10,9 +12,42 @@ export default function SettingsPage() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Hashtag library state
+  const [libraryHashtags, setLibraryHashtags] = useState([]);
+  const [libraryCategories, setLibraryCategories] = useState([]);
+  const [libraryLoading, setLibraryLoading] = useState(true);
+  const [libraryFilter, setLibraryFilter] = useState(null);
+  const [hashtagInput, setHashtagInput] = useState('');
+  const [categoryInput, setCategoryInput] = useState('');
+  const [customCategory, setCustomCategory] = useState('');
+  const [sourceInput, setSourceInput] = useState('');
+  const [addingHashtags, setAddingHashtags] = useState(false);
+  const [libraryError, setLibraryError] = useState(null);
+  const [librarySuccess, setLibrarySuccess] = useState(null);
+
+  const loadLibrary = useCallback(async (category = null) => {
+    setLibraryLoading(true);
+    try {
+      const url = category
+        ? `/api/hashtags/library?category=${encodeURIComponent(category)}`
+        : '/api/hashtags/library';
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success) {
+        setLibraryHashtags(data.hashtags);
+        setLibraryCategories(data.categories);
+      }
+    } catch (err) {
+      console.error('Failed to load hashtag library:', err);
+    } finally {
+      setLibraryLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadInstagramAccount();
-  }, []);
+    loadLibrary();
+  }, [loadLibrary]);
 
   const loadInstagramAccount = async () => {
     setLoading(true);
@@ -73,6 +108,83 @@ export default function SettingsPage() {
       year: 'numeric',
     });
   };
+
+  const handleFilterCategory = (cat) => {
+    const next = cat === libraryFilter ? null : cat;
+    setLibraryFilter(next);
+    loadLibrary(next);
+  };
+
+  const handleAddHashtags = async () => {
+    setLibraryError(null);
+    setLibrarySuccess(null);
+    const raw = hashtagInput.trim();
+    if (!raw) {
+      setLibraryError('Enter at least one hashtag');
+      return;
+    }
+
+    // Split on whitespace, commas, or newlines
+    const tags = raw.split(/[\s,]+/).filter(Boolean);
+    const resolvedCategory = categoryInput === '__custom__'
+      ? customCategory.trim()
+      : categoryInput;
+
+    setAddingHashtags(true);
+    try {
+      const res = await fetch('/api/hashtags/library', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hashtags: tags,
+          category: resolvedCategory || null,
+          source: sourceInput.trim() || null,
+          notes: null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to add hashtags');
+      setLibrarySuccess(`Added ${data.added} hashtag${data.added !== 1 ? 's' : ''}`);
+      setHashtagInput('');
+      setSourceInput('');
+      loadLibrary(libraryFilter);
+      setTimeout(() => setLibrarySuccess(null), 3000);
+    } catch (err) {
+      setLibraryError(err.message);
+    } finally {
+      setAddingHashtags(false);
+    }
+  };
+
+  const handleRemoveHashtag = async (id) => {
+    try {
+      const res = await fetch('/api/hashtags/library', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to remove');
+      loadLibrary(libraryFilter);
+    } catch (err) {
+      setLibraryError(err.message);
+    }
+  };
+
+  const handleCopyVisible = () => {
+    const text = libraryHashtags.map(h => h.hashtag).join(' ');
+    navigator.clipboard.writeText(text);
+    setLibrarySuccess('Copied to clipboard');
+    setTimeout(() => setLibrarySuccess(null), 2000);
+  };
+
+  // Group hashtags by category for display
+  const grouped = libraryHashtags.reduce((acc, h) => {
+    const cat = h.category || 'uncategorised';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(h);
+    return acc;
+  }, {});
 
   return (
     <div className="container">
@@ -208,15 +320,257 @@ INSTAGRAM_REDIRECT_URI=${typeof window !== 'undefined' ? window.location.origin 
         </div>
         <p style={{ color: 'var(--text-muted)', marginTop: '1rem', fontSize: '0.9rem' }}>
           Create a Meta app at{' '}
-          <a 
-            href="https://developers.facebook.com/" 
-            target="_blank" 
+          <a
+            href="https://developers.facebook.com/"
+            target="_blank"
             rel="noopener noreferrer"
             style={{ color: 'var(--accent)' }}
           >
             developers.facebook.com
           </a>
         </p>
+      </div>
+
+      {/* Hashtag Library */}
+      <div className="card" style={{ marginTop: '1.5rem' }}>
+        <div className="card-header">
+          <h2 className="card-title"># Hashtag Library</h2>
+        </div>
+
+        {/* Add hashtags form */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+            Paste hashtags (space, comma, or newline separated)
+          </label>
+          <textarea
+            value={hashtagInput}
+            onChange={(e) => setHashtagInput(e.target.value)}
+            placeholder="#food #london #lifestyle&#10;#seasonal #niche"
+            rows={3}
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              background: 'var(--bg-input)',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              color: 'var(--text)',
+              fontSize: '0.9rem',
+              fontFamily: "'JetBrains Mono', monospace",
+              resize: 'vertical',
+            }}
+          />
+
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1', minWidth: '150px' }}>
+              <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
+                Category
+              </label>
+              <select
+                value={categoryInput}
+                onChange={(e) => setCategoryInput(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 0.75rem',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '6px',
+                  color: 'var(--text)',
+                  fontSize: '0.85rem',
+                }}
+              >
+                <option value="">No category</option>
+                {CATEGORY_PRESETS.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+                {libraryCategories
+                  .filter(c => !CATEGORY_PRESETS.includes(c))
+                  .map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))
+                }
+                <option value="__custom__">+ Custom...</option>
+              </select>
+              {categoryInput === '__custom__' && (
+                <input
+                  type="text"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  placeholder="Enter custom category"
+                  style={{
+                    width: '100%',
+                    marginTop: '0.5rem',
+                    padding: '0.5rem 0.75rem',
+                    background: 'var(--bg-input)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    color: 'var(--text)',
+                    fontSize: '0.85rem',
+                  }}
+                />
+              )}
+            </div>
+
+            <div style={{ flex: '1', minWidth: '150px' }}>
+              <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
+                Source (optional)
+              </label>
+              <input
+                type="text"
+                value={sourceInput}
+                onChange={(e) => setSourceInput(e.target.value)}
+                placeholder='e.g. "competitor: @account"'
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 0.75rem',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '6px',
+                  color: 'var(--text)',
+                  fontSize: '0.85rem',
+                }}
+              />
+            </div>
+          </div>
+
+          {libraryError && (
+            <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--error-soft)', color: 'var(--error)', borderRadius: '6px', fontSize: '0.85rem' }}>
+              {libraryError}
+            </div>
+          )}
+          {librarySuccess && (
+            <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--success-soft)', color: 'var(--success)', borderRadius: '6px', fontSize: '0.85rem' }}>
+              {librarySuccess}
+            </div>
+          )}
+
+          <button
+            className="btn btn-primary"
+            onClick={handleAddHashtags}
+            disabled={addingHashtags || !hashtagInput.trim()}
+            style={{ marginTop: '0.75rem' }}
+          >
+            {addingHashtags ? 'Adding...' : 'Add to Library'}
+          </button>
+        </div>
+
+        {/* Category filter pills + summary */}
+        {libraryCategories.length > 0 && (
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button
+                onClick={() => handleFilterCategory(null)}
+                style={{
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '999px',
+                  border: '1px solid var(--border)',
+                  background: !libraryFilter ? 'var(--accent)' : 'var(--bg-elevated)',
+                  color: !libraryFilter ? '#fff' : 'var(--text-secondary)',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+              >
+                All
+              </button>
+              {libraryCategories.map(cat => {
+                const count = libraryFilter === cat
+                  ? libraryHashtags.length
+                  : (grouped[cat]?.length || 0);
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => handleFilterCategory(cat)}
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '999px',
+                      border: '1px solid var(--border)',
+                      background: libraryFilter === cat ? 'var(--accent)' : 'var(--bg-elevated)',
+                      color: libraryFilter === cat ? '#fff' : 'var(--text-secondary)',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {cat} ({count})
+                  </button>
+                );
+              })}
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+              {libraryHashtags.length} hashtag{libraryHashtags.length !== 1 ? 's' : ''}
+              {libraryFilter ? ` in "${libraryFilter}"` : ' total'}
+            </p>
+          </div>
+        )}
+
+        {/* Library browser */}
+        {libraryLoading ? (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <span className="loading-spinner" style={{ width: '24px', height: '24px' }} />
+          </div>
+        ) : libraryHashtags.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
+            No hashtags in your library yet. Add some above.
+          </p>
+        ) : (
+          <div>
+            {Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([cat, tags]) => (
+              <div key={cat} style={{ marginBottom: '1rem' }}>
+                <h4 style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
+                  {cat}
+                </h4>
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  {tags.map(tag => (
+                    <span
+                      key={tag.id}
+                      title={[tag.source && `Source: ${tag.source}`, tag.notes && `Notes: ${tag.notes}`].filter(Boolean).join('\n') || undefined}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        padding: '0.3rem 0.6rem',
+                        background: 'var(--bg-elevated)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '999px',
+                        fontSize: '0.8rem',
+                        color: 'var(--text)',
+                        fontFamily: "'JetBrains Mono', monospace",
+                      }}
+                    >
+                      {tag.hashtag}
+                      <button
+                        onClick={() => handleRemoveHashtag(tag.id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          padding: '0',
+                          fontSize: '0.9rem',
+                          lineHeight: '1',
+                        }}
+                        title="Remove"
+                      >
+                        x
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {/* Bulk actions */}
+            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={handleCopyVisible}
+                style={{ fontSize: '0.85rem' }}
+              >
+                Copy All ({libraryHashtags.length})
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

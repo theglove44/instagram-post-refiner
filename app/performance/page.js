@@ -16,6 +16,120 @@ async function safeJson(res) {
   }
 }
 
+function RecommendedSetCard({ set }) {
+  const [copied, setCopied] = React.useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(set.tags.join(' '));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = set.tags.join(' ');
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div style={{
+      background: 'var(--card-bg, #141414)',
+      border: '1px solid var(--border-color, #2a2a2a)',
+      borderRadius: '12px',
+      padding: '1.25rem',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '0.75rem',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary, #fff)', margin: 0 }}>
+          {set.name}
+        </h3>
+        <button
+          onClick={handleCopy}
+          style={{
+            background: copied ? 'var(--success-color, #22c55e)' : 'var(--accent-color, #e1306c)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '6px',
+            padding: '0.35rem 0.75rem',
+            fontSize: '0.8rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'background 0.2s',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted, #888)', margin: 0, lineHeight: 1.4 }}>
+        {set.description}
+      </p>
+
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        {set.engagementLiftAvg !== null && set.engagementLiftAvg !== undefined && (
+          <span style={{
+            background: set.engagementLiftAvg > 0 ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+            color: set.engagementLiftAvg > 0 ? '#22c55e' : '#ef4444',
+            padding: '0.2rem 0.5rem',
+            borderRadius: '4px',
+            fontSize: '0.75rem',
+            fontWeight: 500,
+          }}>
+            {set.engagementLiftAvg > 0 ? '+' : ''}{set.engagementLiftAvg}% eng lift
+          </span>
+        )}
+        {set.reachLiftAvg !== null && set.reachLiftAvg !== undefined && (
+          <span style={{
+            background: set.reachLiftAvg > 0 ? 'rgba(59, 130, 246, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+            color: set.reachLiftAvg > 0 ? '#3b82f6' : '#ef4444',
+            padding: '0.2rem 0.5rem',
+            borderRadius: '4px',
+            fontSize: '0.75rem',
+            fontWeight: 500,
+          }}>
+            {set.reachLiftAvg > 0 ? '+' : ''}{set.reachLiftAvg}% reach lift
+          </span>
+        )}
+        <span style={{
+          background: 'rgba(255, 255, 255, 0.08)',
+          color: 'var(--text-secondary, #aaa)',
+          padding: '0.2rem 0.5rem',
+          borderRadius: '4px',
+          fontSize: '0.75rem',
+        }}>
+          {set.tags.length} tags
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+        {set.tags.map(tag => (
+          <span
+            key={tag}
+            style={{
+              background: 'rgba(255, 255, 255, 0.06)',
+              color: 'var(--text-secondary, #ccc)',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '6px',
+              fontSize: '0.78rem',
+            }}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function HashtagCombinations({ hashtagSets }) {
   const [expandedIndex, setExpandedIndex] = useState(null);
 
@@ -1788,6 +1902,27 @@ export default function PerformancePage() {
           </div>
         )}
       </div>
+
+      {/* Recommended Hashtag Sets */}
+      {hashtagData?.recommendedSets?.length > 0 && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">Recommended Hashtag Sets</h2>
+          </div>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+            Optimized sets generated from your performance data. Copy and paste directly into your posts.
+          </p>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+            gap: '1rem',
+          }}>
+            {hashtagData.recommendedSets.map((set, idx) => (
+              <RecommendedSetCard key={idx} set={set} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Hashtag Analytics */}
       <div className="card" style={{ marginTop: '1.5rem' }}>
