@@ -240,3 +240,60 @@ CREATE POLICY "Allow public update account_snapshots" ON account_snapshots
 -- CREATE POLICY "Allow public read account_snapshots" ON account_snapshots FOR SELECT USING (true);
 -- CREATE POLICY "Allow public insert account_snapshots" ON account_snapshots FOR INSERT WITH CHECK (true);
 -- CREATE POLICY "Allow public update account_snapshots" ON account_snapshots FOR UPDATE USING (true);
+
+-- =====================================================
+-- Match suggestions for smart post linking
+-- =====================================================
+
+CREATE TABLE match_suggestions (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  instagram_media_id TEXT NOT NULL,
+  instagram_permalink TEXT,
+  instagram_caption TEXT,
+  confidence_score DECIMAL(4,3) NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  resolved_at TIMESTAMP WITH TIME ZONE,
+  UNIQUE(post_id, instagram_media_id)
+);
+
+CREATE INDEX match_suggestions_status_idx ON match_suggestions(status);
+CREATE INDEX match_suggestions_post_id_idx ON match_suggestions(post_id);
+
+ALTER TABLE match_suggestions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read match_suggestions" ON match_suggestions
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow public insert match_suggestions" ON match_suggestions
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public update match_suggestions" ON match_suggestions
+  FOR UPDATE USING (true);
+
+CREATE POLICY "Allow public delete match_suggestions" ON match_suggestions
+  FOR DELETE USING (true);
+
+-- =====================================================
+-- Migration: add match_suggestions table
+-- =====================================================
+-- CREATE TABLE IF NOT EXISTS match_suggestions (
+--   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+--   post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+--   instagram_media_id TEXT NOT NULL,
+--   instagram_permalink TEXT,
+--   instagram_caption TEXT,
+--   confidence_score DECIMAL(4,3) NOT NULL,
+--   status TEXT NOT NULL DEFAULT 'pending',
+--   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+--   resolved_at TIMESTAMP WITH TIME ZONE,
+--   UNIQUE(post_id, instagram_media_id)
+-- );
+-- CREATE INDEX IF NOT EXISTS match_suggestions_status_idx ON match_suggestions(status);
+-- CREATE INDEX IF NOT EXISTS match_suggestions_post_id_idx ON match_suggestions(post_id);
+-- ALTER TABLE match_suggestions ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Allow public read match_suggestions" ON match_suggestions FOR SELECT USING (true);
+-- CREATE POLICY "Allow public insert match_suggestions" ON match_suggestions FOR INSERT WITH CHECK (true);
+-- CREATE POLICY "Allow public update match_suggestions" ON match_suggestions FOR UPDATE USING (true);
+-- CREATE POLICY "Allow public delete match_suggestions" ON match_suggestions FOR DELETE USING (true);
