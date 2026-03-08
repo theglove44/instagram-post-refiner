@@ -2659,6 +2659,16 @@ textarea:focus-visible {
   background: rgba(239, 68, 68, 0.1);
 }
 
+/* Best Posts section */
+.best-posts-card {
+  padding: 0.25rem 0;
+}
+
+.best-post-item:hover {
+  border-color: var(--border-hover) !important;
+  background: var(--bg-card-hover) !important;
+}
+
 /* Compact metrics row in post cards */
 .metrics-row-compact {
   display: flex;
