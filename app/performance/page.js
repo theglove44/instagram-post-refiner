@@ -137,7 +137,7 @@ export default function PerformancePage() {
       let syncResult = null;
       while (true) {
         await new Promise(r => setTimeout(r, 5000)); // poll every 5s
-        const healthRes = await fetch('/api/instagram/health');
+        const healthRes = await fetch(`/api/instagram/health?_t=${Date.now()}`);
         const healthData = await safeJson(healthRes);
         const metricSync = healthData.health?.syncHistory?.metrics;
 

@@ -58,7 +58,7 @@ export async function GET() {
     // Calculate total errors from recent syncs
     const totalErrors = allSyncs.reduce((sum, s) => sum + (s.errors_count || 0), 0);
     
-    return Response.json({
+    return new Response(JSON.stringify({
       success: true,
       health: {
         lastSyncAt: latestSync?.completed_at || null,
@@ -70,13 +70,18 @@ export async function GET() {
           field,
           available: (recentMetrics?.length || 0) - nullCount,
           missing: nullCount,
-          availablePercent: recentMetrics?.length > 0 
-            ? Math.round(((recentMetrics.length - nullCount) / recentMetrics.length) * 100) 
+          availablePercent: recentMetrics?.length > 0
+            ? Math.round(((recentMetrics.length - nullCount) / recentMetrics.length) * 100)
             : 0,
         })),
         recentErrors: totalErrors,
         syncHistory: lastSyncs,
       }
+    }), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
     });
     
   } catch (error) {
