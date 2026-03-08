@@ -1,7 +1,8 @@
 import { getSupabaseClient } from '@/lib/supabase';
-import { 
-  calculateComponentRates, 
-  calculatePercentiles, 
+import {
+  calculateComponentRates,
+  calculatePercentiles,
+  calculatePerformanceScore,
   getBaselineWindow,
   calculateSummaryMedians,
   calculatePeriodDelta,
@@ -83,10 +84,11 @@ export async function GET(request) {
     // Get baseline for percentile calculation (last 30 posts with valid rates)
     const baseline = getBaselineWindow(processedPosts, null, 30);
     
-    // Calculate percentiles for each post
+    // Calculate percentiles and performance score for each post
     const postsWithPercentiles = processedPosts.map(post => ({
       ...post,
       percentiles: post.rates ? calculatePercentiles(post.rates, baseline) : null,
+      performanceScore: post.rates ? calculatePerformanceScore(post.rates, baseline) : null,
     }));
     
     // If specific post requested, return just that one
