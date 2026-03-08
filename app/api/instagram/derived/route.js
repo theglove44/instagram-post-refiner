@@ -226,6 +226,9 @@ export async function GET(request) {
       weeklyData,
     };
 
+    // Time analysis (#36) — day-of-week and hour-of-day engagement breakdown
+    const timeAnalysis = buildTimeAnalysis(processedPosts);
+
     return Response.json({
       success: true,
       posts: postsWithPercentiles,
@@ -235,6 +238,7 @@ export async function GET(request) {
       contentTypeBreakdown,
       captionAnalysis,
       frequencyAnalysis,
+      timeAnalysis,
     });
     
   } catch (error) {
@@ -253,4 +257,161 @@ function getISOWeek(date) {
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   const weekNum = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
   return `${d.getUTCFullYear()}-W${weekNum.toString().padStart(2, '0')}`;
+}
+
+// Shrinkage constants for time analysis
+const TIME_MIN_N = 5;
+
+const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function formatHourLabel(hour) {
+  if (hour === 0) return '12 AM';
+  if (hour === 12) return '12 PM';
+  return hour < 12 ? `${hour} AM` : `${hour - 12} PM`;
+}
+
+// Shrinkage score: regress toward global median for small samples
+// weight = min(n, MIN_N) / MIN_N
+function timeShrinkageScore(rawMedian, globalMedian, postCount) {
+  const weight = Math.min(postCount, TIME_MIN_N) / TIME_MIN_N;
+  return weight * rawMedian + (1 - weight) * globalMedian;
+}
+
+// Build time-of-day and day-of-week engagement analysis from stored metrics
+function buildTimeAnalysis(processedPosts) {
+  // Filter to posts with valid publishedAt and engagement rate
+  const validPosts = processedPosts.filter(
+    p => p.publishedAt != null && p.rates?.engagementRate != null
+  );
+
+  if (validPosts.length === 0) {
+    return null;
+  }
+
+  // Compute global median engagement rate
+  const allEngagementRates = validPosts.map(p => p.rates.engagementRate);
+  const globalMedianEngagement = calculateMedian(allEngagementRates);
+
+  // Group engagement rates by hour and day
+  const hourGroups = {}; // hour -> [engagementRate, ...]
+  const dayGroups = {};  // day -> [engagementRate, ...]
+  const slotGroups = {}; // "day-hour" -> [engagementRate, ...]
+
+  for (const post of validPosts) {
+    const date = new Date(post.publishedAt);
+    const hour = date.getHours();
+    const day = date.getDay();
+    const rate = post.rates.engagementRate;
+
+    if (!hourGroups[hour]) hourGroups[hour] = [];
+    hourGroups[hour].push(rate);
+
+    if (!dayGroups[day]) dayGroups[day] = [];
+    dayGroups[day].push(rate);
+
+    const slotKey = `${day}-${hour}`;
+    if (!slotGroups[slotKey]) slotGroups[slotKey] = [];
+    slotGroups[slotKey].push(rate);
+  }
+
+  // Build hourly array (0-23)
+  const hourly = [];
+  for (let h = 0; h < 24; h++) {
+    const rates = hourGroups[h] || [];
+    const postCount = rates.length;
+    const medianEngagement = postCount > 0 ? calculateMedian(rates) : null;
+    const shrinkageScore = postCount > 0
+      ? timeShrinkageScore(medianEngagement, globalMedianEngagement, postCount)
+      : globalMedianEngagement;
+
+    hourly.push({
+      hour: h,
+      label: formatHourLabel(h),
+      medianEngagement,
+      postCount,
+      shrinkageScore,
+    });
+  }
+
+  // Build daily array (0-6)
+  const daily = [];
+  for (let d = 0; d < 7; d++) {
+    const rates = dayGroups[d] || [];
+    const postCount = rates.length;
+    const medianEngagement = postCount > 0 ? calculateMedian(rates) : null;
+    const shrinkageScore = postCount > 0
+      ? timeShrinkageScore(medianEngagement, globalMedianEngagement, postCount)
+      : globalMedianEngagement;
+
+    daily.push({
+      day: d,
+      label: DAY_LABELS[d],
+      medianEngagement,
+      postCount,
+      shrinkageScore,
+    });
+  }
+
+  // Build full 7x24 heatmap
+  const heatmap = [];
+  for (let d = 0; d < 7; d++) {
+    for (let h = 0; h < 24; h++) {
+      const slotKey = `${d}-${h}`;
+      const rates = slotGroups[slotKey] || [];
+      const postCount = rates.length;
+      const medianEngagement = postCount > 0 ? calculateMedian(rates) : null;
+      const shrinkageScore = postCount > 0
+        ? timeShrinkageScore(medianEngagement, globalMedianEngagement, postCount)
+        : globalMedianEngagement;
+
+      heatmap.push({
+        day: d,
+        hour: h,
+        postCount,
+        medianEngagement,
+        shrinkageScore,
+      });
+    }
+  }
+
+  // Find best hour, day, and slot by shrinkage score
+  const bestHourEntry = hourly
+    .filter(h => h.postCount > 0)
+    .sort((a, b) => b.shrinkageScore - a.shrinkageScore)[0] || null;
+
+  const bestDayEntry = daily
+    .filter(d => d.postCount > 0)
+    .sort((a, b) => b.shrinkageScore - a.shrinkageScore)[0] || null;
+
+  const bestSlotEntry = heatmap
+    .filter(s => s.postCount > 0)
+    .sort((a, b) => b.shrinkageScore - a.shrinkageScore)[0] || null;
+
+  return {
+    bestHour: bestHourEntry ? {
+      hour: bestHourEntry.hour,
+      label: bestHourEntry.label,
+      medianEngagement: bestHourEntry.medianEngagement,
+      postCount: bestHourEntry.postCount,
+    } : null,
+    bestDay: bestDayEntry ? {
+      day: bestDayEntry.day,
+      label: bestDayEntry.label,
+      medianEngagement: bestDayEntry.medianEngagement,
+      postCount: bestDayEntry.postCount,
+    } : null,
+    bestSlot: bestSlotEntry ? {
+      day: bestSlotEntry.day,
+      hour: bestSlotEntry.hour,
+      dayLabel: DAY_LABELS[bestSlotEntry.day],
+      hourLabel: formatHourLabel(bestSlotEntry.hour),
+      medianEngagement: bestSlotEntry.medianEngagement,
+      postCount: bestSlotEntry.postCount,
+    } : null,
+    hourly,
+    daily,
+    heatmap,
+    globalMedianEngagement,
+    totalPostsAnalyzed: validPosts.length,
+  };
 }
