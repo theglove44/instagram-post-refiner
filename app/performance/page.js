@@ -16,6 +16,157 @@ async function safeJson(res) {
   }
 }
 
+function HashtagCombinations({ hashtagSets }) {
+  const [expandedIndex, setExpandedIndex] = useState(null);
+
+  if (!hashtagSets || hashtagSets.length === 0) {
+    return (
+      <div style={{ marginTop: '1.5rem' }}>
+        <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+          🔗 Hashtag Combinations
+        </h3>
+        <p className="insufficient-data-note">
+          No hashtag combination patterns found. Need at least 2 posts with similar hashtag sets and engagement data.
+        </p>
+      </div>
+    );
+  }
+
+  const topIndex = 0; // First cluster has highest median engagement (pre-sorted)
+
+  return (
+    <div style={{ marginTop: '1.5rem' }}>
+      <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+        🔗 Hashtag Combinations
+      </h3>
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+        Groups of posts using similar hashtag sets (Jaccard similarity {'>'}= 0.7)
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {hashtagSets.map((cluster, i) => {
+          const isTop = i === topIndex;
+          const isExpanded = expandedIndex === i;
+          return (
+            <div
+              key={i}
+              style={{
+                background: 'var(--bg-input)',
+                border: isTop ? '1px solid var(--success)' : '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '1rem',
+                position: 'relative',
+              }}
+            >
+              {isTop && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '12px',
+                  background: 'var(--success)',
+                  color: '#000',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}>
+                  Top Performer
+                </span>
+              )}
+
+              {/* Core tags as pills */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                {cluster.coreTags.map(tag => (
+                  <span
+                    key={tag}
+                    style={{
+                      background: isTop ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                      color: isTop ? 'var(--success)' : 'var(--text-secondary)',
+                      border: isTop ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--border)',
+                      padding: '3px 10px',
+                      borderRadius: '12px',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              {/* Stats row */}
+              <div style={{
+                display: 'flex',
+                gap: '1.5rem',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+                marginBottom: cluster.tags.length > cluster.coreTags.length ? '0.5rem' : 0,
+              }}>
+                <span>{cluster.postCount} posts</span>
+                <span style={{ color: isTop ? 'var(--success)' : 'var(--text-secondary)' }}>
+                  {cluster.medianEngagement}% median ER
+                </span>
+                {cluster.medianReach !== null && (
+                  <span>{cluster.medianReach.toLocaleString()} median reach</span>
+                )}
+              </div>
+
+              {/* Expandable full tag list */}
+              {cluster.tags.length > cluster.coreTags.length && (
+                <>
+                  <button
+                    onClick={() => setExpandedIndex(isExpanded ? null : i)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      padding: '4px 0',
+                      textDecoration: 'underline',
+                      textUnderlineOffset: '2px',
+                    }}
+                  >
+                    {isExpanded ? 'Hide all tags' : `View all ${cluster.tags.length} tags`}
+                  </button>
+                  {isExpanded && (
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '0.3rem',
+                      marginTop: '0.5rem',
+                    }}>
+                      {cluster.tags.map(tag => (
+                        <span
+                          key={tag}
+                          style={{
+                            background: cluster.coreTags.includes(tag)
+                              ? 'rgba(255, 255, 255, 0.08)'
+                              : 'rgba(255, 255, 255, 0.03)',
+                            color: cluster.coreTags.includes(tag) ? 'var(--text-secondary)' : 'var(--text-muted)',
+                            border: '1px solid var(--border)',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            fontSize: '0.75rem',
+                            fontWeight: cluster.coreTags.includes(tag) ? 500 : 400,
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function PerformancePage() {
   const [posts, setPosts] = useState([]);
   const [recentPosts, setRecentPosts] = useState([]);
@@ -1776,6 +1927,9 @@ export default function PerformancePage() {
                 </div>
               </div>
             )}
+
+            {/* Hashtag Combinations */}
+            <HashtagCombinations hashtagSets={hashtagData.hashtagSets} />
           </>
         )}
       </div>

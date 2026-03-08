@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabase';
-import { getHashtagStats, correlateHashtagsWithEngagement, extractHashtags } from '@/lib/hashtags';
+import { getHashtagStats, correlateHashtagsWithEngagement, extractHashtags, clusterHashtagSets } from '@/lib/hashtags';
 
 export async function GET() {
   try {
@@ -65,9 +65,14 @@ export async function GET() {
     }).filter(p => p.metrics);
     
     // Calculate correlations if we have posts with metrics
-    const correlations = postsForCorrelation.length > 0 
+    const correlations = postsForCorrelation.length > 0
       ? correlateHashtagsWithEngagement(postsForCorrelation)
       : null;
+
+    // Cluster hashtag sets by similarity
+    const hashtagSets = postsForCorrelation.length > 0
+      ? clusterHashtagSets(postsForCorrelation)
+      : [];
     
     // Calculate hashtag trends over time (last 30 days vs previous)
     const now = new Date();
@@ -104,6 +109,7 @@ export async function GET() {
       success: true,
       stats,
       correlations,
+      hashtagSets,
       trending,
       postsWithHashtags: formattedPosts.filter(p => extractHashtags(p.finalVersion).length > 0).length,
       postsWithMetrics: postsForCorrelation.length,
