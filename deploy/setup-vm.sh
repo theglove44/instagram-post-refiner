@@ -186,6 +186,19 @@ echo "  Systemd timer installed: runs daily at 03:00 UTC (with up to 5min jitter
 echo "  Check status: systemctl status instagram-metrics-sync.timer"
 echo ""
 
+# ─── 8. Systemd Timer for Nightly Account Snapshot ────────────
+
+echo "▸ Setting up nightly account snapshot timer..."
+
+sudo cp "$APP_DIR/deploy/instagram-snapshot.service" /etc/systemd/system/
+sudo cp "$APP_DIR/deploy/instagram-snapshot.timer" /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now instagram-snapshot.timer
+
+echo "  Systemd timer installed: runs daily at 04:00 UTC (with up to 5min jitter)"
+echo "  Check status: systemctl status instagram-snapshot.timer"
+echo ""
+
 # ─── Done ─────────────────────────────────────────────────────
 
 echo "══════════════════════════════════════════════════════════"
