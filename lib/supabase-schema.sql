@@ -251,6 +251,7 @@ CREATE TABLE match_suggestions (
   instagram_media_id TEXT NOT NULL,
   instagram_permalink TEXT,
   instagram_caption TEXT,
+  media_type TEXT,
   confidence_score DECIMAL(4,3) NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
@@ -297,3 +298,8 @@ CREATE POLICY "Allow public delete match_suggestions" ON match_suggestions
 -- CREATE POLICY "Allow public insert match_suggestions" ON match_suggestions FOR INSERT WITH CHECK (true);
 -- CREATE POLICY "Allow public update match_suggestions" ON match_suggestions FOR UPDATE USING (true);
 -- CREATE POLICY "Allow public delete match_suggestions" ON match_suggestions FOR DELETE USING (true);
+
+-- =====================================================
+-- Migration: add media_type to match_suggestions
+-- =====================================================
+-- ALTER TABLE match_suggestions ADD COLUMN IF NOT EXISTS media_type TEXT;

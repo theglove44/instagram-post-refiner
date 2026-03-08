@@ -156,13 +156,22 @@ export default function MatchReview() {
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
             {pending.length} suggestion{pending.length !== 1 ? 's' : ''} awaiting review
           </div>
-          {pending.map(s => (
-            <div key={s.id} style={{
+          {pending.map(s => {
+            // Parse media type from DB column or caption prefix fallback
+            const captionTypeMatch = s.instagramCaption?.match(/^\[(REEL|CAROUSEL|POST)\]\s?/);
+            const mediaLabel = s.mediaType
+              ? (s.mediaType === 'VIDEO' ? 'Reel' : s.mediaType === 'CAROUSEL_ALBUM' ? 'Carousel' : 'Post')
+              : captionTypeMatch ? captionTypeMatch[1].charAt(0) + captionTypeMatch[1].slice(1).toLowerCase() : null;
+            const displayCaption = captionTypeMatch
+              ? s.instagramCaption.replace(captionTypeMatch[0], '')
+              : s.instagramCaption;
+
+            return (<div key={s.id} style={{
               padding: '1rem',
               background: 'var(--bg-input)',
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius-sm)',
-              borderLeft: `3px solid ${s.confidenceScore >= 0.85 ? 'var(--success)' : 'var(--warning)'}`,
+              borderLeft: `3px solid ${s.confidenceScore >= 0.55 ? 'var(--success)' : 'var(--warning)'}`,
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                 <div style={{ flex: 1 }}>
@@ -173,21 +182,37 @@ export default function MatchReview() {
                     {s.post?.snippet || ''}
                   </div>
                 </div>
-                <span style={{
-                  fontSize: '0.7rem',
-                  padding: '0.15rem 0.5rem',
-                  borderRadius: '999px',
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
-                  marginLeft: '0.75rem',
-                  background: s.confidenceScore >= 0.85 ? 'var(--success-soft)' : 'var(--warning-soft)',
-                  color: s.confidenceScore >= 0.85 ? 'var(--success)' : 'var(--warning)',
-                }}>
-                  {Math.round(s.confidenceScore * 100)}% match
-                </span>
+                <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', marginLeft: '0.75rem', flexShrink: 0 }}>
+                  {mediaLabel && (
+                    <span style={{
+                      fontSize: '0.65rem',
+                      padding: '0.15rem 0.4rem',
+                      borderRadius: '999px',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      background: 'var(--bg-card)',
+                      color: 'var(--text-muted)',
+                      border: '1px solid var(--border)',
+                      letterSpacing: '0.03em',
+                    }}>
+                      {mediaLabel}
+                    </span>
+                  )}
+                  <span style={{
+                    fontSize: '0.7rem',
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '999px',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    background: s.confidenceScore >= 0.55 ? 'var(--success-soft)' : 'var(--warning-soft)',
+                    color: s.confidenceScore >= 0.55 ? 'var(--success)' : 'var(--warning)',
+                  }}>
+                    {Math.round(s.confidenceScore * 100)}% match
+                  </span>
+                </div>
               </div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', fontStyle: 'italic' }}>
-                IG: {s.instagramCaption || '(No caption)'}
+                IG: {displayCaption || '(No caption)'}
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                 <button
@@ -206,8 +231,8 @@ export default function MatchReview() {
                   Dismiss
                 </button>
               </div>
-            </div>
-          ))}
+            </div>);
+          })}
         </div>
       )}
     </div>

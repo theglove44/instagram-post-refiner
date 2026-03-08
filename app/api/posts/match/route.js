@@ -42,6 +42,7 @@ export async function GET(request) {
       instagramMediaId: s.instagram_media_id,
       instagramPermalink: s.instagram_permalink,
       instagramCaption: s.instagram_caption,
+      mediaType: s.media_type || null,
       confidenceScore: parseFloat(s.confidence_score),
       status: s.status,
       createdAt: s.created_at,
@@ -259,8 +260,23 @@ async function processMatchingInBackground(syncId, { mode, limit, dryRun }) {
 
     console.log(`Auto-linking: Found ${unlinkedPosts.length} unlinked posts to match against`);
 
+    // Clear stale pending suggestions — they'll be regenerated with fresh scores
+    const { error: clearError } = await supabase
+      .from('match_suggestions')
+      .delete()
+      .eq('status', 'pending');
+
+    if (clearError) {
+      console.warn('Failed to clear old suggestions:', clearError.message);
+    }
+
     // Run matching algorithm
     const matches = findBestMatches(unlinkedPosts, igPosts);
+
+    console.log(`Auto-linking: ${matches.length} matches found`);
+    for (const m of matches) {
+      console.log(`  Match: "${m.loggedPost.topic}" -> IG ${m.igPost.id} (score: ${m.score.toFixed(3)}, tier: ${m.tier}, type: ${m.igPost.media_type || 'unknown'})`);
+    }
 
     let autoLinked = 0;
     let suggestionsCreated = 0;
@@ -291,18 +307,41 @@ async function processMatchingInBackground(syncId, { mode, limit, dryRun }) {
           }
         } else if (match.tier === 'suggested' || (match.tier === 'auto_link' && dryRun)) {
           // Lower confidence or dry run — create suggestion
-          const { error: insertError } = await supabase
+          const mediaType = match.igPost.media_type || null;
+          const captionPreview = match.igPost.caption?.substring(0, 500) || null;
+          // Prepend media type to caption if available, so it's visible even without DB column
+          const captionWithType = mediaType
+            ? `[${mediaType === 'VIDEO' ? 'REEL' : mediaType === 'CAROUSEL_ALBUM' ? 'CAROUSEL' : 'POST'}] ${captionPreview || ''}`
+            : captionPreview;
+
+          const suggestionData = {
+            post_id: match.loggedPost.id,
+            instagram_media_id: match.igPost.id,
+            instagram_permalink: match.igPost.permalink || null,
+            instagram_caption: captionWithType,
+            confidence_score: match.score,
+            status: 'pending',
+          };
+
+          // Try with media_type column first, fall back without it
+          let insertError;
+          const { error: err1 } = await supabase
             .from('match_suggestions')
-            .upsert({
-              post_id: match.loggedPost.id,
-              instagram_media_id: match.igPost.id,
-              instagram_permalink: match.igPost.permalink || null,
-              instagram_caption: match.igPost.caption?.substring(0, 500) || null,
-              confidence_score: match.score,
-              status: 'pending',
-            }, {
+            .upsert({ ...suggestionData, media_type: mediaType }, {
               onConflict: 'post_id,instagram_media_id',
             });
+
+          if (err1 && err1.message?.includes('media_type')) {
+            // Column doesn't exist yet — insert without it
+            const { error: err2 } = await supabase
+              .from('match_suggestions')
+              .upsert(suggestionData, {
+                onConflict: 'post_id,instagram_media_id',
+              });
+            insertError = err2;
+          } else {
+            insertError = err1;
+          }
 
           if (insertError) {
             errors.push({
