@@ -24,6 +24,7 @@ export async function GET(request) {
         topic,
         edit_count,
         published_at,
+        final_version,
         instagram_permalink,
         instagram_media_id,
         post_metrics (
@@ -69,6 +70,7 @@ export async function GET(request) {
         topic: post.topic,
         editCount: post.edit_count,
         publishedAt: post.published_at,
+        captionLength: post.final_version ? post.final_version.length : null,
         instagramPermalink: post.instagram_permalink,
         mediaType: latestMetrics?.media_type || null,
         metrics: latestMetrics ? {
@@ -105,10 +107,10 @@ export async function GET(request) {
     
     // Calculate summary medians for last 28 days
     const summary = calculateSummaryMedians(processedPosts, 28);
-    
+
     // Calculate delta vs previous 28 days
     const delta = calculatePeriodDelta(processedPosts, 28);
-    
+
     // Calculate content type breakdown
     const typeGroups = {};
     for (const post of processedPosts) {
@@ -127,6 +129,103 @@ export async function GET(request) {
       insufficientData: typePosts.length < 10,
     }));
 
+    // Caption length analysis (#33)
+    const captionBucketDefs = [
+      { label: 'Short (0-100)', range: [0, 100] },
+      { label: 'Medium (100-250)', range: [100, 250] },
+      { label: 'Long (250-500)', range: [250, 500] },
+      { label: 'Very Long (500+)', range: [500, Infinity] },
+    ];
+
+    const postsWithCaptions = processedPosts.filter(
+      p => p.captionLength !== null && p.rates?.engagementRate !== null
+    );
+
+    const captionBuckets = captionBucketDefs.map(def => {
+      const matching = postsWithCaptions.filter(
+        p => p.captionLength >= def.range[0] && p.captionLength < def.range[1]
+      );
+      const medianEngagement = calculateMedian(
+        matching.map(p => p.rates.engagementRate)
+      );
+      return {
+        label: def.label,
+        range: def.range[1] === Infinity ? [def.range[0], null] : def.range,
+        count: matching.length,
+        medianEngagement,
+      };
+    });
+
+    const bestCaptionBucket = captionBuckets
+      .filter(b => b.count > 0 && b.medianEngagement !== null)
+      .sort((a, b) => b.medianEngagement - a.medianEngagement)[0] || null;
+
+    const captionAnalysis = {
+      buckets: captionBuckets,
+      optimalBucket: bestCaptionBucket?.label || null,
+      recommendation: bestCaptionBucket
+        ? `Your posts between ${bestCaptionBucket.label.match(/\((.+)\)/)?.[1] || bestCaptionBucket.label} characters perform best`
+        : 'Not enough data to determine optimal caption length yet',
+    };
+
+    // Post frequency analysis (#34)
+    const postsWithDates = processedPosts.filter(
+      p => p.publishedAt && p.rates?.engagementRate !== null
+    );
+
+    // Group posts by ISO week
+    const weekMap = {};
+    for (const post of postsWithDates) {
+      const date = new Date(post.publishedAt);
+      const week = getISOWeek(date);
+      if (!weekMap[week]) weekMap[week] = [];
+      weekMap[week].push(post);
+    }
+
+    const weeklyData = Object.entries(weekMap)
+      .map(([week, weekPosts]) => ({
+        week,
+        posts: weekPosts.length,
+        medianEngagement: calculateMedian(
+          weekPosts.map(p => p.rates.engagementRate)
+        ),
+      }))
+      .sort((a, b) => a.week.localeCompare(b.week));
+
+    const freqBucketDefs = [
+      { label: '1 post/week', min: 1, max: 1 },
+      { label: '2-3 posts/week', min: 2, max: 3 },
+      { label: '4-5 posts/week', min: 4, max: 5 },
+      { label: '6+ posts/week', min: 6, max: Infinity },
+    ];
+
+    const freqBuckets = freqBucketDefs.map(def => {
+      const matchingWeeks = weeklyData.filter(
+        w => w.posts >= def.min && w.posts <= def.max
+      );
+      const medianEngagement = calculateMedian(
+        matchingWeeks.map(w => w.medianEngagement).filter(v => v !== null)
+      );
+      return {
+        label: def.label,
+        count: matchingWeeks.length,
+        medianEngagement,
+      };
+    });
+
+    const bestFreqBucket = freqBuckets
+      .filter(b => b.count > 0 && b.medianEngagement !== null)
+      .sort((a, b) => b.medianEngagement - a.medianEngagement)[0] || null;
+
+    const frequencyAnalysis = {
+      buckets: freqBuckets,
+      optimalBucket: bestFreqBucket?.label || null,
+      recommendation: bestFreqBucket
+        ? `Weeks where you posted ${bestFreqBucket.label.replace(' posts/week', '').replace(' post/week', '')} time${bestFreqBucket.label.startsWith('1 ') ? '' : 's'} averaged higher engagement`
+        : 'Not enough data to determine optimal posting frequency yet',
+      weeklyData,
+    };
+
     return Response.json({
       success: true,
       posts: postsWithPercentiles,
@@ -134,6 +233,8 @@ export async function GET(request) {
       delta,
       baselineSize: baseline.length,
       contentTypeBreakdown,
+      captionAnalysis,
+      frequencyAnalysis,
     });
     
   } catch (error) {
@@ -143,4 +244,13 @@ export async function GET(request) {
       { status: 500 }
     );
   }
+}
+
+// Returns ISO week string like "2026-W10"
+function getISOWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNum = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+  return `${d.getUTCFullYear()}-W${weekNum.toString().padStart(2, '0')}`;
 }
