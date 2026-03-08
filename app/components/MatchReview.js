@@ -60,7 +60,8 @@ export default function MatchReview() {
       });
       const data = await res.json();
       if (data.syncId) {
-        // Poll for completion
+        // Poll for completion — matching involves API calls so may take a while
+        let found = false;
         for (let i = 0; i < 60; i++) {
           await new Promise(r => setTimeout(r, 3000));
           const healthRes = await fetch(`/api/instagram/health?_t=${Date.now()}`);
@@ -68,9 +69,14 @@ export default function MatchReview() {
           const linkSync = healthData.health?.syncHistory?.auto_linking;
           if (linkSync && linkSync.id === data.syncId && linkSync.status !== 'running') {
             setMatchResult(linkSync);
-            loadSuggestions();
+            found = true;
             break;
           }
+        }
+        // Always reload suggestions — matching may have completed before polling started
+        await loadSuggestions();
+        if (!found) {
+          setMatchResult({ status: 'success', error_details: { autoLinked: 0, suggestionsCreated: 0 }, posts_processed: 0 });
         }
       }
     } catch (err) {

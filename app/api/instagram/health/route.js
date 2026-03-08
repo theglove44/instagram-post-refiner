@@ -5,7 +5,7 @@ export async function GET() {
     const supabase = getSupabaseClient();
     
     // Get last sync for each type
-    const syncTypes = ['metrics', 'recent', 'insights', 'account'];
+    const syncTypes = ['metrics', 'recent', 'insights', 'account', 'auto_linking'];
     const syncPromises = syncTypes.map(type => 
       supabase
         .from('sync_status')
