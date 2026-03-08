@@ -31,6 +31,9 @@ export default function PerformancePage() {
   const [derivedData, setDerivedData] = useState(null);
   const [refreshDays, setRefreshDays] = useState(30);
   const [refreshResult, setRefreshResult] = useState(null);
+  const [growthData, setGrowthData] = useState(null);
+  const [loadingGrowth, setLoadingGrowth] = useState(false);
+  const [growthDays, setGrowthDays] = useState(30);
 
   useEffect(() => {
     checkInstagramConnection();
@@ -49,6 +52,7 @@ export default function PerformancePage() {
         loadRecentPosts();
         loadAccountInsights();
         loadDerivedMetrics();
+        loadGrowthData();
       } else {
         setInstagramConnected(false);
         setLoading(false);
@@ -213,6 +217,174 @@ export default function PerformancePage() {
     } catch (err) {
       console.error('Failed to load derived metrics:', err);
     }
+  };
+
+  const loadGrowthData = async (days) => {
+    const d = days ?? growthDays;
+    setLoadingGrowth(true);
+    try {
+      const res = await fetch(`/api/instagram/growth?days=${d}`);
+      const data = await safeJson(res);
+      if (data.error) {
+        console.error('Growth data error:', data.error);
+      } else {
+        setGrowthData(data);
+      }
+    } catch (err) {
+      console.error('Failed to load growth data:', err);
+    } finally {
+      setLoadingGrowth(false);
+    }
+  };
+
+  const handleGrowthDaysChange = (newDays) => {
+    setGrowthDays(newDays);
+    loadGrowthData(newDays);
+  };
+
+  // Build SVG polyline for the growth chart
+  const renderGrowthChart = () => {
+    const snapshots = growthData?.snapshots || [];
+    if (snapshots.length < 2) return null;
+
+    const followers = snapshots.map(s => s.followers_count).filter(v => v !== null);
+    if (followers.length < 2) return null;
+
+    const minVal = Math.min(...followers);
+    const maxVal = Math.max(...followers);
+    const range = maxVal - minVal || 1;
+
+    const chartWidth = 800;
+    const chartHeight = 200;
+    const padTop = 20;
+    const padBottom = 30;
+    const padLeft = 10;
+    const padRight = 10;
+    const plotWidth = chartWidth - padLeft - padRight;
+    const plotHeight = chartHeight - padTop - padBottom;
+
+    // Build polyline points
+    const points = followers.map((val, i) => {
+      const x = padLeft + (i / (followers.length - 1)) * plotWidth;
+      const y = padTop + plotHeight - ((val - minVal) / range) * plotHeight;
+      return `${x},${y}`;
+    }).join(' ');
+
+    // Build area fill path
+    const firstX = padLeft;
+    const lastX = padLeft + plotWidth;
+    const areaPath = `M${firstX},${padTop + plotHeight} ` +
+      followers.map((val, i) => {
+        const x = padLeft + (i / (followers.length - 1)) * plotWidth;
+        const y = padTop + plotHeight - ((val - minVal) / range) * plotHeight;
+        return `L${x},${y}`;
+      }).join(' ') +
+      ` L${lastX},${padTop + plotHeight} Z`;
+
+    // X-axis labels (show ~5 dates evenly spaced)
+    const labelCount = Math.min(5, snapshots.length);
+    const labelIndices = Array.from({ length: labelCount }, (_, i) =>
+      Math.round((i / (labelCount - 1)) * (snapshots.length - 1))
+    );
+
+    // Y-axis: show min and max
+    const yLabels = [
+      { val: maxVal, y: padTop },
+      { val: minVal, y: padTop + plotHeight },
+    ];
+    if (range > 0) {
+      const midVal = Math.round(minVal + range / 2);
+      yLabels.splice(1, 0, { val: midVal, y: padTop + plotHeight / 2 });
+    }
+
+    return (
+      <svg
+        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+        className="growth-chart-svg"
+        preserveAspectRatio="none"
+      >
+        {/* Grid lines */}
+        {yLabels.map((label, i) => (
+          <line
+            key={i}
+            x1={padLeft}
+            y1={label.y}
+            x2={chartWidth - padRight}
+            y2={label.y}
+            stroke="rgba(255,255,255,0.06)"
+            strokeWidth="1"
+          />
+        ))}
+
+        {/* Area fill */}
+        <path
+          d={areaPath}
+          fill="url(#growthGradient)"
+          opacity="0.3"
+        />
+
+        {/* Line */}
+        <polyline
+          points={points}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth="2.5"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* Gradient definition */}
+        <defs>
+          <linearGradient id="growthGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* X-axis date labels */}
+        {labelIndices.map((idx) => {
+          const x = padLeft + (idx / (snapshots.length - 1)) * plotWidth;
+          const date = new Date(snapshots[idx].snapshot_date);
+          const label = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          return (
+            <text
+              key={idx}
+              x={x}
+              y={chartHeight - 5}
+              textAnchor="middle"
+              fill="var(--text-muted)"
+              fontSize="11"
+              fontFamily="inherit"
+            >
+              {label}
+            </text>
+          );
+        })}
+
+        {/* Y-axis labels */}
+        {yLabels.map((label, i) => (
+          <text
+            key={`y-${i}`}
+            x={chartWidth - padRight - 5}
+            y={label.y - 5}
+            textAnchor="end"
+            fill="var(--text-muted)"
+            fontSize="10"
+            fontFamily="inherit"
+          >
+            {formatNumber(label.val)}
+          </text>
+        ))}
+
+        {/* Endpoint dot */}
+        {(() => {
+          const lastIdx = followers.length - 1;
+          const cx = padLeft + (lastIdx / (followers.length - 1)) * plotWidth;
+          const cy = padTop + plotHeight - ((followers[lastIdx] - minVal) / range) * plotHeight;
+          return <circle cx={cx} cy={cy} r="4" fill="var(--accent)" />;
+        })()}
+      </svg>
+    );
   };
 
   const calculateCorrelation = (postsData) => {
@@ -475,6 +647,85 @@ export default function PerformancePage() {
                 ))}
               </div>
             </details>
+          )}
+        </div>
+      )}
+
+      {/* Follower Growth */}
+      {instagramConnected && (
+        <div className="card growth-chart-card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">📈 Follower Growth</h2>
+            <div className="growth-timeframe-selector">
+              {[
+                { label: '7d', value: 7 },
+                { label: '30d', value: 30 },
+                { label: '90d', value: 90 },
+                { label: 'All', value: 'all' },
+              ].map(({ label, value }) => (
+                <button
+                  key={value}
+                  className={`growth-timeframe-btn ${growthDays === value ? 'active' : ''}`}
+                  onClick={() => handleGrowthDaysChange(value)}
+                  disabled={loadingGrowth}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {loadingGrowth && !growthData ? (
+            <div className="empty-state">
+              <div className="spinner" />
+              <p>Loading growth data...</p>
+            </div>
+          ) : !growthData?.snapshots || growthData.snapshots.length < 2 ? (
+            <div className="empty-state">
+              <p>No growth data yet. Daily snapshots start recording automatically.</p>
+            </div>
+          ) : (
+            <>
+              <div className="growth-stats">
+                <div className="growth-stat-item">
+                  <span className="growth-stat-value">
+                    {formatNumber(growthData.snapshots[growthData.snapshots.length - 1].followers_count)}
+                  </span>
+                  <span className="growth-stat-label">Current Followers</span>
+                </div>
+                <div className="growth-stat-item">
+                  <span className="growth-stat-value" style={{ color: growthData.growth.totalGrowth >= 0 ? 'var(--success)' : 'var(--error)' }}>
+                    {growthData.growth.totalGrowth >= 0 ? '+' : ''}{formatNumber(growthData.growth.totalGrowth)}
+                  </span>
+                  <span className="growth-stat-label">Total Change</span>
+                </div>
+                <div className="growth-stat-item">
+                  <span className="growth-stat-value">
+                    {growthData.growth.daily7dAvg !== null
+                      ? `${growthData.growth.daily7dAvg >= 0 ? '+' : ''}${growthData.growth.daily7dAvg}/day`
+                      : 'N/A'}
+                  </span>
+                  <span className="growth-stat-label">7d Avg</span>
+                </div>
+                <div className="growth-stat-item">
+                  <span className="growth-stat-value" style={{ color: growthData.growth.growthPercent >= 0 ? 'var(--success)' : 'var(--error)' }}>
+                    {growthData.growth.growthPercent >= 0 ? '+' : ''}{growthData.growth.growthPercent}%
+                  </span>
+                  <span className="growth-stat-label">Growth Rate</span>
+                </div>
+              </div>
+
+              <div className="growth-chart-container">
+                {renderGrowthChart()}
+              </div>
+
+              {growthData.growth.periodDays > 0 && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textAlign: 'center', marginTop: '0.5rem' }}>
+                  Showing {growthData.growth.periodDays} day{growthData.growth.periodDays !== 1 ? 's' : ''} of data
+                  {growthData.growth.daily30dAvg !== null && ` — 30d avg: ${growthData.growth.daily30dAvg >= 0 ? '+' : ''}${growthData.growth.daily30dAvg}/day`}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
