@@ -132,11 +132,12 @@ export default function PerformancePage() {
         throw new Error(data.error || 'Failed to start metrics refresh');
       }
 
-      // Poll sync status until complete
+      // Poll sync status until complete (timeout after 10 minutes)
       const syncId = data.syncId;
       let syncResult = null;
-      while (true) {
-        await new Promise(r => setTimeout(r, 5000)); // poll every 5s
+      const maxPolls = 120; // 120 × 5s = 10 minutes
+      for (let poll = 0; poll < maxPolls; poll++) {
+        await new Promise(r => setTimeout(r, 5000));
         const healthRes = await fetch(`/api/instagram/health?_t=${Date.now()}`);
         const healthData = await safeJson(healthRes);
         const metricSync = healthData.health?.syncHistory?.metrics;
@@ -148,6 +149,9 @@ export default function PerformancePage() {
           syncResult = metricSync;
           break;
         }
+      }
+      if (!syncResult) {
+        throw new Error('Metrics refresh timed out. Check sync status and try again.');
       }
 
       // Show result summary
