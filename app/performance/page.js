@@ -1051,11 +1051,11 @@ export default function PerformancePage() {
         </div>
       )}
 
-      {/* Posting Frequency Analysis (#34) */}
+      {/* Posting Frequency Analysis (#34, #39) */}
       {derivedData?.frequencyAnalysis && (
         <div className="card" style={{ marginTop: '1.5rem' }}>
           <div className="card-header">
-            <h2 className="card-title">📅 Posting Frequency vs Performance</h2>
+            <h2 className="card-title">📅 Posting Cadence</h2>
           </div>
 
           {derivedData.frequencyAnalysis.buckets.every(b => b.count === 0) ? (
@@ -1065,6 +1065,121 @@ export default function PerformancePage() {
             </div>
           ) : (
             <>
+              {/* Recommendation hero */}
+              {derivedData.frequencyAnalysis.optimalBucket && (() => {
+                const freq = derivedData.frequencyAnalysis;
+                const bucketLabel = freq.optimalBucket;
+                const bestBucket = freq.buckets.find(b => b.label === bucketLabel);
+                const totalWeeks = freq.buckets.reduce((sum, b) => sum + b.count, 0);
+
+                // Calculate % higher engagement vs other buckets
+                const otherBuckets = freq.buckets.filter(
+                  b => b.label !== bucketLabel && b.medianEngagement !== null && b.count > 0
+                );
+                const otherAvg = otherBuckets.length > 0
+                  ? otherBuckets.reduce((sum, b) => sum + b.medianEngagement, 0) / otherBuckets.length
+                  : null;
+                const pctHigher = otherAvg && bestBucket?.medianEngagement
+                  ? Math.round(((bestBucket.medianEngagement - otherAvg) / otherAvg) * 100)
+                  : null;
+
+                // Extract the range text (e.g. "2-3" from "2-3 posts/week")
+                const rangeText = bucketLabel.replace(' posts/week', '').replace(' post/week', '');
+
+                const confidenceColor = freq.confidenceLevel === 'high'
+                  ? 'var(--success)'
+                  : freq.confidenceLevel === 'medium'
+                    ? 'var(--warning)'
+                    : 'var(--text-muted)';
+                const confidenceBg = freq.confidenceLevel === 'high'
+                  ? 'var(--success-soft)'
+                  : freq.confidenceLevel === 'medium'
+                    ? 'var(--warning-soft)'
+                    : 'rgba(255,255,255,0.06)';
+
+                return (
+                  <div style={{
+                    padding: '1.25rem',
+                    background: 'var(--accent-soft)',
+                    border: '1px solid rgba(225, 48, 108, 0.25)',
+                    borderRadius: 'var(--radius-sm)',
+                    marginBottom: '1.5rem',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text)' }}>
+                        Aim for {rangeText} post{rangeText === '1' ? '' : 's'} per week
+                      </span>
+                      <span style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        padding: '0.2rem 0.55rem',
+                        borderRadius: '999px',
+                        background: confidenceBg,
+                        color: confidenceColor,
+                      }}>
+                        {freq.confidenceLevel} confidence
+                      </span>
+                    </div>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0, lineHeight: 1.5 }}>
+                      Based on {totalWeeks} week{totalWeeks !== 1 ? 's' : ''} of data
+                      {pctHigher !== null && pctHigher > 0
+                        ? `, your engagement is ${pctHigher}% higher when posting ${rangeText} time${rangeText === '1' ? '' : 's'} per week`
+                        : ''}
+                    </p>
+                  </div>
+                );
+              })()}
+
+              {/* This week's progress */}
+              {derivedData.frequencyAnalysis.currentWeekTarget !== null && (() => {
+                const freq = derivedData.frequencyAnalysis;
+                const current = freq.currentWeekPosts;
+                const target = freq.currentWeekTarget;
+                const pct = Math.min((current / target) * 100, 100);
+                const isComplete = current >= target;
+
+                return (
+                  <div style={{
+                    padding: '1rem 1.25rem',
+                    background: 'var(--bg-input)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-sm)',
+                    marginBottom: '1.5rem',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        This week
+                      </span>
+                      <span style={{
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        color: isComplete ? 'var(--success)' : 'var(--text)',
+                      }}>
+                        {current} of {target} post{target !== 1 ? 's' : ''}
+                        {isComplete ? ' \u2713' : ''}
+                      </span>
+                    </div>
+                    <div style={{
+                      height: '6px',
+                      background: 'rgba(255,255,255,0.06)',
+                      borderRadius: '3px',
+                      overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${pct}%`,
+                        background: isComplete ? 'var(--success)' : 'var(--accent)',
+                        borderRadius: '3px',
+                        transition: 'width 0.3s ease',
+                      }} />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Frequency bucket breakdown */}
               <p style={{ color: 'var(--text-muted)', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
                 Median engagement rate grouped by how many posts you published per week
               </p>
@@ -1086,7 +1201,10 @@ export default function PerformancePage() {
                     <div key={bucket.label} className={`analysis-bar-item ${isOptimal ? 'optimal' : ''}`}>
                       <div className="analysis-bar-label">
                         <span className="analysis-bar-name">{bucket.label}</span>
-                        <span className="analysis-bar-meta">{bucket.count} week{bucket.count !== 1 ? 's' : ''}</span>
+                        <span className="analysis-bar-meta">
+                          {bucket.count} week{bucket.count !== 1 ? 's' : ''}
+                          {bucket.medianEngagement !== null ? ` \u00b7 ${bucket.medianEngagement.toFixed(2)}% ER` : ''}
+                        </span>
                       </div>
                       <div className="analysis-bar-track">
                         {bucket.medianEngagement !== null ? (
@@ -1104,12 +1222,6 @@ export default function PerformancePage() {
                   );
                 })}
               </div>
-
-              {derivedData.frequencyAnalysis.optimalBucket && (
-                <div className="recommendation-text">
-                  <strong>Recommendation:</strong> {derivedData.frequencyAnalysis.recommendation}
-                </div>
-              )}
             </>
           )}
         </div>

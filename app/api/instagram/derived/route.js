@@ -217,6 +217,28 @@ export async function GET(request) {
       .filter(b => b.count > 0 && b.medianEngagement !== null)
       .sort((a, b) => b.medianEngagement - a.medianEngagement)[0] || null;
 
+    // Current week progress (#39)
+    const currentWeek = getISOWeek(new Date());
+    const allPostsWithDates = processedPosts.filter(p => p.publishedAt);
+    const currentWeekPosts = allPostsWithDates.filter(p => {
+      const week = getISOWeek(new Date(p.publishedAt));
+      return week === currentWeek;
+    }).length;
+
+    // Determine target from best bucket's max value
+    const bestFreqDef = bestFreqBucket
+      ? freqBucketDefs.find(d => d.label === bestFreqBucket.label)
+      : null;
+    const currentWeekTarget = bestFreqDef
+      ? (bestFreqDef.max === Infinity ? bestFreqDef.min : bestFreqDef.max)
+      : null;
+
+    // Confidence based on number of weeks in the best bucket
+    const confidenceLevel = !bestFreqBucket ? 'low'
+      : bestFreqBucket.count >= 8 ? 'high'
+      : bestFreqBucket.count >= 4 ? 'medium'
+      : 'low';
+
     const frequencyAnalysis = {
       buckets: freqBuckets,
       optimalBucket: bestFreqBucket?.label || null,
@@ -224,6 +246,9 @@ export async function GET(request) {
         ? `Weeks where you posted ${bestFreqBucket.label.replace(' posts/week', '').replace(' post/week', '')} time${bestFreqBucket.label.startsWith('1 ') ? '' : 's'} averaged higher engagement`
         : 'Not enough data to determine optimal posting frequency yet',
       weeklyData,
+      currentWeekPosts,
+      currentWeekTarget,
+      confidenceLevel,
     };
 
     // Time analysis (#36) — day-of-week and hour-of-day engagement breakdown
