@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import MilestoneMarkers from '@/app/components/MilestoneMarkers';
 
 // Safe JSON parser — handles non-JSON error responses from the server
 async function safeJson(res) {
@@ -728,6 +729,14 @@ export default function PerformancePage() {
             </>
           )}
         </div>
+      )}
+
+      {/* Follower Milestones */}
+      {instagramConnected && growthData && (
+        <MilestoneMarkers
+          milestones={growthData.milestones || []}
+          nextMilestone={growthData.nextMilestone || null}
+        />
       )}
 
       {/* Account Overview */}

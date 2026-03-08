@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabase';
+import { detectMilestones, getNextMilestone } from '@/lib/milestones';
 
 export async function GET(request) {
   try {
@@ -110,6 +111,20 @@ export async function GET(request) {
     const periodEnd = new Date(last.snapshot_date);
     const periodDays = Math.round((periodEnd - periodStart) / (1000 * 60 * 60 * 24));
 
+    // Milestone detection (always uses all-time snapshots)
+    let allSnapshots = snapshots;
+    if (days !== 'all') {
+      const { data: allData } = await supabase
+        .from('account_snapshots')
+        .select('snapshot_date, followers_count')
+        .eq('instagram_user_id', instagramUserId)
+        .order('snapshot_date', { ascending: true });
+      allSnapshots = allData || snapshots;
+    }
+    const milestones = detectMilestones(allSnapshots);
+    const currentFollowers = last.followers_count ?? 0;
+    const nextMilestone = getNextMilestone(currentFollowers);
+
     return new Response(JSON.stringify({
       success: true,
       snapshots,
@@ -120,6 +135,8 @@ export async function GET(request) {
         growthPercent,
         periodDays,
       },
+      milestones,
+      nextMilestone,
     }), {
       headers: {
         'Content-Type': 'application/json',
