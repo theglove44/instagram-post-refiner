@@ -122,10 +122,10 @@ export async function GET(request) {
     const contentTypeBreakdown = Object.entries(typeGroups).map(([type, typePosts]) => ({
       type,
       count: typePosts.length,
-      medianEngagementRate: calculateMedian(typePosts.map(p => p.rates.engagementRate)),
-      medianSaveRate: calculateMedian(typePosts.map(p => p.rates.saveRate)),
-      medianShareRate: calculateMedian(typePosts.map(p => p.rates.shareRate)),
-      medianReach: calculateMedian(typePosts.filter(p => p.metrics).map(p => p.metrics.reach)),
+      medianEngagementRate: calculateMedian(typePosts.map(p => p.rates?.engagementRate).filter(v => v != null)),
+      medianSaveRate: calculateMedian(typePosts.map(p => p.rates?.saveRate).filter(v => v != null)),
+      medianShareRate: calculateMedian(typePosts.map(p => p.rates?.shareRate).filter(v => v != null)),
+      medianReach: calculateMedian(typePosts.filter(p => p.metrics).map(p => p.metrics.reach).filter(v => v != null)),
       insufficientData: typePosts.length < 10,
     }));
 
@@ -138,7 +138,7 @@ export async function GET(request) {
     ];
 
     const postsWithCaptions = processedPosts.filter(
-      p => p.captionLength !== null && p.rates?.engagementRate !== null
+      p => p.captionLength != null && p.rates?.engagementRate != null
     );
 
     const captionBuckets = captionBucketDefs.map(def => {
@@ -146,7 +146,7 @@ export async function GET(request) {
         p => p.captionLength >= def.range[0] && p.captionLength < def.range[1]
       );
       const medianEngagement = calculateMedian(
-        matching.map(p => p.rates.engagementRate)
+        matching.map(p => p.rates?.engagementRate).filter(v => v != null)
       );
       return {
         label: def.label,
@@ -170,7 +170,7 @@ export async function GET(request) {
 
     // Post frequency analysis (#34)
     const postsWithDates = processedPosts.filter(
-      p => p.publishedAt && p.rates?.engagementRate !== null
+      p => p.publishedAt && p.rates?.engagementRate != null
     );
 
     // Group posts by ISO week
@@ -187,7 +187,7 @@ export async function GET(request) {
         week,
         posts: weekPosts.length,
         medianEngagement: calculateMedian(
-          weekPosts.map(p => p.rates.engagementRate)
+          weekPosts.map(p => p.rates?.engagementRate).filter(v => v != null)
         ),
       }))
       .sort((a, b) => a.week.localeCompare(b.week));
