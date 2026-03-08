@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabase';
-import { getHashtagStats, correlateHashtagsWithEngagement, extractHashtags, clusterHashtagSets } from '@/lib/hashtags';
+import { getHashtagStats, correlateHashtagsWithEngagement, extractHashtags, clusterHashtagSets, getDualRankings, analyzeHashtagRotation } from '@/lib/hashtags';
 
 export async function GET() {
   try {
@@ -73,6 +73,14 @@ export async function GET() {
     const hashtagSets = postsForCorrelation.length > 0
       ? clusterHashtagSets(postsForCorrelation)
       : [];
+
+    // Dual rankings: engagement + reach with star performers (#41)
+    const dualRankings = postsForCorrelation.length > 0
+      ? getDualRankings(postsForCorrelation)
+      : null;
+
+    // Hashtag rotation and overuse analysis (#42)
+    const rotation = analyzeHashtagRotation(formattedPosts, postsForCorrelation);
     
     // Calculate hashtag trends over time (last 30 days vs previous)
     const now = new Date();
@@ -110,6 +118,9 @@ export async function GET() {
       stats,
       correlations,
       hashtagSets,
+      reachCorrelations: dualRankings?.reachRanking || null,
+      dualPerformers: dualRankings?.dualPerformers || [],
+      rotation,
       trending,
       postsWithHashtags: formattedPosts.filter(p => extractHashtags(p.finalVersion).length > 0).length,
       postsWithMetrics: postsForCorrelation.length,

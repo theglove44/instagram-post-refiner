@@ -1833,6 +1833,182 @@ export default function PerformancePage() {
               </div>
             </div>
 
+            {/* Hashtag Health */}
+            {hashtagData.rotation && (
+              <div style={{ marginTop: '1.5rem' }}>
+                <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                  Hashtag Health
+                </h3>
+
+                {/* Warning banners */}
+                {hashtagData.rotation.warnings.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                    {hashtagData.rotation.warnings.map((w, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          background: w.severity === 'error' ? 'rgba(239, 68, 68, 0.12)' : 'var(--warning-soft)',
+                          color: w.severity === 'error' ? 'var(--error)' : 'var(--warning)',
+                          padding: '0.75rem 1rem',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
+                          borderLeft: `3px solid ${w.severity === 'error' ? 'var(--error)' : 'var(--warning)'}`,
+                        }}
+                      >
+                        {w.type === 'consecutive_reuse' ? '🔁' : '⚠️'} {w.message}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Streak indicator */}
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px',
+                  fontSize: '0.85rem',
+                  marginBottom: '1rem',
+                  background: hashtagData.rotation.currentStreak <= 2
+                    ? 'var(--success-soft)'
+                    : hashtagData.rotation.currentStreak <= 4
+                      ? 'var(--warning-soft)'
+                      : 'rgba(239, 68, 68, 0.12)',
+                  color: hashtagData.rotation.currentStreak <= 2
+                    ? 'var(--success)'
+                    : hashtagData.rotation.currentStreak <= 4
+                      ? 'var(--warning)'
+                      : 'var(--error)',
+                }}>
+                  <span style={{ fontWeight: 600 }}>{hashtagData.rotation.currentStreak}</span>
+                  <span>consecutive posts with similar hashtag sets</span>
+                  {hashtagData.rotation.longestStreak > hashtagData.rotation.currentStreak && (
+                    <span style={{ opacity: 0.7, fontSize: '0.8rem' }}>
+                      (longest: {hashtagData.rotation.longestStreak})
+                    </span>
+                  )}
+                </div>
+
+                {/* Overused hashtags */}
+                {hashtagData.rotation.stalenessScores.filter(s => s.status !== 'healthy').length > 0 && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <h4 style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                      Overused / Moderate Tags
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      {hashtagData.rotation.stalenessScores
+                        .filter(s => s.status !== 'healthy')
+                        .slice(0, 10)
+                        .map(tag => (
+                          <div
+                            key={tag.hashtag}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.75rem',
+                              padding: '0.4rem 0',
+                            }}
+                          >
+                            <span style={{
+                              fontSize: '0.85rem',
+                              color: 'var(--text-primary)',
+                              minWidth: '120px',
+                            }}>
+                              {tag.hashtag}
+                            </span>
+                            <div style={{
+                              flex: 1,
+                              maxWidth: '120px',
+                              height: '6px',
+                              borderRadius: '3px',
+                              background: 'var(--bg-secondary)',
+                              overflow: 'hidden',
+                            }}>
+                              <div style={{
+                                width: `${Math.round(tag.staleness * 100)}%`,
+                                height: '100%',
+                                borderRadius: '3px',
+                                background: tag.status === 'overused'
+                                  ? 'var(--error)'
+                                  : 'var(--warning)',
+                              }} />
+                            </div>
+                            <span style={{
+                              fontSize: '0.75rem',
+                              color: tag.status === 'overused' ? 'var(--error)' : 'var(--warning)',
+                              minWidth: '60px',
+                            }}>
+                              {Math.round(tag.staleness * 100)}% used
+                            </span>
+                            <span style={{
+                              fontSize: '0.7rem',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: tag.status === 'overused'
+                                ? 'rgba(239, 68, 68, 0.12)'
+                                : 'var(--warning-soft)',
+                              color: tag.status === 'overused'
+                                ? 'var(--error)'
+                                : 'var(--warning)',
+                            }}>
+                              {tag.status}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Underused gems */}
+                {hashtagData.rotation.underusedGems.length > 0 && (
+                  <div style={{ marginTop: '1.25rem' }}>
+                    <h4 style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                      Fresh Alternatives — High performers you haven't used recently
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      {hashtagData.rotation.underusedGems.map(gem => (
+                        <div
+                          key={gem.hashtag}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.5rem 0.75rem',
+                            borderRadius: '6px',
+                            background: 'var(--success-soft)',
+                          }}
+                        >
+                          <span style={{
+                            fontSize: '0.85rem',
+                            color: 'var(--success)',
+                            fontWeight: 500,
+                            minWidth: '120px',
+                          }}>
+                            {gem.hashtag}
+                          </span>
+                          <span style={{
+                            fontSize: '0.8rem',
+                            color: 'var(--success)',
+                          }}>
+                            +{gem.engagementLift}% lift
+                          </span>
+                          {gem.lastUsedPostsAgo !== null && (
+                            <span style={{
+                              fontSize: '0.75rem',
+                              color: 'var(--text-muted)',
+                            }}>
+                              last used {gem.lastUsedPostsAgo} post{gem.lastUsedPostsAgo !== 1 ? 's' : ''} ago
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Most Used Hashtags */}
             <div style={{ marginTop: '1.5rem' }}>
               <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Most Used Hashtags</h3>
@@ -1875,35 +2051,155 @@ export default function PerformancePage() {
               </div>
             )}
 
-            {/* Hashtag Lift vs Baseline */}
-            {hashtagData.correlations && (
+            {/* Star Performers — hashtags in top 10 for BOTH engagement AND reach */}
+            {hashtagData.dualPerformers && hashtagData.dualPerformers.length > 0 && (
               <div style={{ marginTop: '1.5rem' }}>
-                <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                  📊 Hashtags with Positive Lift (min n={hashtagData.correlations.minNRequired || 5})
+                <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                  Star Performers
                 </h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                  Baseline ER: {hashtagData.correlations.baselineMean}% from {hashtagData.correlations.totalWithMetrics} posts
+                  Top 10 for both engagement and reach lift
                 </p>
-                
-                {hashtagData.correlations.bestPerforming?.length > 0 ? (
-                  <div className="hashtag-performance-list">
-                    {hashtagData.correlations.bestPerforming.slice(0, 8).map((tag, i) => (
-                      <div key={tag.hashtag} className="hashtag-performance-item">
-                        <span className="hashtag-rank">#{i + 1}</span>
-                        <span className="hashtag-name">{tag.hashtag}</span>
-                        <div className="hashtag-metrics">
-                          <span className="hashtag-lift positive">+{tag.liftScore}% lift</span>
-                          <span className="hashtag-engagement">{tag.tagMean}% ER</span>
-                          <span className="hashtag-posts">n={tag.postCount}</span>
-                        </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {hashtagData.dualPerformers.map((dp) => (
+                    <div key={dp.hashtag} style={{
+                      display: 'flex', alignItems: 'center', gap: '0.5rem',
+                      background: 'linear-gradient(135deg, rgba(225, 48, 108, 0.15), rgba(34, 197, 94, 0.15))',
+                      border: '1px solid rgba(225, 48, 108, 0.3)',
+                      borderRadius: '8px', padding: '0.5rem 0.75rem',
+                    }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {dp.hashtag}
+                      </span>
+                      <span style={{
+                        fontSize: '0.7rem', fontWeight: 600, borderRadius: '4px',
+                        padding: '2px 6px', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e',
+                      }}>
+                        +{(dp.engagement.liftScore)}% ER
+                      </span>
+                      <span style={{
+                        fontSize: '0.7rem', fontWeight: 600, borderRadius: '4px',
+                        padding: '2px 6px', background: 'rgba(96, 165, 250, 0.2)', color: '#60a5fa',
+                      }}>
+                        +{Math.round(dp.reach.shrinkageReachLift * 100)}% reach
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Dual Ranking: Engagement + Reach columns */}
+            {(hashtagData.correlations || hashtagData.reachCorrelations) && (
+              <div style={{ marginTop: '1.5rem' }}>
+                <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                  Hashtag Rankings (min n={hashtagData.correlations?.minNRequired || hashtagData.reachCorrelations?.minNRequired || 5})
+                </h3>
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem',
+                }}>
+                  {/* Best for Engagement */}
+                  <div style={{
+                    background: 'var(--card-bg, #141414)', borderRadius: '8px',
+                    padding: '1rem', border: '1px solid var(--border-color, #2a2a2a)',
+                  }}>
+                    <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                      Best for Engagement
+                    </h4>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                      Baseline ER: {hashtagData.correlations?.baselineMean ?? '—'}%
+                    </p>
+                    {hashtagData.correlations?.bestPerforming?.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        {hashtagData.correlations.bestPerforming.slice(0, 10).map((tag, i) => {
+                          const isDual = hashtagData.dualPerformers?.some(dp => dp.hashtag === tag.hashtag);
+                          return (
+                            <div key={tag.hashtag} style={{
+                              display: 'flex', alignItems: 'center', gap: '0.5rem',
+                              padding: '0.35rem 0.5rem', borderRadius: '6px',
+                              background: isDual ? 'rgba(225, 48, 108, 0.08)' : 'transparent',
+                            }}>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', width: '1.5rem' }}>
+                                #{i + 1}
+                              </span>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)', flex: 1 }}>
+                                {tag.hashtag}
+                                {isDual && <span style={{ marginLeft: '4px', fontSize: '0.7rem' }} title="Star performer">*</span>}
+                              </span>
+                              <span style={{
+                                fontSize: '0.75rem', fontWeight: 600, borderRadius: '4px',
+                                padding: '2px 6px',
+                                background: tag.liftScore > 0 ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                color: tag.liftScore > 0 ? '#22c55e' : '#ef4444',
+                              }}>
+                                {tag.liftScore > 0 ? '+' : ''}{tag.liftScore}%
+                              </span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                n={tag.postCount}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
-                    ))}
+                    ) : (
+                      <p className="insufficient-data-note">
+                        No hashtags with positive engagement lift yet.
+                      </p>
+                    )}
                   </div>
-                ) : (
-                  <p className="insufficient-data-note">
-                    No hashtags with positive lift and n≥{hashtagData.correlations.minNRequired || 5} yet.
-                  </p>
-                )}
+
+                  {/* Best for Reach */}
+                  <div style={{
+                    background: 'var(--card-bg, #141414)', borderRadius: '8px',
+                    padding: '1rem', border: '1px solid var(--border-color, #2a2a2a)',
+                  }}>
+                    <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                      Best for Reach
+                    </h4>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                      Baseline median: {hashtagData.reachCorrelations?.baselineMedianReach != null
+                        ? formatNumber(hashtagData.reachCorrelations.baselineMedianReach)
+                        : '—'}
+                    </p>
+                    {hashtagData.reachCorrelations?.bestPerforming?.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        {hashtagData.reachCorrelations.bestPerforming.slice(0, 10).map((tag, i) => {
+                          const isDual = hashtagData.dualPerformers?.some(dp => dp.hashtag === tag.hashtag);
+                          return (
+                            <div key={tag.hashtag} style={{
+                              display: 'flex', alignItems: 'center', gap: '0.5rem',
+                              padding: '0.35rem 0.5rem', borderRadius: '6px',
+                              background: isDual ? 'rgba(225, 48, 108, 0.08)' : 'transparent',
+                            }}>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', width: '1.5rem' }}>
+                                #{i + 1}
+                              </span>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)', flex: 1 }}>
+                                {tag.hashtag}
+                                {isDual && <span style={{ marginLeft: '4px', fontSize: '0.7rem' }} title="Star performer">*</span>}
+                              </span>
+                              <span style={{
+                                fontSize: '0.75rem', fontWeight: 600, borderRadius: '4px',
+                                padding: '2px 6px',
+                                background: tag.shrinkageReachLift > 0 ? 'rgba(96, 165, 250, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                color: tag.shrinkageReachLift > 0 ? '#60a5fa' : '#ef4444',
+                              }}>
+                                {tag.shrinkageReachLift > 0 ? '+' : ''}{Math.round(tag.shrinkageReachLift * 100)}%
+                              </span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                n={tag.postCount}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="insufficient-data-note">
+                        No hashtags with positive reach lift yet.
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1911,7 +2207,7 @@ export default function PerformancePage() {
             {hashtagData.correlations && hashtagData.correlations.worstPerforming?.length > 0 && (
               <div style={{ marginTop: '1.5rem' }}>
                 <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                  ⚠️ Negative Lift (Consider Replacing)
+                  Negative Engagement Lift (Consider Replacing)
                 </h3>
                 <div className="hashtag-performance-list">
                   {hashtagData.correlations.worstPerforming.slice(0, 5).map((tag) => (
