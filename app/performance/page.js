@@ -30,6 +30,7 @@ export default function PerformancePage() {
   const [dataHealth, setDataHealth] = useState(null);
   const [derivedData, setDerivedData] = useState(null);
   const [refreshDays, setRefreshDays] = useState(30);
+  const [refreshResult, setRefreshResult] = useState(null);
 
   useEffect(() => {
     checkInstagramConnection();
@@ -118,6 +119,7 @@ export default function PerformancePage() {
   const refreshMetrics = async () => {
     setRefreshing(true);
     setError(null);
+    setRefreshResult(null);
     try {
       const res = await fetch('/api/instagram/metrics', {
         method: 'POST',
@@ -132,6 +134,7 @@ export default function PerformancePage() {
 
       // Poll sync status until complete
       const syncId = data.syncId;
+      let syncResult = null;
       while (true) {
         await new Promise(r => setTimeout(r, 5000)); // poll every 5s
         const healthRes = await fetch('/api/instagram/health');
@@ -142,11 +145,26 @@ export default function PerformancePage() {
           if (metricSync.status === 'error') {
             throw new Error(metricSync.error_details?.message || 'Metrics refresh failed');
           }
+          syncResult = metricSync;
           break;
         }
       }
 
-      await loadMetrics();
+      // Show result summary
+      const processed = syncResult?.posts_processed || 0;
+      const errors = syncResult?.errors_count || 0;
+      if (processed === 0) {
+        setRefreshResult(`No posts found published in the last ${refreshDays} day${refreshDays === 1 ? '' : 's'}. Try a longer timeframe.`);
+      } else {
+        setRefreshResult(`Updated metrics for ${processed} post${processed === 1 ? '' : 's'}${errors > 0 ? ` (${errors} error${errors === 1 ? '' : 's'})` : ''}.`);
+      }
+
+      // Reload all data sections that depend on metrics
+      await Promise.all([
+        loadMetrics(),
+        loadDataHealth(),
+        loadDerivedMetrics(),
+      ]);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -375,6 +393,20 @@ export default function PerformancePage() {
           </button>
         </div>
       </header>
+
+      {refreshResult && (
+        <div style={{
+          padding: '0.75rem 1rem',
+          borderRadius: '8px',
+          background: refreshResult.includes('No posts') ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+          border: `1px solid ${refreshResult.includes('No posts') ? 'rgba(234, 179, 8, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
+          color: refreshResult.includes('No posts') ? '#eab308' : '#22c55e',
+          fontSize: '0.85rem',
+          marginBottom: '0.5rem',
+        }}>
+          {refreshResult}
+        </div>
+      )}
 
       <Link href="/" className="back-link">
         ← Back to Logger
