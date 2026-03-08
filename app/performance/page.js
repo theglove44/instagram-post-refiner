@@ -491,6 +491,17 @@ export default function PerformancePage() {
     return <span className={`percentile-badge ${badgeClass}`}>P{percentile}</span>;
   };
 
+  // Render composite performance score badge (0-100)
+  const renderPerformanceScore = (score) => {
+    if (score === null || score === undefined) {
+      return <span className="score-badge score-none" title="Performance score unavailable (need 10+ posts)">--</span>;
+    }
+    const badgeClass = score >= 70 ? 'score-high'
+      : score >= 40 ? 'score-mid'
+      : 'score-low';
+    return <span className={`score-badge ${badgeClass}`} title={`Composite performance score: ${score}/100`}>{score}</span>;
+  };
+
   if (loading) {
     return (
       <div className="container">
@@ -1034,6 +1045,7 @@ export default function PerformancePage() {
                 <div className="performance-item-header">
                   <div>
                     <span className="performance-topic">{post.topic}</span>
+                    {renderPerformanceScore(post.performanceScore)}
                     <span className="performance-edits">✏️ {post.editCount} edits</span>
                   </div>
                   {post.instagramPermalink && (
