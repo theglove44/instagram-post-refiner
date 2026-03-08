@@ -189,3 +189,54 @@ CREATE POLICY "Allow public update account_insights_cache" ON account_insights_c
 -- CREATE POLICY "Allow public read account_insights_cache" ON account_insights_cache FOR SELECT USING (true);
 -- CREATE POLICY "Allow public insert account_insights_cache" ON account_insights_cache FOR INSERT WITH CHECK (true);
 -- CREATE POLICY "Allow public update account_insights_cache" ON account_insights_cache FOR UPDATE USING (true);
+
+-- =====================================================
+-- Daily account snapshots for follower/reach tracking
+-- =====================================================
+
+CREATE TABLE account_snapshots (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  instagram_user_id TEXT NOT NULL,
+  followers_count INT,
+  following_count INT,
+  media_count INT,
+  reach_28d INT,
+  accounts_engaged_28d INT,
+  snapshot_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  UNIQUE(instagram_user_id, snapshot_date)
+);
+
+CREATE INDEX account_snapshots_date_idx ON account_snapshots(snapshot_date DESC);
+
+ALTER TABLE account_snapshots ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read account_snapshots" ON account_snapshots
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow public insert account_snapshots" ON account_snapshots
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public update account_snapshots" ON account_snapshots
+  FOR UPDATE USING (true);
+
+-- =====================================================
+-- Migration: add account_snapshots table
+-- =====================================================
+-- CREATE TABLE IF NOT EXISTS account_snapshots (
+--   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+--   instagram_user_id TEXT NOT NULL,
+--   followers_count INT,
+--   following_count INT,
+--   media_count INT,
+--   reach_28d INT,
+--   accounts_engaged_28d INT,
+--   snapshot_date DATE NOT NULL DEFAULT CURRENT_DATE,
+--   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+--   UNIQUE(instagram_user_id, snapshot_date)
+-- );
+-- CREATE INDEX IF NOT EXISTS account_snapshots_date_idx ON account_snapshots(snapshot_date DESC);
+-- ALTER TABLE account_snapshots ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Allow public read account_snapshots" ON account_snapshots FOR SELECT USING (true);
+-- CREATE POLICY "Allow public insert account_snapshots" ON account_snapshots FOR INSERT WITH CHECK (true);
+-- CREATE POLICY "Allow public update account_snapshots" ON account_snapshots FOR UPDATE USING (true);
