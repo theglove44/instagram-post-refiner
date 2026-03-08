@@ -2862,3 +2862,76 @@ textarea:focus-visible {
   font-size: 0.8rem;
   color: var(--text-muted);
 }
+
+/* =====================================================
+   Content Type Breakdown
+   ===================================================== */
+
+.content-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.content-type-card {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+}
+
+.content-type-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.content-type-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.content-type-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.content-type-warning {
+  font-size: 0.75rem;
+  color: var(--warning);
+  margin-bottom: 0.75rem;
+}
+
+.content-type-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.content-type-stat {
+  text-align: center;
+  padding: 0.5rem 0.25rem;
+}
+
+.content-type-stat-value {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.15rem;
+}
+
+.content-type-stat-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+@media (max-width: 768px) {
+  .content-type-grid {
+    grid-template-columns: 1fr;
+  }
+}
