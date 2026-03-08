@@ -66,11 +66,15 @@ export default function Home() {
   const [loadingInstagram, setLoadingInstagram] = useState(false);
   const [linkingPost, setLinkingPost] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [matchSuggestions, setMatchSuggestions] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [pendingSuggestionsCount, setPendingSuggestionsCount] = useState(0);
 
-  // Load history and stats on mount
+  // Load history, stats, and pending suggestions on mount
   useEffect(() => {
     loadHistory();
     loadQuickStats();
+    loadMatchSuggestions();
     // Load theme preference
     const savedTheme = localStorage.getItem('theme') || 'dark';
     setTheme(savedTheme);
@@ -188,9 +192,71 @@ export default function Home() {
     }
   };
 
-  // Open link modal and load Instagram posts
+  // Load match suggestions for a specific post or all pending
+  const loadMatchSuggestions = async (postId) => {
+    setLoadingSuggestions(true);
+    try {
+      const url = postId ? `/api/posts/match?postId=${postId}` : '/api/posts/match';
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.suggestions) {
+        if (postId) {
+          setMatchSuggestions(data.suggestions);
+        } else {
+          setPendingSuggestionsCount(data.suggestions.length);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load match suggestions:', error);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  // Accept or reject a match suggestion
+  const resolveSuggestion = async (suggestionId, action) => {
+    setLinkingPost(true);
+    try {
+      const res = await fetch('/api/posts/match', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suggestionId, action }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (action === 'accept') {
+          const accepted = matchSuggestions.find(s => s.id === suggestionId);
+          if (accepted) {
+            showToast('Post linked to Instagram!');
+            setSelectedPost({
+              ...selectedPost,
+              instagramMediaId: accepted.instagramMediaId,
+              instagramPermalink: accepted.instagramPermalink,
+            });
+          }
+          setShowLinkModal(false);
+        } else {
+          showToast('Suggestion dismissed');
+        }
+        setMatchSuggestions(prev => prev.filter(s => s.id !== suggestionId));
+        setPendingSuggestionsCount(prev => Math.max(0, prev - 1));
+        loadHistory();
+      } else {
+        showToast(data.error || 'Failed to resolve suggestion', 'error');
+      }
+    } catch (error) {
+      showToast('Failed to resolve suggestion', 'error');
+    } finally {
+      setLinkingPost(false);
+    }
+  };
+
+  // Open link modal and load both suggestions and Instagram posts
   const openLinkModal = () => {
     setShowLinkModal(true);
+    if (selectedPost) {
+      loadMatchSuggestions(selectedPost.id);
+    }
     if (instagramPosts.length === 0) {
       loadInstagramPosts();
     }
@@ -868,12 +934,14 @@ export default function Home() {
                 <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
                   Link this post to an Instagram post to track performance metrics
                 </p>
-                <button 
-                  className="btn btn-primary"
-                  onClick={openLinkModal}
-                >
-                  🔗 Link to Instagram Post
-                </button>
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                  <button
+                    className="btn btn-primary"
+                    onClick={openLinkModal}
+                  >
+                    🔗 Link to Instagram Post
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1040,6 +1108,69 @@ export default function Home() {
                 </p>
               </div>
               
+              {/* Match Suggestions */}
+              {loadingSuggestions ? (
+                <div style={{ textAlign: 'center', padding: '1rem' }}>
+                  <span className="loading-spinner" style={{ width: '24px', height: '24px' }} />
+                  <p style={{ marginTop: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Checking for matches...</p>
+                </div>
+              ) : matchSuggestions.length > 0 && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Suggested Matches
+                  </h3>
+                  {matchSuggestions.map((suggestion) => (
+                    <div
+                      key={suggestion.id}
+                      className="instagram-post-option"
+                      style={{ border: suggestion.confidenceScore >= 0.85 ? '1px solid var(--success)' : '1px solid var(--warning)', position: 'relative' }}
+                    >
+                      <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem' }}>
+                        <span style={{
+                          fontSize: '0.7rem',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '999px',
+                          fontWeight: 600,
+                          background: suggestion.confidenceScore >= 0.85 ? 'var(--success-soft)' : 'var(--warning-soft)',
+                          color: suggestion.confidenceScore >= 0.85 ? 'var(--success)' : 'var(--warning)',
+                        }}>
+                          {suggestion.confidenceScore >= 0.85 ? 'High Match' : 'Possible Match'} ({Math.round(suggestion.confidenceScore * 100)}%)
+                        </span>
+                      </div>
+                      <div className="instagram-post-caption" style={{ paddingRight: '8rem' }}>
+                        {suggestion.instagramCaption || '(No caption)'}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                        <div className="instagram-post-meta">
+                          <span>{new Date(suggestion.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={(e) => { e.stopPropagation(); resolveSuggestion(suggestion.id, 'accept'); }}
+                            disabled={linkingPost}
+                          >
+                            Link
+                          </button>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={(e) => { e.stopPropagation(); resolveSuggestion(suggestion.id, 'reject'); }}
+                            disabled={linkingPost}
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* All Instagram Posts (manual browse) */}
+              <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {matchSuggestions.length > 0 ? 'All Instagram Posts' : 'Instagram Posts'}
+              </h3>
               {loadingInstagram ? (
                 <div style={{ textAlign: 'center', padding: '2rem' }}>
                   <span className="loading-spinner" style={{ width: '32px', height: '32px' }} />
@@ -1052,8 +1183,8 @@ export default function Home() {
               ) : (
                 <div className="instagram-posts-list">
                   {instagramPosts.map((post) => (
-                    <div 
-                      key={post.id} 
+                    <div
+                      key={post.id}
                       className="instagram-post-option"
                       onClick={() => linkToInstagram(post)}
                     >
