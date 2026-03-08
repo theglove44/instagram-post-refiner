@@ -2514,6 +2514,105 @@ textarea:focus-visible {
 }
 
 /* =====================================================
+   Follower Growth Chart
+   ===================================================== */
+
+.growth-chart-card {
+  border-left: 3px solid var(--accent);
+}
+
+.growth-timeframe-selector {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  padding: 0.2rem;
+}
+
+.growth-timeframe-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+}
+
+.growth-timeframe-btn:hover:not(.active):not(:disabled) {
+  color: var(--text-secondary);
+}
+
+.growth-timeframe-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.growth-timeframe-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.growth-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.growth-stat-item {
+  text-align: center;
+  padding: 0.75rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.growth-stat-item .growth-stat-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.growth-stat-item .growth-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.growth-chart-container {
+  width: 100%;
+  aspect-ratio: 4 / 1;
+  min-height: 150px;
+  background: var(--bg-input);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  padding: 0.75rem;
+  overflow: hidden;
+}
+
+.growth-chart-svg {
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 768px) {
+  .growth-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .growth-chart-container {
+    aspect-ratio: 3 / 1;
+    min-height: 120px;
+  }
+}
+
+/* =====================================================
    Rate Summary & Component Rates
    ===================================================== */
 
