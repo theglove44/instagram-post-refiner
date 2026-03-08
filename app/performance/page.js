@@ -1024,6 +1024,50 @@ export default function PerformancePage() {
         </div>
       )}
 
+      {/* Content Type Performance */}
+      {derivedData?.contentTypeBreakdown && derivedData.contentTypeBreakdown.length > 0 && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">🎬 Content Type Performance</h2>
+          </div>
+          <div className="content-type-grid">
+            {derivedData.contentTypeBreakdown.map((ct) => (
+              <div key={ct.type} className="content-type-card">
+                <div className="content-type-header">
+                  <span className="content-type-name">
+                    {ct.type === 'CAROUSEL_ALBUM' ? 'Carousel' : ct.type === 'IMAGE' ? 'Image' : ct.type === 'VIDEO' ? 'Video' : ct.type}
+                  </span>
+                  <span className="content-type-count">
+                    {ct.count} post{ct.count !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                {ct.insufficientData && (
+                  <div className="content-type-warning">Small sample (n={ct.count})</div>
+                )}
+                <div className="content-type-stats">
+                  <div className="content-type-stat">
+                    <span className="content-type-stat-value">{renderRate(ct.medianEngagementRate)}</span>
+                    <span className="content-type-stat-label">Engagement</span>
+                  </div>
+                  <div className="content-type-stat">
+                    <span className="content-type-stat-value">{renderRate(ct.medianSaveRate)}</span>
+                    <span className="content-type-stat-label">Save Rate</span>
+                  </div>
+                  <div className="content-type-stat">
+                    <span className="content-type-stat-value">{renderRate(ct.medianShareRate, 3)}</span>
+                    <span className="content-type-stat-label">Share Rate</span>
+                  </div>
+                  <div className="content-type-stat">
+                    <span className="content-type-stat-value">{ct.medianReach !== null ? formatNumber(ct.medianReach) : <span className="metric-na">N/A</span>}</span>
+                    <span className="content-type-stat-label">Reach</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Published Posts with Component Rates */}
       <div className="card" style={{ marginTop: '1.5rem' }}>
         <div className="card-header">
