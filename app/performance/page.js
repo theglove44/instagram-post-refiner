@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import MilestoneMarkers from '@/app/components/MilestoneMarkers';
+import BestPosts from '@/app/components/BestPosts';
 
 // Safe JSON parser — handles non-JSON error responses from the server
 async function safeJson(res) {
@@ -1193,6 +1194,13 @@ export default function PerformancePage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Best Posts */}
+      {derivedData?.posts && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <BestPosts posts={derivedData.posts} />
         </div>
       )}
 
