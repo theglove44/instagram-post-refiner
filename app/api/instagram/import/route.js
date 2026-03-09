@@ -91,7 +91,8 @@ async function processImportInBackground(syncId) {
     for (let i = 0; i < newMedia.length; i += BATCH_SIZE) {
       const batch = newMedia.slice(i, i + BATCH_SIZE);
 
-      const rows = batch.map(media => ({
+      const rows = batch.map((media, idx) => ({
+        post_id: `ig_${media.id}`,
         topic: extractTopic(media.caption),
         ai_version: media.caption || '',
         final_version: media.caption || '',
