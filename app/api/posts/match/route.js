@@ -151,13 +151,27 @@ export async function PUT(request) {
     }
 
     if (action === 'accept') {
+      // Look up the actual IG post timestamp from imported posts or via API
+      let publishedAt = null;
+      const { data: igPost } = await supabase
+        .from('posts')
+        .select('published_at')
+        .eq('instagram_media_id', suggestion.instagram_media_id)
+        .not('published_at', 'is', null)
+        .limit(1)
+        .single();
+
+      if (igPost?.published_at) {
+        publishedAt = igPost.published_at;
+      }
+
       // Link the post with Instagram data
       const { error: linkError } = await supabase
         .from('posts')
         .update({
           instagram_media_id: suggestion.instagram_media_id,
           instagram_permalink: suggestion.instagram_permalink,
-          published_at: suggestion.created_at, // Use suggestion creation as fallback
+          published_at: publishedAt || new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq('id', suggestion.post_id);
