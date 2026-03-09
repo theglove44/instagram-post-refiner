@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
 
 const CATEGORY_PRESETS = ['food', 'location', 'lifestyle', 'seasonal', 'niche', 'branded'];
 
@@ -269,10 +268,6 @@ export default function SettingsPage() {
           <p>Configure your Instagram connection and app preferences</p>
         </div>
       </header>
-
-      <Link href="/" className="back-link">
-        ← Back to Logger
-      </Link>
 
       {/* Instagram Connection */}
       <div className="card" style={{ marginTop: '1.5rem' }}>

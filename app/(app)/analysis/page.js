@@ -235,8 +235,8 @@ export default function AnalysisPage() {
           <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '1.1rem' }}>
             No posts to analyse yet.<br/>Log some posts first!
           </p>
-          <Link href="/" className="btn btn-primary">
-            ← Back to Logger
+          <Link href="/edit" className="btn btn-primary">
+            Go to Edit Post
           </Link>
         </div>
       </div>
@@ -249,10 +249,6 @@ export default function AnalysisPage() {
         <h1>📊 Post Analysis</h1>
         <p>Patterns from {analysis.totalPosts} logged posts • Avg {analysis.avgEditCount} edits per post</p>
       </header>
-
-      <Link href="/" className="back-link">
-        ← Back to Logger
-      </Link>
 
       {/* Voice Score - Prominent Display */}
       {analysis.voiceScore && (

@@ -836,10 +836,6 @@ export default function PerformancePage() {
           </div>
         </header>
 
-        <Link href="/" className="back-link">
-          ← Back to Logger
-        </Link>
-
         <div className="card" style={{ marginTop: '1.5rem', textAlign: 'center', padding: '3rem' }}>
           <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📸</div>
           <h2 style={{ marginBottom: '1rem' }}>Connect Instagram to Track Performance</h2>
@@ -905,10 +901,6 @@ export default function PerformancePage() {
           {refreshResult}
         </div>
       )}
-
-      <Link href="/" className="back-link">
-        ← Back to Logger
-      </Link>
 
       {error && (
         <div className="card" style={{ marginTop: '1.5rem', background: 'var(--error-soft)', borderColor: 'var(--error)' }}>
