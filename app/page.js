@@ -336,7 +336,7 @@ export default function Home() {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'oldest':
-          return new Date(a.createdAt) - new Date(b.createdAt);
+          return new Date(a.publishedAt || a.createdAt) - new Date(b.publishedAt || b.createdAt);
         case 'most-edits':
           return b.editCount - a.editCount;
         case 'least-edits':
@@ -344,7 +344,7 @@ export default function Home() {
         case 'topic':
           return (a.topic || '').localeCompare(b.topic || '');
         default: // newest
-          return new Date(b.createdAt) - new Date(a.createdAt);
+          return new Date(b.publishedAt || b.createdAt) - new Date(a.publishedAt || a.createdAt);
       }
     });
     
@@ -840,7 +840,7 @@ export default function Home() {
                           ✏️ {post.editCount}
                         </span>
                         <span className="history-item-date">
-                          {new Date(post.createdAt).toLocaleDateString('en-GB', {
+                          {new Date(post.publishedAt || post.createdAt).toLocaleDateString('en-GB', {
                             day: 'numeric',
                             month: 'short',
                             hour: '2-digit',
@@ -1004,7 +1004,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="gallery-date">
-                    {new Date(post.createdAt).toLocaleDateString('en-GB', {
+                    {new Date(post.publishedAt || post.createdAt).toLocaleDateString('en-GB', {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric'
