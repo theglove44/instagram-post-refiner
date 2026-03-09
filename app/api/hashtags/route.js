@@ -9,6 +9,7 @@ export async function GET() {
     const { data: posts, error } = await supabase
       .from('posts')
       .select('*')
+      .order('published_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -21,7 +22,7 @@ export async function GET() {
       topic: post.topic,
       finalVersion: post.final_version,
       editCount: post.edit_count,
-      createdAt: post.created_at,
+      createdAt: post.published_at || post.created_at,
       instagramMediaId: post.instagram_media_id,
       instagramPermalink: post.instagram_permalink,
     }));

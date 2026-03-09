@@ -7,6 +7,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from('posts')
       .select('*')
+      .order('published_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
 
     if (error) {

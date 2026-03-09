@@ -79,7 +79,7 @@ function analyseTimeTrends(posts) {
   const editsByWeek = {};
   
   posts.forEach(post => {
-    const date = new Date(post.created_at);
+    const date = new Date(post.published_at || post.created_at);
     const weekStart = new Date(date);
     weekStart.setDate(date.getDate() - date.getDay());
     const weekKey = weekStart.toISOString().split('T')[0];
@@ -128,7 +128,7 @@ function calculateVoiceScore(analysis) {
 function analyseImprovementTrend(posts) {
   if (posts.length < 4) return null;
   
-  const sorted = [...posts].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  const sorted = [...posts].sort((a, b) => new Date(a.published_at || a.created_at) - new Date(b.published_at || b.created_at));
   const midpoint = Math.floor(sorted.length / 2);
   
   const firstHalf = sorted.slice(0, midpoint);
@@ -619,6 +619,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from('posts')
       .select('*')
+      .order('published_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
 
     if (error) {
