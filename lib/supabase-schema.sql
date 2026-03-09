@@ -86,6 +86,7 @@ CREATE TABLE post_metrics (
   shares INT,
   total_interactions INT,
   media_type TEXT,
+  media_product_type TEXT,
   -- Calculated metrics
   engagement_rate DECIMAL(5,2),
   -- Tracking
@@ -350,3 +351,67 @@ CREATE POLICY "Allow public delete hashtag_library" ON hashtag_library
 -- CREATE POLICY "Allow public insert hashtag_library" ON hashtag_library FOR INSERT WITH CHECK (true);
 -- CREATE POLICY "Allow public update hashtag_library" ON hashtag_library FOR UPDATE USING (true);
 -- CREATE POLICY "Allow public delete hashtag_library" ON hashtag_library FOR DELETE USING (true);
+
+-- =====================================================
+-- Story metrics for ephemeral Instagram Stories
+-- =====================================================
+
+CREATE TABLE story_metrics (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  instagram_media_id TEXT NOT NULL,
+  instagram_user_id TEXT NOT NULL,
+  media_type TEXT,
+  impressions INT,
+  reach INT,
+  replies INT,
+  taps_forward INT,
+  taps_back INT,
+  exits INT,
+  posted_at TIMESTAMP WITH TIME ZONE,
+  fetched_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  UNIQUE(instagram_media_id)
+);
+
+CREATE INDEX story_metrics_user_idx ON story_metrics(instagram_user_id);
+CREATE INDEX story_metrics_posted_idx ON story_metrics(posted_at DESC);
+
+ALTER TABLE story_metrics ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read story_metrics" ON story_metrics
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow public insert story_metrics" ON story_metrics
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public update story_metrics" ON story_metrics
+  FOR UPDATE USING (true);
+
+-- =====================================================
+-- Migration: add story_metrics table
+-- =====================================================
+-- CREATE TABLE IF NOT EXISTS story_metrics (
+--   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+--   instagram_media_id TEXT NOT NULL,
+--   instagram_user_id TEXT NOT NULL,
+--   media_type TEXT,
+--   impressions INT,
+--   reach INT,
+--   replies INT,
+--   taps_forward INT,
+--   taps_back INT,
+--   exits INT,
+--   posted_at TIMESTAMP WITH TIME ZONE,
+--   fetched_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+--   UNIQUE(instagram_media_id)
+-- );
+-- CREATE INDEX IF NOT EXISTS story_metrics_user_idx ON story_metrics(instagram_user_id);
+-- CREATE INDEX IF NOT EXISTS story_metrics_posted_idx ON story_metrics(posted_at DESC);
+-- ALTER TABLE story_metrics ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Allow public read story_metrics" ON story_metrics FOR SELECT USING (true);
+-- CREATE POLICY "Allow public insert story_metrics" ON story_metrics FOR INSERT WITH CHECK (true);
+-- CREATE POLICY "Allow public update story_metrics" ON story_metrics FOR UPDATE USING (true);
+
+-- =====================================================
+-- Migration: add media_product_type to post_metrics
+-- =====================================================
+-- ALTER TABLE post_metrics ADD COLUMN IF NOT EXISTS media_product_type TEXT;

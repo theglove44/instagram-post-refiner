@@ -36,6 +36,7 @@ export async function GET(request) {
           shares,
           engagement_rate,
           media_type,
+          media_product_type,
           fetched_at
         )
       `)
@@ -73,6 +74,7 @@ export async function GET(request) {
         captionLength: post.final_version ? post.final_version.length : null,
         instagramPermalink: post.instagram_permalink,
         mediaType: latestMetrics?.media_type || null,
+        mediaProductType: latestMetrics?.media_product_type || null,
         metrics: latestMetrics ? {
           reach: latestMetrics.reach,
           views: latestMetrics.views,
@@ -114,9 +116,10 @@ export async function GET(request) {
     // Calculate content type breakdown
     const typeGroups = {};
     for (const post of processedPosts) {
-      if (!post.mediaType || !post.rates) continue;
-      if (!typeGroups[post.mediaType]) typeGroups[post.mediaType] = [];
-      typeGroups[post.mediaType].push(post);
+      const typeKey = post.mediaProductType || post.mediaType;
+      if (!typeKey || !post.rates) continue;
+      if (!typeGroups[typeKey]) typeGroups[typeKey] = [];
+      typeGroups[typeKey].push(post);
     }
 
     const contentTypeBreakdown = Object.entries(typeGroups).map(([type, typePosts]) => ({

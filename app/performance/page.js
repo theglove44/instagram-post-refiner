@@ -302,6 +302,9 @@ export default function PerformancePage() {
   const [growthData, setGrowthData] = useState(null);
   const [loadingGrowth, setLoadingGrowth] = useState(false);
   const [growthDays, setGrowthDays] = useState(30);
+  const [storyData, setStoryData] = useState(null);
+  const [loadingStories, setLoadingStories] = useState(false);
+  const [syncingStories, setSyncingStories] = useState(false);
 
   useEffect(() => {
     checkInstagramConnection();
@@ -321,6 +324,7 @@ export default function PerformancePage() {
         loadAccountInsights();
         loadDerivedMetrics();
         loadGrowthData();
+        loadStoryData();
       } else {
         setInstagramConnected(false);
         setLoading(false);
@@ -502,6 +506,35 @@ export default function PerformancePage() {
       console.error('Failed to load growth data:', err);
     } finally {
       setLoadingGrowth(false);
+    }
+  };
+
+  const loadStoryData = async () => {
+    setLoadingStories(true);
+    try {
+      const res = await fetch('/api/instagram/stories');
+      const data = await safeJson(res);
+      if (!data.error) setStoryData(data);
+    } catch (err) {
+      console.error('Failed to load stories:', err);
+    } finally {
+      setLoadingStories(false);
+    }
+  };
+
+  const syncStories = async () => {
+    setSyncingStories(true);
+    try {
+      const res = await fetch('/api/instagram/stories', { method: 'POST' });
+      const data = await safeJson(res);
+      if (data.success) {
+        setTimeout(() => { loadStoryData(); setSyncingStories(false); }, 5000);
+      } else {
+        setSyncingStories(false);
+      }
+    } catch (err) {
+      console.error('Failed to sync stories:', err);
+      setSyncingStories(false);
     }
   };
 
@@ -1733,18 +1766,106 @@ export default function PerformancePage() {
         </div>
       )}
 
+      {/* Stories Insights */}
+      {instagramConnected && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">Stories Insights</h2>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={syncStories}
+              disabled={syncingStories}
+            >
+              {syncingStories ? 'Syncing...' : 'Sync Stories'}
+            </button>
+          </div>
+          {loadingStories ? (
+            <div className="loading-spinner" />
+          ) : !storyData || storyData.stories?.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              No story data yet. Sync your current stories to start tracking.
+            </p>
+          ) : (
+            <>
+              <div className="stats-grid" style={{ marginBottom: '1rem' }}>
+                <div className="stat-card">
+                  <span className="stat-value">{storyData.summary.totalStories}</span>
+                  <span className="stat-label">Stories Tracked</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-value">{formatNumber(storyData.summary.avgReach)}</span>
+                  <span className="stat-label">Avg Reach</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-value">
+                    {storyData.summary.avgCompletionRate > 0
+                      ? `${(storyData.summary.avgCompletionRate * 100).toFixed(1)}%`
+                      : 'N/A'}
+                  </span>
+                  <span className="stat-label">Completion Rate</span>
+                </div>
+              </div>
+
+              {/* Recent stories list - show last 10 */}
+              <div style={{ fontSize: '0.85rem' }}>
+                <h3 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                  Recent Stories
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {storyData.stories.slice(0, 10).map(story => {
+                    const completionRate = story.impressions > 0 && story.exits !== null
+                      ? ((1 - story.exits / story.impressions) * 100).toFixed(1)
+                      : null;
+                    return (
+                      <div key={story.instagram_media_id} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.5rem 0.75rem',
+                        background: 'rgba(255,255,255,0.03)',
+                        borderRadius: '8px',
+                        fontSize: '0.82rem',
+                      }}>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>
+                            {story.posted_at ? new Date(story.posted_at).toLocaleDateString() : '—'}
+                          </span>
+                          <span style={{ color: 'var(--text-secondary)' }}>
+                            {story.media_type === 'VIDEO' ? 'Video' : 'Image'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                          <span>Reach: {story.reach ?? '—'}</span>
+                          <span>Replies: {story.replies ?? '—'}</span>
+                          <span style={{
+                            color: completionRate && parseFloat(completionRate) > 70 ? '#22c55e' :
+                                   completionRate && parseFloat(completionRate) < 40 ? '#ef4444' : 'var(--text-secondary)'
+                          }}>
+                            {completionRate ? `${completionRate}% complete` : '—'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Content Type Performance */}
       {derivedData?.contentTypeBreakdown && derivedData.contentTypeBreakdown.length > 0 && (
         <div className="card" style={{ marginTop: '1.5rem' }}>
           <div className="card-header">
-            <h2 className="card-title">🎬 Content Type Performance</h2>
+            <h2 className="card-title">Cross-Format Comparison</h2>
           </div>
           <div className="content-type-grid">
             {derivedData.contentTypeBreakdown.map((ct) => (
               <div key={ct.type} className="content-type-card">
                 <div className="content-type-header">
                   <span className="content-type-name">
-                    {ct.type === 'CAROUSEL_ALBUM' ? 'Carousel' : ct.type === 'IMAGE' ? 'Image' : ct.type === 'VIDEO' ? 'Video' : ct.type}
+                    {ct.type === 'CAROUSEL_ALBUM' ? 'Carousel' : ct.type === 'IMAGE' ? 'Image' : ct.type === 'VIDEO' ? 'Video' : ct.type === 'REELS' ? 'Reel' : ct.type}
                   </span>
                   <span className="content-type-count">
                     {ct.count} post{ct.count !== 1 ? 's' : ''}
@@ -1774,6 +1895,53 @@ export default function PerformancePage() {
               </div>
             ))}
           </div>
+          {derivedData.contentTypeBreakdown.length >= 2 && (
+            <div style={{ marginTop: '1.25rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>
+                Format Insights
+              </h3>
+              {(() => {
+                const sorted = [...derivedData.contentTypeBreakdown].filter(ct => ct.medianEngagementRate != null);
+                const bestEngagement = sorted.sort((a, b) => (b.medianEngagementRate || 0) - (a.medianEngagementRate || 0))[0];
+                const bestReach = [...derivedData.contentTypeBreakdown].filter(ct => ct.medianReach != null)
+                  .sort((a, b) => (b.medianReach || 0) - (a.medianReach || 0))[0];
+
+                const formatName = (type) => {
+                  if (type === 'CAROUSEL_ALBUM') return 'Carousels';
+                  if (type === 'IMAGE') return 'Images';
+                  if (type === 'VIDEO') return 'Videos';
+                  if (type === 'REELS') return 'Reels';
+                  return type;
+                };
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    {bestEngagement && (
+                      <div>
+                        <span style={{ color: '#22c55e', fontWeight: 500 }}>{formatName(bestEngagement.type)}</span>
+                        {' '}drive the highest engagement ({bestEngagement.medianEngagementRate?.toFixed(2)}% median ER)
+                      </div>
+                    )}
+                    {bestReach && bestReach.type !== bestEngagement?.type && (
+                      <div>
+                        <span style={{ color: '#3b82f6', fontWeight: 500 }}>{formatName(bestReach.type)}</span>
+                        {' '}get the most reach ({formatNumber(bestReach.medianReach)} median)
+                      </div>
+                    )}
+                    {derivedData.contentTypeBreakdown.map(ct => {
+                      const total = derivedData.contentTypeBreakdown.reduce((sum, c) => sum + c.count, 0);
+                      const pct = total > 0 ? ((ct.count / total) * 100).toFixed(0) : 0;
+                      return (
+                        <div key={ct.type} style={{ color: 'var(--text-muted)' }}>
+                          {formatName(ct.type)}: {pct}% of your content ({ct.count} posts)
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
       )}
 
