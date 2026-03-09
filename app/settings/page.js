@@ -12,6 +12,10 @@ export default function SettingsPage() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Import state
+  const [importing, setImporting] = useState(false);
+  const [importStatus, setImportStatus] = useState(null);
+
   // Hashtag library state
   const [libraryHashtags, setLibraryHashtags] = useState([]);
   const [libraryCategories, setLibraryCategories] = useState([]);
@@ -98,6 +102,34 @@ export default function SettingsPage() {
       setError(err.message);
     } finally {
       setDisconnecting(false);
+    }
+  };
+
+  const startImport = async () => {
+    setImporting(true);
+    setImportStatus(null);
+    try {
+      const res = await fetch('/api/instagram/import', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setImportStatus({ status: 'running', syncId: data.syncId });
+        // Poll for completion
+        const pollInterval = setInterval(async () => {
+          const statusRes = await fetch('/api/instagram/import');
+          const statusData = await statusRes.json();
+          if (statusData.status && statusData.status !== 'running') {
+            setImportStatus(statusData);
+            setImporting(false);
+            clearInterval(pollInterval);
+          }
+        }, 5000);
+      } else {
+        setImportStatus({ status: 'error', error: data.error || 'Failed to start import' });
+        setImporting(false);
+      }
+    } catch (err) {
+      setImportStatus({ status: 'error', error: err.message });
+      setImporting(false);
     }
   };
 
@@ -304,6 +336,75 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* Account History Import */}
+      {instagramAccount && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">📥 Account History Import</h2>
+          </div>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            Import all posts from your Instagram account into the tool. This enriches analytics with your full post history. Posts already linked won&apos;t be duplicated.
+          </p>
+
+          <button
+            className="btn btn-primary"
+            onClick={startImport}
+            disabled={importing}
+          >
+            {importing ? (
+              <>
+                <span className="loading-spinner" />
+                Importing...
+              </>
+            ) : (
+              'Import Account History'
+            )}
+          </button>
+
+          {importStatus && (
+            <div style={{ marginTop: '1rem' }}>
+              {importStatus.status === 'running' && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.75rem 1rem',
+                  background: 'var(--bg-elevated)',
+                  borderRadius: '8px',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.9rem',
+                }}>
+                  <span className="loading-spinner" style={{ width: '20px', height: '20px' }} />
+                  Import in progress... This may take a moment.
+                </div>
+              )}
+              {importStatus.status === 'success' && (
+                <div style={{
+                  padding: '0.75rem 1rem',
+                  background: 'var(--success-soft)',
+                  color: 'var(--success)',
+                  borderRadius: '8px',
+                  fontSize: '0.9rem',
+                }}>
+                  Import complete — {importStatus.postsProcessed} post{importStatus.postsProcessed !== 1 ? 's' : ''} imported.
+                </div>
+              )}
+              {importStatus.status === 'error' && (
+                <div style={{
+                  padding: '0.75rem 1rem',
+                  background: 'var(--error-soft)',
+                  color: 'var(--error)',
+                  borderRadius: '8px',
+                  fontSize: '0.9rem',
+                }}>
+                  Import failed: {importStatus.error || importStatus.errorDetails?.message || 'Unknown error'}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* API Configuration Info */}
       <div className="card" style={{ marginTop: '1.5rem' }}>

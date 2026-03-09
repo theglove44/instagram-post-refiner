@@ -821,7 +821,20 @@ export default function Home() {
                   )}
                   <div className="history-item-content">
                     <div className="history-item-header">
-                      <span className="history-item-topic">{post.topic}</span>
+                      <span className="history-item-topic">
+                        {post.topic}
+                        {post.instagramMediaId && (
+                          <span title="Linked to Instagram" style={{
+                            color: '#22c55e',
+                            fontSize: '0.7rem',
+                            marginLeft: '0.5rem',
+                            fontWeight: 500,
+                            verticalAlign: 'middle',
+                          }}>
+                            🔗 Linked
+                          </span>
+                        )}
+                      </span>
                       <div className="history-item-meta">
                         <span className="history-item-edits">
                           ✏️ {post.editCount}
