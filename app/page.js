@@ -823,15 +823,68 @@ export default function Home() {
                     <div className="history-item-header">
                       <span className="history-item-topic">
                         {post.topic}
+                        {post.mediaProductType === 'REELS' ? (
+                          <span style={{
+                            background: 'rgba(168, 85, 247, 0.15)',
+                            color: '#a855f7',
+                            fontSize: '0.65rem',
+                            marginLeft: '0.5rem',
+                            padding: '0.1rem 0.4rem',
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            verticalAlign: 'middle',
+                          }}>
+                            REEL
+                          </span>
+                        ) : post.mediaType === 'CAROUSEL_ALBUM' ? (
+                          <span style={{
+                            background: 'rgba(59, 130, 246, 0.15)',
+                            color: '#3b82f6',
+                            fontSize: '0.65rem',
+                            marginLeft: '0.5rem',
+                            padding: '0.1rem 0.4rem',
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            verticalAlign: 'middle',
+                          }}>
+                            CAROUSEL
+                          </span>
+                        ) : post.mediaType === 'IMAGE' ? (
+                          <span style={{
+                            background: 'rgba(34, 197, 94, 0.15)',
+                            color: '#22c55e',
+                            fontSize: '0.65rem',
+                            marginLeft: '0.5rem',
+                            padding: '0.1rem 0.4rem',
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            verticalAlign: 'middle',
+                          }}>
+                            POST
+                          </span>
+                        ) : post.mediaType === 'VIDEO' ? (
+                          <span style={{
+                            background: 'rgba(234, 179, 8, 0.15)',
+                            color: '#eab308',
+                            fontSize: '0.65rem',
+                            marginLeft: '0.5rem',
+                            padding: '0.1rem 0.4rem',
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            verticalAlign: 'middle',
+                          }}>
+                            VIDEO
+                          </span>
+                        ) : null}
                         {post.instagramMediaId && (
                           <span title="Linked to Instagram" style={{
                             color: '#22c55e',
                             fontSize: '0.7rem',
-                            marginLeft: '0.5rem',
+                            marginLeft: '0.35rem',
                             fontWeight: 500,
                             verticalAlign: 'middle',
                           }}>
-                            🔗 Linked
+                            🔗
                           </span>
                         )}
                       </span>

@@ -255,6 +255,10 @@ async function processMatchingInBackground(syncId, { mode, limit, dryRun }) {
 
     console.log(`Auto-linking: Fetched ${igPosts.length} Instagram posts`);
 
+    // Filter out Reels — logged posts are text captions, not video content
+    const feedPosts = igPosts.filter(p => p.media_product_type !== 'REELS');
+    console.log(`Auto-linking: ${feedPosts.length} feed posts after filtering ${igPosts.length - feedPosts.length} Reels`);
+
     // Load unlinked posts from database
     const { data: unlinkedPosts, error: postsError } = await supabase
       .from('posts')
@@ -284,8 +288,8 @@ async function processMatchingInBackground(syncId, { mode, limit, dryRun }) {
       console.warn('Failed to clear old suggestions:', clearError.message);
     }
 
-    // Run matching algorithm
-    const matches = findBestMatches(unlinkedPosts, igPosts);
+    // Run matching algorithm (only against feed posts, not Reels)
+    const matches = findBestMatches(unlinkedPosts, feedPosts);
 
     console.log(`Auto-linking: ${matches.length} matches found`);
     for (const m of matches) {

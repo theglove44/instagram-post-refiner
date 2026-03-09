@@ -100,6 +100,8 @@ async function processImportInBackground(syncId) {
         instagram_media_id: media.id,
         instagram_permalink: media.permalink,
         published_at: media.timestamp,
+        media_type: media.media_type || null,
+        media_product_type: media.media_product_type || null,
       }));
 
       const { data: inserted, error: insertError } = await supabase

@@ -415,3 +415,9 @@ CREATE POLICY "Allow public update story_metrics" ON story_metrics
 -- Migration: add media_product_type to post_metrics
 -- =====================================================
 -- ALTER TABLE post_metrics ADD COLUMN IF NOT EXISTS media_product_type TEXT;
+
+-- =====================================================
+-- Migration: add media_type and media_product_type to posts
+-- =====================================================
+-- ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type TEXT;
+-- ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_product_type TEXT;

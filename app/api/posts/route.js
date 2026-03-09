@@ -25,6 +25,8 @@ export async function GET() {
       instagramMediaId: post.instagram_media_id,
       instagramPermalink: post.instagram_permalink,
       publishedAt: post.published_at,
+      mediaType: post.media_type || null,
+      mediaProductType: post.media_product_type || null,
     }));
 
     return Response.json({ posts });
