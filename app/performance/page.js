@@ -408,15 +408,25 @@ export default function PerformancePage() {
         throw new Error(data.error || 'Failed to start metrics refresh');
       }
 
-      // Poll sync status until complete (timeout after 10 minutes)
+      // Poll sync status until complete
+      // Timeout scales with post count: ~36s per post + 2 min buffer
       const syncId = data.syncId;
+      const postCount = data.postCount || 0;
+      const estimatedSeconds = postCount * 36 + 120;
+      const maxPolls = Math.max(60, Math.ceil(estimatedSeconds / 10)); // poll every 10s
       let syncResult = null;
-      const maxPolls = 120; // 120 × 5s = 10 minutes
       for (let poll = 0; poll < maxPolls; poll++) {
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 10000));
         const healthRes = await fetch(`/api/instagram/health?_t=${Date.now()}`);
         const healthData = await safeJson(healthRes);
         const metricSync = healthData.health?.syncHistory?.metrics;
+
+        // Update progress message
+        if (postCount > 0) {
+          const elapsed = (poll + 1) * 10;
+          const estimatedDone = Math.min(postCount, Math.floor(elapsed / 36));
+          setRefreshResult(`Processing ${estimatedDone}/${postCount} posts... (~${Math.ceil((estimatedSeconds - elapsed) / 60)} min remaining)`);
+        }
 
         if (metricSync && metricSync.id === syncId && metricSync.status !== 'running') {
           if (metricSync.status === 'error') {
@@ -427,7 +437,7 @@ export default function PerformancePage() {
         }
       }
       if (!syncResult) {
-        throw new Error('Metrics refresh timed out. Check sync status and try again.');
+        throw new Error(`Metrics refresh timed out after ${Math.ceil(estimatedSeconds / 60)} minutes. The background process may still be running — check back shortly.`);
       }
 
       // Show result summary

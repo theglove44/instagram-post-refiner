@@ -365,6 +365,14 @@ export async function POST(request) {
       // No body or invalid JSON — use default
     }
 
+    // Count posts in window so frontend can estimate duration
+    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const { count: postCount } = await supabase
+      .from('posts')
+      .select('id', { count: 'exact', head: true })
+      .not('instagram_media_id', 'is', null)
+      .gte('published_at', cutoffDate);
+
     // Create sync status record
     const { data: syncRecord } = await supabase
       .from('sync_status')
@@ -380,7 +388,7 @@ export async function POST(request) {
     // Fire and forget — processing continues after response is sent
     processMetricsInBackground(syncId, { days });
 
-    return Response.json({ success: true, syncId, status: 'running' });
+    return Response.json({ success: true, syncId, status: 'running', postCount: postCount || 0 });
   } catch (error) {
     console.error('Metrics refresh error:', error);
     return Response.json(
