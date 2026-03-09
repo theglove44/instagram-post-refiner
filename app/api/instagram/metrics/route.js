@@ -243,34 +243,14 @@ async function processMetricsInBackground(syncId, { days = 30 } = {}) {
 
     const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-    // Get posts published within the window
-    const { data: recentPosts } = await supabase
+    // Only refresh posts published within the requested window
+    const { data: publishedPosts } = await supabase
       .from('posts')
       .select('id, instagram_media_id')
       .not('instagram_media_id', 'is', null)
       .gte('published_at', cutoffDate);
 
-    // Get posts that have never had metrics fetched (regardless of age)
-    const { data: allPublished } = await supabase
-      .from('posts')
-      .select('id, instagram_media_id')
-      .not('instagram_media_id', 'is', null)
-      .lt('published_at', cutoffDate);
-
-    // Filter to those with no metrics at all
-    let neverFetched = [];
-    if (allPublished && allPublished.length > 0) {
-      const { data: existingMetrics } = await supabase
-        .from('post_metrics')
-        .select('post_id')
-        .in('post_id', allPublished.map(p => p.id));
-
-      const hasMetrics = new Set((existingMetrics || []).map(m => m.post_id));
-      neverFetched = allPublished.filter(p => !hasMetrics.has(p.id));
-    }
-
-    // Combine: recent posts + never-fetched older posts
-    const publishedPosts = [...(recentPosts || []), ...neverFetched];
+    console.log(`Metrics refresh: ${(publishedPosts || []).length} posts in last ${days} days`);
 
     if (!publishedPosts || publishedPosts.length === 0) {
       await updateSyncStatus(supabase, syncId, 'success', 0, 0, 0);
@@ -286,8 +266,13 @@ async function processMetricsInBackground(syncId, { days = 30 } = {}) {
     const HOURLY_BUDGET = 200;
     const DELAY_PER_POST_MS = Math.ceil((3600 / (HOURLY_BUDGET / API_CALLS_PER_POST)) * 1000); // ~36s
 
+    console.log(`Metrics refresh: Processing ${publishedPosts.length} posts (${DELAY_PER_POST_MS}ms delay between each)`);
+
     for (let i = 0; i < publishedPosts.length; i++) {
       const post = publishedPosts[i];
+      if (i % 10 === 0) {
+        console.log(`Metrics refresh: ${i + 1}/${publishedPosts.length}...`);
+      }
       try {
         const [insightsResult, detailsResult] = await Promise.all([
           getMediaInsights(accessToken, post.instagram_media_id),
@@ -345,6 +330,8 @@ async function processMetricsInBackground(syncId, { days = 30 } = {}) {
         await delay(DELAY_PER_POST_MS);
       }
     }
+
+    console.log(`Metrics refresh complete: ${updated}/${publishedPosts.length} updated, ${errors.length} errors`);
 
     await updateSyncStatus(
       supabase,

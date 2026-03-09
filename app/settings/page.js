@@ -16,6 +16,10 @@ export default function SettingsPage() {
   const [importing, setImporting] = useState(false);
   const [importStatus, setImportStatus] = useState(null);
 
+  // Metrics backfill state
+  const [backfillStatus, setBackfillStatus] = useState(null);
+  const [backfilling, setBackfilling] = useState(false);
+
   // Hashtag library state
   const [libraryHashtags, setLibraryHashtags] = useState([]);
   const [libraryCategories, setLibraryCategories] = useState([]);
@@ -48,10 +52,21 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const loadBackfillStatus = useCallback(async () => {
+    try {
+      const res = await fetch('/api/instagram/metrics/backfill');
+      const data = await res.json();
+      if (data.success) setBackfillStatus(data);
+    } catch (err) {
+      console.error('Failed to load backfill status:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadInstagramAccount();
     loadLibrary();
-  }, [loadLibrary]);
+    loadBackfillStatus();
+  }, [loadLibrary, loadBackfillStatus]);
 
   const loadInstagramAccount = async () => {
     setLoading(true);
@@ -130,6 +145,34 @@ export default function SettingsPage() {
     } catch (err) {
       setImportStatus({ status: 'error', error: err.message });
       setImporting(false);
+    }
+  };
+
+  const startBackfill = async () => {
+    setBackfilling(true);
+    try {
+      const res = await fetch('/api/instagram/metrics/backfill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchSize: 50 }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to start backfill');
+
+      // Poll for completion
+      const syncId = data.syncId;
+      const pollInterval = setInterval(async () => {
+        const statusRes = await fetch('/api/instagram/metrics/backfill');
+        const statusData = await statusRes.json();
+        if (statusData.lastSync && statusData.lastSync.id === syncId && statusData.lastSync.status !== 'running') {
+          setBackfillStatus(statusData);
+          setBackfilling(false);
+          clearInterval(pollInterval);
+        }
+      }, 10000);
+    } catch (err) {
+      setBackfillStatus(prev => ({ ...prev, error: err.message }));
+      setBackfilling(false);
     }
   };
 
@@ -401,6 +444,88 @@ export default function SettingsPage() {
                   Import failed: {importStatus.error || importStatus.errorDetails?.message || 'Unknown error'}
                 </div>
               )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Metrics Backfill */}
+      {instagramAccount && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">📊 Metrics Backfill</h2>
+          </div>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            Fetch metrics for posts that have never been processed. Runs in batches of 50 to respect Meta API rate limits (~30 minutes per batch). The nightly cron will also process these gradually.
+          </p>
+
+          {backfillStatus && (
+            <div style={{
+              display: 'flex',
+              gap: '1.5rem',
+              marginBottom: '1rem',
+              flexWrap: 'wrap',
+            }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                <strong style={{ color: 'var(--text)' }}>{backfillStatus.withMetrics}</strong> / {backfillStatus.total} posts have metrics
+              </div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                <strong style={{ color: backfillStatus.remaining > 0 ? 'var(--warning, #f59e0b)' : 'var(--success)' }}>
+                  {backfillStatus.remaining}
+                </strong> remaining
+              </div>
+            </div>
+          )}
+
+          {backfillStatus?.remaining > 0 && (
+            <div style={{
+              padding: '0.75rem 1rem',
+              background: 'var(--bg-elevated)',
+              borderRadius: '8px',
+              marginBottom: '1rem',
+              fontSize: '0.85rem',
+              color: 'var(--text-muted)',
+            }}>
+              Estimated time for all remaining: ~{Math.ceil(backfillStatus.remaining * 36 / 60)} minutes ({Math.ceil(backfillStatus.remaining / 50)} batches)
+            </div>
+          )}
+
+          <button
+            className="btn btn-primary"
+            onClick={startBackfill}
+            disabled={backfilling || (backfillStatus && backfillStatus.remaining === 0)}
+          >
+            {backfilling ? (
+              <>
+                <span className="loading-spinner" />
+                Processing batch...
+              </>
+            ) : backfillStatus?.remaining === 0 ? (
+              'All posts have metrics'
+            ) : (
+              `Backfill Next 50 Posts`
+            )}
+          </button>
+
+          {backfillStatus?.lastSync && (
+            <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Last backfill: {backfillStatus.lastSync.status === 'success' ? '✓' : '✗'}{' '}
+              {backfillStatus.lastSync.posts_processed} processed
+              {backfillStatus.lastSync.errors_count > 0 && `, ${backfillStatus.lastSync.errors_count} errors`}
+              {backfillStatus.lastSync.completed_at && ` — ${formatDate(backfillStatus.lastSync.completed_at)}`}
+            </div>
+          )}
+
+          {backfillStatus?.error && (
+            <div style={{
+              marginTop: '0.75rem',
+              padding: '0.5rem 0.75rem',
+              background: 'var(--error-soft)',
+              color: 'var(--error)',
+              borderRadius: '6px',
+              fontSize: '0.85rem',
+            }}>
+              {backfillStatus.error}
             </div>
           )}
         </div>
