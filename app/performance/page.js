@@ -1875,7 +1875,7 @@ export default function PerformancePage() {
               <div key={ct.type} className="content-type-card">
                 <div className="content-type-header">
                   <span className="content-type-name">
-                    {ct.type === 'CAROUSEL_ALBUM' ? 'Carousel' : ct.type === 'IMAGE' ? 'Image' : ct.type === 'VIDEO' ? 'Video' : ct.type === 'REELS' ? 'Reel' : ct.type}
+                    {ct.type}
                   </span>
                   <span className="content-type-count">
                     {ct.count} post{ct.count !== 1 ? 's' : ''}
@@ -1916,13 +1916,7 @@ export default function PerformancePage() {
                 const bestReach = [...derivedData.contentTypeBreakdown].filter(ct => ct.medianReach != null)
                   .sort((a, b) => (b.medianReach || 0) - (a.medianReach || 0))[0];
 
-                const formatName = (type) => {
-                  if (type === 'CAROUSEL_ALBUM') return 'Carousels';
-                  if (type === 'IMAGE') return 'Images';
-                  if (type === 'VIDEO') return 'Videos';
-                  if (type === 'REELS') return 'Reels';
-                  return type;
-                };
+                const formatName = (type) => type === 'Reel' ? 'Reels' : 'Posts';
 
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>

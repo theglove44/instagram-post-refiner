@@ -113,11 +113,13 @@ export async function GET(request) {
     // Calculate delta vs previous 28 days
     const delta = calculatePeriodDelta(processedPosts, 28);
 
-    // Calculate content type breakdown
+    // Calculate content type breakdown: Post (images, carousels) vs Reel (videos)
     const typeGroups = {};
     for (const post of processedPosts) {
-      const typeKey = post.mediaProductType || post.mediaType;
-      if (!typeKey || !post.rates) continue;
+      if (!post.rates) continue;
+      const isReel = post.mediaProductType === 'REELS'
+        || (post.mediaType === 'VIDEO' && post.mediaProductType !== 'FEED');
+      const typeKey = isReel ? 'Reel' : 'Post';
       if (!typeGroups[typeKey]) typeGroups[typeKey] = [];
       typeGroups[typeKey].push(post);
     }
