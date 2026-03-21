@@ -1,0 +1,8 @@
+[Unit]
+Description=Instagram Publish Scheduler - process scheduled posts
+After=instagram-logger.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/curl -sf http://localhost:3000/api/cron/publish
+TimeoutStartSec=55

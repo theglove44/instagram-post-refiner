@@ -310,10 +310,15 @@ export default function ViewPostPage() {
         )}
       </div>
 
-      <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+      <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
         <button className="btn btn-secondary" onClick={() => router.push('/history')}>
           {'\u2190'} Back to History
         </button>
+        {!post.instagramMediaId && (
+          <button className="btn btn-primary" onClick={() => router.push(`/compose?sourcePostId=${post.id}`)}>
+            {'\uD83D\uDCDD'} Compose & Publish
+          </button>
+        )}
       </div>
 
       {/* Instagram Link Modal */}

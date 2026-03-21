@@ -14,6 +14,15 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: 'PUBLISH',
+    items: [
+      { name: 'Compose', href: '/compose', icon: '\uD83D\uDCDD' },
+      { name: 'Calendar', href: '/calendar', icon: '\uD83D\uDCC5' },
+      { name: 'Drafts', href: '/drafts', icon: '\uD83D\uDCC4' },
+      { name: 'Queue', href: '/queue', icon: '\u23F3' },
+    ],
+  },
+  {
     label: 'ANALYSIS',
     items: [
       { name: 'Voice Analysis', href: '/analysis', icon: '\uD83D\uDCCA' },
