@@ -191,8 +191,17 @@ export async function POST(request) {
     if (mediaId) {
       postsQuery = postsQuery.eq('instagram_media_id', mediaId);
     } else {
-      const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-      postsQuery = postsQuery.gte('published_at', cutoffDate);
+      // Check if this is the first sync (no comments in DB yet)
+      const { count: existingComments } = await supabase
+        .from('comments')
+        .select('*', { count: 'exact', head: true });
+
+      if (existingComments && existingComments > 0) {
+        // Ongoing sync: only recent posts
+        const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+        postsQuery = postsQuery.gte('published_at', cutoffDate);
+      }
+      // First sync: get ALL posts with instagram_media_id (no date filter)
     }
 
     const { data: postsToSync } = await postsQuery;
