@@ -152,13 +152,31 @@ export default function MediaUploader({ scheduledPostId, media = [], onMediaChan
   };
 
   const handleReorder = async (mediaId, direction) => {
+    // Build new order by swapping the item with its neighbor
+    const sorted = [...media].sort((a, b) => (a.sortOrder ?? a.sort_order ?? 0) - (b.sortOrder ?? b.sort_order ?? 0));
+    const idx = sorted.findIndex((m) => m.id === mediaId);
+    if (idx < 0) return;
+
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+
+    // Swap positions
+    const newOrder = sorted.map((m, i) => {
+      if (i === idx) return { id: m.id, sortOrder: swapIdx };
+      if (i === swapIdx) return { id: m.id, sortOrder: idx };
+      return { id: m.id, sortOrder: i };
+    });
+
+    const postId = scheduledPostId || sorted[0]?.scheduled_post_id;
+    if (!postId) return;
+
     try {
       await fetch('/api/publish/upload/reorder', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: mediaId, direction }),
+        body: JSON.stringify({ scheduledPostId: postId, order: newOrder }),
       });
-      onMediaChange?.();
+      onMediaChange?.(postId);
     } catch {
       // Silently fail
     }
