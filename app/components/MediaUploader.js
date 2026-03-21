@@ -4,9 +4,22 @@ import { useState, useRef, useCallback } from 'react';
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime';
 
+// Normalize snake_case API fields to camelCase for consistent access
+function norm(item) {
+  return {
+    id: item.id,
+    publicUrl: item.publicUrl || item.public_url || '',
+    fileName: item.fileName || item.file_name || '',
+    mimeType: item.mimeType || item.mime_type || '',
+    mediaType: item.mediaType || item.media_type || 'IMAGE',
+    sortOrder: item.sortOrder ?? item.sort_order ?? 0,
+    scheduledPostId: item.scheduledPostId || item.scheduled_post_id,
+  };
+}
+
 function getMediaTypeBadge(media) {
   if (!media || media.length === 0) return null;
-  const hasVideo = media.some((m) => m.mimeType?.startsWith('video/'));
+  const hasVideo = media.some((m) => (m.mimeType || m.mime_type || '').startsWith('video/'));
   if (hasVideo) return 'REEL';
   if (media.length > 1) return `CAROUSEL (${media.length})`;
   return 'IMAGE';
@@ -70,12 +83,8 @@ export default function MediaUploader({ scheduledPostId, media = [], onMediaChan
   const fileInputRef = useRef(null);
 
   const uploadFile = useCallback(
-    async (file) => {
-      // Ensure a draft exists before uploading
-      let postId = scheduledPostId;
-      if (!postId && onEnsureDraft) {
-        postId = await onEnsureDraft();
-      }
+    async (file, explicitPostId) => {
+      const postId = explicitPostId || scheduledPostId;
       if (!postId) return;
 
       const uploadId = `${file.name}-${Date.now()}`;
@@ -111,17 +120,28 @@ export default function MediaUploader({ scheduledPostId, media = [], onMediaChan
       xhr.open('POST', '/api/publish/upload');
       xhr.send(formData);
     },
-    [scheduledPostId, onMediaChange, onEnsureDraft]
+    [scheduledPostId, onMediaChange]
   );
 
   const handleFiles = useCallback(
     async (files) => {
       if (disabled) return;
-      for (const file of Array.from(files)) {
-        await uploadFile(file);
+      const fileList = Array.from(files);
+      if (fileList.length === 0) return;
+
+      // Ensure draft exists once for the whole batch
+      let postId = scheduledPostId;
+      if (!postId && onEnsureDraft) {
+        postId = await onEnsureDraft();
+      }
+      if (!postId) return;
+
+      // Upload all files with the same postId
+      for (const file of fileList) {
+        await uploadFile(file, postId);
       }
     },
-    [disabled, uploadFile]
+    [disabled, uploadFile, scheduledPostId, onEnsureDraft]
   );
 
   const handleDrop = (e) => {
@@ -281,12 +301,13 @@ export default function MediaUploader({ scheduledPostId, media = [], onMediaChan
           style={{
             display: 'grid',
             gridTemplateColumns:
-              media.some((m) => m.mimeType?.startsWith('video/')) ? '1fr' : '1fr 1fr',
+              media.some((m) => (m.mimeType || m.mime_type || '').startsWith('video/')) ? '1fr' : '1fr 1fr',
             gap: '10px',
           }}
         >
-          {media.map((item, index) => {
-            const isVideo = item.mimeType?.startsWith('video/');
+          {media.map((rawItem, index) => {
+            const item = norm(rawItem);
+            const isVideo = item.mimeType.startsWith('video/');
             return (
               <div
                 key={item.id}
