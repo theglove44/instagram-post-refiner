@@ -6,19 +6,8 @@ export async function POST(request) {
     const supabase = getSupabaseClient();
     const { id, caption, mediaType, altText, userTags, coverUrl, sourcePostId } = await request.json();
 
-    if (!caption) {
-      return Response.json(
-        { success: false, error: 'Caption is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!mediaType) {
-      return Response.json(
-        { success: false, error: 'Media type is required' },
-        { status: 400 }
-      );
-    }
+    // Caption defaults to empty string in the DB, so allow it to be missing
+    // mediaType defaults to 'IMAGE' if not provided
 
     if (id) {
       // Update existing draft — only allow if status is 'draft' or 'failed'
@@ -46,17 +35,17 @@ export async function POST(request) {
         );
       }
 
+      const updates = { updated_at: new Date().toISOString() };
+      if (caption !== undefined) updates.caption = caption;
+      if (mediaType) updates.media_type = mediaType;
+      if (altText !== undefined) updates.alt_text = altText || null;
+      if (userTags !== undefined) updates.user_tags = userTags || null;
+      if (coverUrl !== undefined) updates.cover_url = coverUrl || null;
+      if (sourcePostId !== undefined) updates.source_post_id = sourcePostId || null;
+
       const { data, error } = await supabase
         .from('scheduled_posts')
-        .update({
-          caption,
-          media_type: mediaType,
-          alt_text: altText || null,
-          user_tags: userTags || null,
-          cover_url: coverUrl || null,
-          source_post_id: sourcePostId || null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updates)
         .eq('id', id)
         .select()
         .single();
@@ -72,8 +61,8 @@ export async function POST(request) {
     const { data, error } = await supabase
       .from('scheduled_posts')
       .insert({
-        caption,
-        media_type: mediaType,
+        caption: caption || '',
+        media_type: mediaType || 'IMAGE',
         alt_text: altText || null,
         user_tags: userTags || null,
         cover_url: coverUrl || null,

@@ -168,8 +168,6 @@ function ComposePageInner() {
       const currentAltText = opts.altText ?? altText;
       const currentMediaType = deriveMediaType(media);
 
-      if (!currentCaption.trim()) return null;
-
       setDraftStatus('saving');
 
       try {
@@ -241,10 +239,36 @@ function ComposePageInner() {
     []
   );
 
-  const handleMediaChange = useCallback(async () => {
-    if (!scheduledPostId) return;
+  // Ensure a draft exists, creating one if needed. Returns the draft ID.
+  const ensureDraftExists = useCallback(async () => {
+    if (scheduledPostId) return scheduledPostId;
+
     try {
-      const res = await fetch(`/api/publish/draft?id=${scheduledPostId}`);
+      const res = await fetch('/api/publish/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caption: caption || '',
+          mediaType: 'IMAGE',
+          sourcePostId: sourcePostId.current || null,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.post?.id) {
+        setScheduledPostId(data.post.id);
+        return data.post.id;
+      }
+    } catch {
+      // fall through
+    }
+    return null;
+  }, [scheduledPostId, caption]);
+
+  const handleMediaChange = useCallback(async (postId) => {
+    const id = postId || scheduledPostId;
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/publish/draft?id=${id}`);
       const data = await res.json();
       if (data.success) {
         setMedia(data.media || []);
@@ -490,6 +514,7 @@ function ComposePageInner() {
               scheduledPostId={scheduledPostId}
               media={media}
               onMediaChange={handleMediaChange}
+              onEnsureDraft={ensureDraftExists}
             />
           </section>
 

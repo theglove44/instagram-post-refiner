@@ -64,22 +64,27 @@ function UploadProgress({ fileName, progress }) {
   );
 }
 
-export default function MediaUploader({ scheduledPostId, media = [], onMediaChange, disabled }) {
+export default function MediaUploader({ scheduledPostId, media = [], onMediaChange, onEnsureDraft, disabled }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploads, setUploads] = useState([]);
   const fileInputRef = useRef(null);
 
   const uploadFile = useCallback(
-    (file) => {
+    async (file) => {
+      // Ensure a draft exists before uploading
+      let postId = scheduledPostId;
+      if (!postId && onEnsureDraft) {
+        postId = await onEnsureDraft();
+      }
+      if (!postId) return;
+
       const uploadId = `${file.name}-${Date.now()}`;
 
       setUploads((prev) => [...prev, { id: uploadId, fileName: file.name, progress: 0 }]);
 
       const formData = new FormData();
       formData.append('file', file);
-      if (scheduledPostId) {
-        formData.append('scheduledPostId', scheduledPostId);
-      }
+      formData.append('scheduledPostId', postId);
 
       const xhr = new XMLHttpRequest();
 
@@ -95,7 +100,7 @@ export default function MediaUploader({ scheduledPostId, media = [], onMediaChan
       xhr.addEventListener('load', () => {
         setUploads((prev) => prev.filter((u) => u.id !== uploadId));
         if (xhr.status >= 200 && xhr.status < 300) {
-          onMediaChange?.();
+          onMediaChange?.(postId);
         }
       });
 
@@ -106,13 +111,15 @@ export default function MediaUploader({ scheduledPostId, media = [], onMediaChan
       xhr.open('POST', '/api/publish/upload');
       xhr.send(formData);
     },
-    [scheduledPostId, onMediaChange]
+    [scheduledPostId, onMediaChange, onEnsureDraft]
   );
 
   const handleFiles = useCallback(
-    (files) => {
+    async (files) => {
       if (disabled) return;
-      Array.from(files).forEach(uploadFile);
+      for (const file of Array.from(files)) {
+        await uploadFile(file);
+      }
     },
     [disabled, uploadFile]
   );
