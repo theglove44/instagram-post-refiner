@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import EngagementBadge from './EngagementBadge';
 
 const NAV_SECTIONS = [
   {
@@ -20,6 +21,13 @@ const NAV_SECTIONS = [
       { name: 'Calendar', href: '/calendar', icon: '\uD83D\uDCC5' },
       { name: 'Drafts', href: '/drafts', icon: '\uD83D\uDCC4' },
       { name: 'Queue', href: '/queue', icon: '\u23F3' },
+    ],
+  },
+  {
+    label: 'ENGAGEMENT',
+    items: [
+      { name: 'Inbox', href: '/engagement', icon: '\uD83D\uDCEC', badge: true },
+      { name: 'Mentions', href: '/engagement/mentions', icon: '\uD83D\uDD14' },
     ],
   },
   {
@@ -131,6 +139,7 @@ export default function Sidebar() {
                       {!collapsed && (
                         <span className="sidebar-link-text">{item.name}</span>
                       )}
+                      {item.badge && !collapsed && <EngagementBadge />}
                       {!collapsed && isActive(item.href) && (
                         <span className="sidebar-active-indicator" />
                       )}

@@ -51,6 +51,28 @@ export async function GET(request) {
       results.recentMetrics = err.message;
     }
 
+    // 4. Comment sync for recent posts (last 7 days)
+    try {
+      const commentRes = await fetch(`${origin}/api/comments/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: 7 }),
+      });
+      const commentData = await commentRes.json();
+      results.commentSync = commentData.success ? 'running' : commentData.error;
+    } catch (err) {
+      results.commentSync = err.message;
+    }
+
+    // 5. Mention/tag sync
+    try {
+      const mentionRes = await fetch(`${origin}/api/mentions/sync`, { method: 'POST' });
+      const mentionData = await mentionRes.json();
+      results.mentionSync = mentionData.success ? 'syncing' : mentionData.error;
+    } catch (err) {
+      results.mentionSync = err.message;
+    }
+
     console.log('Nightly cron completed:', JSON.stringify(results));
     return Response.json({ success: true, results });
   } catch (error) {
