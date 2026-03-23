@@ -14,6 +14,17 @@ export async function GET(request) {
   const results = {};
 
   try {
+    // 0. Check for new posts
+    try {
+      const pollRes = await fetch(`${origin}/api/cron/poll-new-posts`);
+      const pollData = await pollRes.json();
+      results.newPosts = pollData.success
+        ? { imported: pollData.imported, checked: pollData.checked }
+        : pollData.error;
+    } catch (err) {
+      results.newPosts = err.message;
+    }
+
     // 1. Daily snapshot
     try {
       const snapshotRes = await fetch(`${origin}/api/instagram/snapshot`, { method: 'POST' });

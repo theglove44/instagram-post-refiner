@@ -37,8 +37,8 @@ export async function POST() {
 
 async function syncMentions(supabase, accessToken, igUserId) {
   // Sync tagged media
-  const taggedMedia = await getTaggedMedia(accessToken, igUserId);
-  for (const media of (taggedMedia || [])) {
+  const taggedResult = await getTaggedMedia(accessToken, igUserId);
+  for (const media of (taggedResult?.media || [])) {
     await supabase
       .from('mentions')
       .upsert({
@@ -57,8 +57,8 @@ async function syncMentions(supabase, accessToken, igUserId) {
   }
 
   // Sync caption mentions
-  const mentionedMedia = await getMentionedMedia(accessToken, igUserId);
-  for (const media of (mentionedMedia || [])) {
+  const mentionedResult = await getMentionedMedia(accessToken, igUserId);
+  for (const media of (mentionedResult?.media || [])) {
     await supabase
       .from('mentions')
       .upsert({

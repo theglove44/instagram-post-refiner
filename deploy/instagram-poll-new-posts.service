@@ -1,0 +1,12 @@
+[Unit]
+Description=Instagram Post Logger — Poll for new posts
+After=network-online.target instagram-logger.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/curl -sf http://localhost:3000/api/cron/poll-new-posts
+TimeoutStartSec=30
+
+[Install]
+WantedBy=multi-user.target

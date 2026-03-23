@@ -88,7 +88,7 @@ CREATE TABLE post_metrics (
   media_type TEXT,
   media_product_type TEXT,
   -- Calculated metrics
-  engagement_rate DECIMAL(5,2),
+  engagement_rate DECIMAL(8,2),
   -- Tracking
   fetched_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   UNIQUE(post_id, fetched_at)
