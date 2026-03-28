@@ -7,7 +7,6 @@ export async function GET() {
     const { data, error } = await supabase
       .from('posts')
       .select('*')
-      .order('published_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -15,7 +14,15 @@ export async function GET() {
     }
 
     // Format posts to match expected structure
-    const posts = (data || []).map(post => ({
+    // Sort by published_at (falling back to created_at), so unlinked posts
+    // interleave chronologically instead of sinking to the bottom
+    const sorted = (data || []).sort((a, b) => {
+      const dateA = new Date(a.published_at || a.created_at);
+      const dateB = new Date(b.published_at || b.created_at);
+      return dateB - dateA;
+    });
+
+    const posts = sorted.map(post => ({
       id: post.post_id,
       topic: post.topic,
       aiVersion: post.ai_version,
