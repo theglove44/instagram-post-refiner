@@ -1,8 +1,8 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET() {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     
     // Get last sync for each type
     const syncTypes = ['metrics', 'recent', 'insights', 'account', 'auto_linking'];

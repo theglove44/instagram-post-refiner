@@ -1,8 +1,8 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function PUT(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const { scheduledPostId, order } = await request.json();
 
     if (!scheduledPostId) {

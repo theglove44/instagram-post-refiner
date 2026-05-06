@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getRecentMedia, getMediaInsights } from '@/lib/instagram';
 
 // Delay helper for rate limiting Meta API calls
@@ -15,7 +15,7 @@ export async function GET(request) {
   const limit = parseInt(searchParams.get('limit') || '25', 10);
   
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     
     // Get Instagram account
     const { data: accounts } = await supabase

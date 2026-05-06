@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getRecentMedia, getTokenExpiryDate } from '@/lib/instagram';
 
 // Delay helper
@@ -43,7 +43,7 @@ function extractTopic(caption) {
  * Fetches all media from Instagram and inserts new posts into the database.
  */
 async function processImportInBackground(syncId) {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
 
   try {
     // 1. Get Instagram account
@@ -129,7 +129,7 @@ async function processImportInBackground(syncId) {
     );
   } catch (error) {
     console.error('Background import error:', error);
-    await updateSyncStatus(getSupabaseClient(), syncId, 'error', 0, { message: error.message });
+    await updateSyncStatus(getServerSupabaseClient(), syncId, 'error', 0, { message: error.message });
   }
 }
 
@@ -154,7 +154,7 @@ async function updateSyncStatus(supabase, syncId, status, postsProcessed, errorD
  * Returns immediately with a syncId; processing continues in the background.
  */
 export async function POST() {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
 
   try {
     // Create sync status record
@@ -188,7 +188,7 @@ export async function POST() {
  */
 export async function GET() {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
 
     const { data: lastSync } = await supabase
       .from('sync_status')

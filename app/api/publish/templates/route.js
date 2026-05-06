@@ -1,8 +1,8 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
 
@@ -38,7 +38,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const body = await request.json();
     const { name, caption, category, hashtagCategories } = body;
 
@@ -67,7 +67,7 @@ export async function POST(request) {
 
 export async function PUT(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const body = await request.json();
     const { id, name, caption, category, hashtagCategories } = body;
 
@@ -98,7 +98,7 @@ export async function PUT(request) {
 
 export async function DELETE(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

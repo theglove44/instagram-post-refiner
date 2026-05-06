@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function PUT(request) {
   try {
@@ -27,7 +27,7 @@ export async function PUT(request) {
       );
     }
 
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
 
     // Fetch the scheduled post
     const { data: post, error: fetchError } = await supabase

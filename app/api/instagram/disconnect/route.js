@@ -1,8 +1,8 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function POST() {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     
     // Delete all connected accounts
     const { error } = await supabase

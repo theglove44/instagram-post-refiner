@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import {
   calculateComponentRates,
   calculatePercentiles,
@@ -14,7 +14,7 @@ export async function GET(request) {
   const postId = searchParams.get('postId');
   
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     
     // Get all published posts with their latest metrics
     const { data: postsWithMetrics } = await supabase

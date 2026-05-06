@@ -1,9 +1,9 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getHashtagStats, correlateHashtagsWithEngagement, extractHashtags, clusterHashtagSets, getDualRankings, analyzeHashtagRotation, generateRecommendedSets } from '@/lib/hashtags';
 
 export async function GET() {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     
     // Get all posts
     const { data: posts, error } = await supabase

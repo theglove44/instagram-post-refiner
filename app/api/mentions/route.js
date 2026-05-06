@@ -1,8 +1,8 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const { searchParams } = new URL(request.url);
 
     const type = searchParams.get('type');

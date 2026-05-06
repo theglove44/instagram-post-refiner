@@ -1,8 +1,8 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET() {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
 
     const { data: counts, error } = await supabase
       .from('engagement_counts')

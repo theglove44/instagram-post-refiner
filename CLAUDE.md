@@ -189,12 +189,14 @@ Supabase has a default 1000-row limit on queries. Any endpoint that may return m
 
 **Required (Supabase):**
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon public key
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon public key (safe to expose in browser)
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key (**server-side only** — never use `NEXT_PUBLIC_` prefix; bypasses RLS)
 
 **Required (Instagram):**
 - `INSTAGRAM_APP_ID` - Facebook app ID
 - `INSTAGRAM_APP_SECRET` - Facebook app secret
 - `INSTAGRAM_REDIRECT_URI` - OAuth callback URL
+- `WEBHOOK_VERIFY_TOKEN` - Token set in Meta App Dashboard → Webhooks → Verify Token
 
 Hosting details, SSH credentials, and Facebook app configuration are stored in the Claude auto-memory file, not in committed code.
 

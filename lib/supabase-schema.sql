@@ -421,3 +421,14 @@ CREATE POLICY "Allow public update story_metrics" ON story_metrics
 -- =====================================================
 -- ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type TEXT;
 -- ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_product_type TEXT;
+
+-- =============================================================================
+-- SECURITY MIGRATION: Lock down instagram_accounts RLS
+-- The access token stored here must never be readable via the anon key.
+-- Run after switching all API routes to use SUPABASE_SERVICE_ROLE_KEY.
+-- =============================================================================
+DROP POLICY IF EXISTS "Allow public read instagram_accounts" ON instagram_accounts;
+DROP POLICY IF EXISTS "Allow public insert instagram_accounts" ON instagram_accounts;
+DROP POLICY IF EXISTS "Allow public update instagram_accounts" ON instagram_accounts;
+DROP POLICY IF EXISTS "Allow public delete instagram_accounts" ON instagram_accounts;
+CREATE POLICY "Deny anon access instagram_accounts" ON instagram_accounts FOR ALL USING (false);

@@ -7,11 +7,11 @@
  * Called via systemd timer alongside the nightly cron.
  */
 
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { deleteFromStorage } from '@/lib/media';
 
 export async function GET() {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
   const results = {};
 
   try {

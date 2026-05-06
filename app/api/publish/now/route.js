@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { executePublish } from '@/lib/publishing';
 
 export async function POST(request) {
@@ -13,7 +13,7 @@ export async function POST(request) {
       );
     }
 
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
 
     // Fetch the scheduled post
     const { data: post, error: fetchError } = await supabase
@@ -91,7 +91,7 @@ export async function POST(request) {
     // Kick off publish in the background (do NOT await)
     const publishPromise = executePublish(account.access_token, account.instagram_user_id, post, mediaUploads, { dryRun: body.dryRun || false });
     publishPromise.catch(async (err) => {
-      const supabase = getSupabaseClient();
+      const supabase = getServerSupabaseClient();
       const newRetryCount = (post.retry_count || 0) + 1;
       if (newRetryCount < 3) {
         await supabase.from('scheduled_posts').update({

@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getMediaInsights, getMediaDetails, getTokenExpiryDate } from '@/lib/instagram';
 
 // Delay helper for rate limiting Meta API calls (~200 calls/user/hour)
@@ -54,7 +54,7 @@ export async function GET(request) {
   const postId = searchParams.get('postId');
 
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
 
     // Get Instagram account
     const { data: accounts } = await supabase
@@ -225,7 +225,7 @@ export async function GET(request) {
  * plus any posts that have never had metrics fetched.
  */
 async function processMetricsInBackground(syncId, { days = 30 } = {}) {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
 
   try {
     const { data: accounts } = await supabase
@@ -344,7 +344,7 @@ async function processMetricsInBackground(syncId, { days = 30 } = {}) {
     );
   } catch (error) {
     console.error('Background metrics refresh error:', error);
-    await updateSyncStatus(getSupabaseClient(), syncId, 'error', 0, 0, 1, { message: error.message });
+    await updateSyncStatus(getServerSupabaseClient(), syncId, 'error', 0, 0, 1, { message: error.message });
   }
 }
 
@@ -353,7 +353,7 @@ async function processMetricsInBackground(syncId, { days = 30 } = {}) {
 // The frontend polls GET /api/instagram/health to track progress.
 // Accepts optional JSON body: { days: 30 } to control the lookback window.
 export async function POST(request) {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
 
   try {
     // Parse optional body

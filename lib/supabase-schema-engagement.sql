@@ -114,3 +114,26 @@ CREATE POLICY "Allow public update engagement_counts" ON engagement_counts
 -- Seed initial counter rows
 INSERT INTO engagement_counts (count_type, count) VALUES ('unreplied_comments', 0);
 INSERT INTO engagement_counts (count_type, count) VALUES ('unseen_mentions', 0);
+
+-- =============================================================================
+-- SECURITY MIGRATION: Lock down RLS + atomic engagement counter
+-- Run after switching API routes to use the service role key.
+-- The service role key bypasses RLS entirely, so these policies only protect
+-- against direct Supabase API calls using the public anon key.
+-- =============================================================================
+
+-- Drop permissive policies on engagement_counts (no longer needed via anon key)
+DROP POLICY IF EXISTS "Allow public read engagement_counts" ON engagement_counts;
+DROP POLICY IF EXISTS "Allow public insert engagement_counts" ON engagement_counts;
+DROP POLICY IF EXISTS "Allow public update engagement_counts" ON engagement_counts;
+CREATE POLICY "Deny anon access engagement_counts" ON engagement_counts FOR ALL USING (false);
+
+-- Atomic increment function — avoids read-then-write race condition on concurrent webhooks
+CREATE OR REPLACE FUNCTION increment_engagement_count(p_count_type TEXT)
+RETURNS void LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE engagement_counts
+  SET count = count + 1, updated_at = now()
+  WHERE count_type = p_count_type;
+END;
+$$;

@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 
 // Common phrases that indicate marketing-speak to avoid
 const MARKETING_PHRASES = [
@@ -614,7 +614,7 @@ function generateSuggestions(analysis) {
 
 export async function GET() {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     
     const { data, error } = await supabase
       .from('posts')

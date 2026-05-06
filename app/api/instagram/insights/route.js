@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { graphFetch, GRAPH_API_BASE } from '@/lib/instagram';
 
 const CACHE_MAX_AGE_HOURS = 24;
@@ -72,7 +72,7 @@ async function setCachedInsight(supabase, userId, type, data) {
 
 export async function GET(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
 
     // Check for ?refresh=true query param
     const { searchParams } = new URL(request.url);

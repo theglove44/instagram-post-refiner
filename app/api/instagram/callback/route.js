@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { exchangeCodeForToken, getInstagramAccount } from '@/lib/instagram';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 
 /**
  * Build a redirect URL using the public origin.
@@ -56,7 +56,7 @@ export async function GET(request) {
     const tokenExpiresAt = new Date(Date.now() + expirySeconds * 1000).toISOString();
 
     // Store in Supabase
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
 
     const { error: dbError } = await supabase
       .from('instagram_accounts')

@@ -7,13 +7,13 @@
  * Processes max 5 posts per invocation to avoid timeout.
  */
 
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { executePublish } from '@/lib/publishing';
 
 const MAX_POSTS_PER_RUN = 5;
 
 export async function GET() {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
   const results = [];
 
   try {

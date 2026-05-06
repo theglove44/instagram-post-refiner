@@ -1,9 +1,9 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getInstagramAccount, refreshLongLivedToken } from '@/lib/instagram';
 
 export async function GET() {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     
     // Get the connected Instagram account
     const { data: accounts, error } = await supabase

@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { graphFetch, GRAPH_API_BASE } from '@/lib/instagram';
 
 /**
@@ -7,7 +7,7 @@ import { graphFetch, GRAPH_API_BASE } from '@/lib/instagram';
  */
 export async function GET() {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
 
     const { data: accounts } = await supabase
       .from('instagram_accounts')
@@ -119,7 +119,7 @@ async function backfillHistory(supabase, userId, accessToken, currentFollowers) 
  */
 export async function POST(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const { searchParams } = new URL(request.url);
     const forceBackfill = searchParams.get('backfill') === 'true';
 

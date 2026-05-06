@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 
 // Link a logged post to an Instagram post
 export async function POST(request) {
@@ -9,7 +9,7 @@ export async function POST(request) {
       return Response.json({ error: 'postId is required' }, { status: 400 });
     }
     
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     
     // Update the post with Instagram link (use post_id which is the UUID)
     const { data, error } = await supabase
@@ -50,7 +50,7 @@ export async function DELETE(request) {
       return Response.json({ error: 'postId is required' }, { status: 400 });
     }
     
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     
     const { data, error } = await supabase
       .from('posts')

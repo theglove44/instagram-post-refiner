@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getStories, getStoryInsights, getTokenExpiryDate } from '@/lib/instagram';
 
 // Delay helper for rate limiting Meta API calls
@@ -33,7 +33,7 @@ async function persistRefreshedToken(supabase, accountId, newToken, expiresIn) {
  */
 export async function GET() {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
 
     const { data: stories, error } = await supabase
       .from('story_metrics')
@@ -100,7 +100,7 @@ export async function GET() {
  * Fetches live stories from Meta API and upserts insights into story_metrics.
  */
 async function processStoriesInBackground(syncId) {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
 
   try {
     const { data: accounts } = await supabase
@@ -187,7 +187,7 @@ async function processStoriesInBackground(syncId) {
     );
   } catch (error) {
     console.error('Background stories refresh error:', error);
-    await updateSyncStatus(getSupabaseClient(), syncId, 'error', 0, 0, 1, { message: error.message });
+    await updateSyncStatus(getServerSupabaseClient(), syncId, 'error', 0, 0, 1, { message: error.message });
   }
 }
 
@@ -197,7 +197,7 @@ async function processStoriesInBackground(syncId) {
  * Returns immediately with a syncId; processing continues in the background.
  */
 export async function POST() {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
 
   try {
     // Create sync status record

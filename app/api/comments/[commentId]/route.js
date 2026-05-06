@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { deleteComment, getTokenExpiryDate } from '@/lib/instagram';
 
 /**
@@ -17,7 +17,7 @@ async function persistRefreshedToken(supabase, accountId, newToken, expiresIn) {
 
 export async function DELETE(request, { params }) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const { commentId } = await params;
 
     if (!commentId) {

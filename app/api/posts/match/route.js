@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getRecentMedia } from '@/lib/instagram';
 import { findBestMatches } from '@/lib/matching';
 
@@ -11,7 +11,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const postId = searchParams.get('postId');
 
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
 
     let query = supabase
       .from('match_suggestions')
@@ -69,7 +69,7 @@ export async function GET(request) {
  * Returns immediately with a syncId; processing continues in the background.
  */
 export async function POST(request) {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
 
   try {
     // Parse optional body
@@ -127,7 +127,7 @@ export async function PUT(request) {
       return Response.json({ error: 'action must be "accept" or "reject"' }, { status: 400 });
     }
 
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
 
     // Fetch the suggestion
     const { data: suggestion, error: fetchError } = await supabase
@@ -223,7 +223,7 @@ export async function PUT(request) {
  * and either auto-links or creates suggestions based on confidence.
  */
 async function processMatchingInBackground(syncId, { mode, limit, dryRun }) {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
 
   try {
     // Get Instagram account

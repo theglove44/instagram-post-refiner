@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 
 function normalizeHashtag(tag) {
   let cleaned = tag.trim().toLowerCase();
@@ -13,7 +13,7 @@ function normalizeHashtag(tag) {
 
 export async function GET(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
 
@@ -63,7 +63,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const body = await request.json();
     const { hashtags, category, source, notes } = body;
 
@@ -120,7 +120,7 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const body = await request.json();
     const { hashtag, id } = body;
 

@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getRecentMedia } from '@/lib/instagram';
 
 /**
@@ -26,7 +26,7 @@ function extractTopic(caption) {
  * Cost: 1 API call per run = ~96/day out of ~4,800/day budget
  */
 export async function GET() {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
 
   try {
     // Get Instagram account

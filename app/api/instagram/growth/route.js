@@ -1,9 +1,9 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { detectMilestones, getNextMilestone } from '@/lib/milestones';
 
 export async function GET(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const { searchParams } = new URL(request.url);
     const days = searchParams.get('days') || '30';
 

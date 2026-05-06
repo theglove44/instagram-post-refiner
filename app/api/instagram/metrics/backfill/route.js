@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getMediaInsights, getMediaDetails, getTokenExpiryDate } from '@/lib/instagram';
 
 function delay(ms) {
@@ -40,7 +40,7 @@ async function persistRefreshedToken(supabase, accountId, newToken, expiresIn) {
  * Returns: { processed, remaining, errors }
  */
 export async function POST(request) {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
 
   try {
     let batchSize = 50;
@@ -127,7 +127,7 @@ export async function POST(request) {
  */
 export async function GET() {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
 
     const { data: allPublished } = await supabase
       .from('posts')
@@ -173,7 +173,7 @@ export async function GET() {
 }
 
 async function processBackfillBatch(syncId, batch, remaining, account, accessToken) {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
   const API_CALLS_PER_POST = 2;
   const HOURLY_BUDGET = 200;
   const DELAY_PER_POST_MS = Math.ceil((3600 / (HOURLY_BUDGET / API_CALLS_PER_POST)) * 1000);

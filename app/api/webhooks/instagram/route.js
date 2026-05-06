@@ -1,4 +1,19 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import crypto from 'crypto';
+import { NextResponse } from 'next/server';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
+
+function verifyWebhookSignature(rawBody, signature) {
+  if (!signature) return false;
+  const expected = 'sha256=' + crypto
+    .createHmac('sha256', process.env.INSTAGRAM_APP_SECRET)
+    .update(rawBody)
+    .digest('hex');
+  try {
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
 
 /**
  * GET /api/webhooks/instagram
@@ -25,17 +40,26 @@ export async function GET(request) {
 
 /**
  * POST /api/webhooks/instagram
- * Receives webhook events from Meta. Stores raw payload and processes async.
+ * Receives webhook events from Meta. Verifies HMAC signature, stores raw
+ * payload and processes async.
  */
 export async function POST(request) {
-  const supabase = getSupabaseClient();
-  let body;
+  const rawBody = await request.text();
 
+  const sig = request.headers.get('x-hub-signature-256');
+  if (!verifyWebhookSignature(rawBody, sig)) {
+    console.warn('Webhook signature verification failed');
+    return new Response('Forbidden', { status: 403 });
+  }
+
+  let body;
   try {
-    body = await request.json();
+    body = JSON.parse(rawBody);
   } catch {
     return new Response('Bad Request', { status: 400 });
   }
+
+  const supabase = getServerSupabaseClient();
 
   // Store raw event and kick off async processing before returning
   const entries = body.entry || [];
@@ -83,7 +107,6 @@ async function processWebhookEvent(supabase, eventType, value, igUserId, webhook
         await processMention(supabase, value, igUserId);
         break;
       default:
-        // Unknown event type, just mark as processed for future reference
         break;
     }
 
@@ -105,7 +128,6 @@ async function processComment(supabase, value, igUserId) {
 
   if (!commentId) return;
 
-  // Upsert the comment
   await supabase
     .from('comments')
     .upsert({
@@ -123,25 +145,10 @@ async function processComment(supabase, value, igUserId) {
       ignoreDuplicates: false,
     });
 
-  // If the comment is not from our own account, increment unreplied count
   if (fromUser.id && fromUser.id !== igUserId) {
-    const { data: countRow } = await supabase
-      .from('engagement_counts')
-      .select('count')
-      .eq('count_type', 'unreplied_comments')
-      .single();
-
-    const currentCount = countRow?.count || 0;
-
-    await supabase
-      .from('engagement_counts')
-      .upsert({
-        count_type: 'unreplied_comments',
-        count: currentCount + 1,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'count_type',
-      });
+    await supabase.rpc('increment_engagement_count', {
+      p_count_type: 'unreplied_comments',
+    });
   }
 }
 
@@ -166,22 +173,7 @@ async function processMention(supabase, value, igUserId) {
       ignoreDuplicates: false,
     });
 
-  // Increment unseen mentions count
-  const { data: countRow } = await supabase
-    .from('engagement_counts')
-    .select('count')
-    .eq('count_type', 'unseen_mentions')
-    .single();
-
-  const currentCount = countRow?.count || 0;
-
-  await supabase
-    .from('engagement_counts')
-    .upsert({
-      count_type: 'unseen_mentions',
-      count: currentCount + 1,
-      updated_at: new Date().toISOString(),
-    }, {
-      onConflict: 'count_type',
-    });
+  await supabase.rpc('increment_engagement_count', {
+    p_count_type: 'unseen_mentions',
+  });
 }

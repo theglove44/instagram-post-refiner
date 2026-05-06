@@ -1,9 +1,9 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { deleteAllPostMedia } from '@/lib/media';
 
 export async function POST(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const { id, caption, mediaType, altText, userTags, coverUrl, sourcePostId } = await request.json();
 
     // Caption defaults to empty string in the DB, so allow it to be missing
@@ -88,7 +88,7 @@ export async function POST(request) {
 
 export async function GET(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -138,7 +138,7 @@ export async function GET(request) {
 
 export async function DELETE(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

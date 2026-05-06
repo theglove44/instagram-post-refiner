@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getMediaComments, getTokenExpiryDate } from '@/lib/instagram';
 
 // Delay helper for rate limiting Meta API calls
@@ -25,7 +25,7 @@ async function persistRefreshedToken(supabase, accountId, newToken, expiresIn) {
  * Fetches comments from Meta API for each post and upserts into the comments table.
  */
 async function processCommentSyncInBackground(syncId, account, postsToSync) {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
 
   try {
     let accessToken = account.access_token;
@@ -133,7 +133,7 @@ async function processCommentSyncInBackground(syncId, account, postsToSync) {
     console.log(`Comment sync complete: ${processed}/${postsToSync.length} posts processed, ${errors.length} errors`);
   } catch (error) {
     console.error('Background comment sync error:', error);
-    await updateSyncStatus(getSupabaseClient(), syncId, 'error', 0, 1, { message: error.message });
+    await updateSyncStatus(getServerSupabaseClient(), syncId, 'error', 0, 1, { message: error.message });
   }
 }
 
@@ -153,7 +153,7 @@ async function updateSyncStatus(supabase, syncId, status, postsProcessed, errors
 }
 
 export async function POST(request) {
-  const supabase = getSupabaseClient();
+  const supabase = getServerSupabaseClient();
 
   try {
     let days = 7;

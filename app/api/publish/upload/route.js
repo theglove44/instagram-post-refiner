@@ -1,9 +1,9 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { validateMediaFile, uploadBufferToStorage, deleteFromStorage } from '@/lib/media';
 
 export async function POST(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const formData = await request.formData();
 
     const file = formData.get('file');
@@ -82,7 +82,7 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
