@@ -5,7 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/curl -s -X POST http://localhost:3000/api/instagram/snapshot
+EnvironmentFile=/home/christof21/instagram-post-refiner/.env.local
+ExecStart=/usr/bin/curl -sf -X POST -H "x-cron-secret: ${CRON_SECRET}" http://localhost:3000/api/instagram/snapshot
 TimeoutStartSec=60
 
 [Install]

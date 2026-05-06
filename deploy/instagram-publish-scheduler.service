@@ -4,5 +4,6 @@ After=instagram-logger.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/curl -sf http://localhost:3000/api/cron/publish
+EnvironmentFile=/home/christof21/instagram-post-refiner/.env.local
+ExecStart=/usr/bin/curl -sf -H "x-cron-secret: ${CRON_SECRET}" http://localhost:3000/api/cron/publish
 TimeoutStartSec=55

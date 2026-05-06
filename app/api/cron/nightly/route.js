@@ -13,10 +13,13 @@ export async function GET(request) {
   const origin = new URL(request.url).origin;
   const results = {};
 
+  // Forward cron secret so internal calls pass middleware auth
+  const cronHeaders = { 'x-cron-secret': process.env.CRON_SECRET };
+
   try {
     // 0. Check for new posts
     try {
-      const pollRes = await fetch(`${origin}/api/cron/poll-new-posts`);
+      const pollRes = await fetch(`${origin}/api/cron/poll-new-posts`, { headers: cronHeaders });
       const pollData = await pollRes.json();
       results.newPosts = pollData.success
         ? { imported: pollData.imported, checked: pollData.checked }
@@ -27,7 +30,10 @@ export async function GET(request) {
 
     // 1. Daily snapshot
     try {
-      const snapshotRes = await fetch(`${origin}/api/instagram/snapshot`, { method: 'POST' });
+      const snapshotRes = await fetch(`${origin}/api/instagram/snapshot`, {
+        method: 'POST',
+        headers: cronHeaders,
+      });
       const snapshotData = await snapshotRes.json();
       results.snapshot = snapshotData.success ? 'ok' : snapshotData.error;
     } catch (err) {
@@ -38,7 +44,7 @@ export async function GET(request) {
     try {
       const backfillRes = await fetch(`${origin}/api/instagram/metrics/backfill`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...cronHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ batchSize: 50 }),
       });
       const backfillData = await backfillRes.json();
@@ -53,7 +59,7 @@ export async function GET(request) {
     try {
       const metricsRes = await fetch(`${origin}/api/instagram/metrics`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...cronHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ days: 7 }),
       });
       const metricsData = await metricsRes.json();
@@ -66,7 +72,7 @@ export async function GET(request) {
     try {
       const commentRes = await fetch(`${origin}/api/comments/sync`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...cronHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ days: 7 }),
       });
       const commentData = await commentRes.json();
@@ -77,7 +83,10 @@ export async function GET(request) {
 
     // 5. Mention/tag sync
     try {
-      const mentionRes = await fetch(`${origin}/api/mentions/sync`, { method: 'POST' });
+      const mentionRes = await fetch(`${origin}/api/mentions/sync`, {
+        method: 'POST',
+        headers: cronHeaders,
+      });
       const mentionData = await mentionRes.json();
       results.mentionSync = mentionData.success ? 'syncing' : mentionData.error;
     } catch (err) {

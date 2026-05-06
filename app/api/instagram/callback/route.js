@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { exchangeCodeForToken, getInstagramAccount } from '@/lib/instagram';
 import { getServerSupabaseClient } from '@/lib/supabase-server';
@@ -30,7 +31,7 @@ export async function GET(request) {
   const code = searchParams.get('code');
   const error = searchParams.get('error');
 
-  // Handle OAuth errors
+  // Handle OAuth errors from Meta
   if (error) {
     const errorDescription = searchParams.get('error_description') || 'Authorization failed';
     return NextResponse.redirect(
@@ -41,6 +42,18 @@ export async function GET(request) {
   if (!code) {
     return NextResponse.redirect(
       buildRedirect(request, '/?instagram_error=No authorization code received')
+    );
+  }
+
+  // Validate CSRF state parameter
+  const returnedState = searchParams.get('state');
+  const cookieStore = await cookies();
+  const storedState = cookieStore.get('oauth_state')?.value;
+  cookieStore.delete('oauth_state');
+
+  if (!storedState || !returnedState || returnedState !== storedState) {
+    return NextResponse.redirect(
+      buildRedirect(request, '/?instagram_error=OAuth state mismatch — please try connecting again')
     );
   }
 
@@ -75,7 +88,6 @@ export async function GET(request) {
       throw new Error(dbError.message);
     }
 
-    // Redirect back to app with success
     return NextResponse.redirect(
       buildRedirect(request, `/?instagram_connected=${encodeURIComponent(account.username)}`)
     );
