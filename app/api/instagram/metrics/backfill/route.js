@@ -1,9 +1,6 @@
+import { delay } from '@/lib/utils';
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getMediaInsights, getMediaDetails, getTokenExpiryDate } from '@/lib/instagram';
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 function nullIfMissing(value) {
   return value !== undefined && value !== null ? value : null;

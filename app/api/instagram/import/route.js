@@ -1,11 +1,6 @@
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getRecentMedia, getTokenExpiryDate } from '@/lib/instagram';
 
-// Delay helper
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 /**
  * Persist a refreshed access token to the instagram_accounts table.
  * Called whenever graphFetchWithRefresh returns a newToken.

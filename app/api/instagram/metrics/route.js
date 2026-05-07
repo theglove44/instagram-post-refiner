@@ -1,10 +1,6 @@
+import { delay } from '@/lib/utils';
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getMediaInsights, getMediaDetails, getTokenExpiryDate } from '@/lib/instagram';
-
-// Delay helper for rate limiting Meta API calls (~200 calls/user/hour)
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 // Helper to convert undefined/missing to null (never 0)
 function nullIfMissing(value) {

@@ -1,10 +1,6 @@
+import { delay } from '@/lib/utils';
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getRecentMedia, getMediaInsights } from '@/lib/instagram';
-
-// Delay helper for rate limiting Meta API calls
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 // Process posts in batches to avoid hitting Meta's ~200 calls/user/hour rate limit
 const BATCH_SIZE = 3;
