@@ -87,10 +87,7 @@ export async function POST(request) {
         continue;
       }
 
-      // Fire-and-forget async processing
-      processWebhookEvent(supabase, eventType, change.value || {}, igUserId, eventRow.id).catch(err => {
-        console.error(`Webhook processing error (${eventType}):`, err);
-      });
+      await processWebhookEvent(supabase, eventType, change.value || {}, igUserId, eventRow.id);
     }
   }
 

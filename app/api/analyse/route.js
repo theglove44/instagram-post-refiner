@@ -620,7 +620,8 @@ export async function GET() {
       .from('posts')
       .select('*')
       .order('published_at', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(5000);
 
     if (error) {
       throw new Error(error.message);
