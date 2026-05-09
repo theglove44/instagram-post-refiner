@@ -17,6 +17,34 @@ export async function POST(request) {
       );
     }
 
+    if (!/^\d+$/.test(scheduledPostId)) {
+      return Response.json(
+        { success: false, error: 'Invalid scheduledPostId' },
+        { status: 400 }
+      );
+    }
+
+    // Verify the scheduled post exists and is in a writable state
+    const { data: post, error: postError } = await supabase
+      .from('scheduled_posts')
+      .select('id, status')
+      .eq('id', scheduledPostId)
+      .single();
+
+    if (postError || !post) {
+      return Response.json(
+        { success: false, error: 'Scheduled post not found' },
+        { status: 404 }
+      );
+    }
+
+    if (['published', 'cancelled'].includes(post.status)) {
+      return Response.json(
+        { success: false, error: 'Cannot upload to a published or cancelled post' },
+        { status: 400 }
+      );
+    }
+
     const validation = validateMediaFile(file);
     if (!validation.valid) {
       return Response.json(

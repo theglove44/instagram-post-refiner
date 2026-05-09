@@ -61,10 +61,24 @@ export async function POST(request) {
 
   const supabase = getServerSupabaseClient();
 
+  // Fetch the connected account once — we only process events for our own account
+  const { data: connectedAccount } = await supabase
+    .from('instagram_accounts')
+    .select('instagram_user_id')
+    .limit(1)
+    .maybeSingle();
+
   // Store raw event and kick off async processing before returning
   const entries = body.entry || [];
   for (const entry of entries) {
     const igUserId = entry.id || null;
+
+    // Reject events for any account other than the connected one
+    if (!connectedAccount || igUserId !== connectedAccount.instagram_user_id) {
+      console.warn('Webhook event for unknown account, skipping:', igUserId);
+      continue;
+    }
+
     const changes = entry.changes || [];
 
     for (const change of changes) {
