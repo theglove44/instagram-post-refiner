@@ -28,14 +28,7 @@ CREATE INDEX comments_username_idx ON comments(username);
 
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read comments" ON comments
-  FOR SELECT USING (true);
-CREATE POLICY "Allow public insert comments" ON comments
-  FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public update comments" ON comments
-  FOR UPDATE USING (true);
-CREATE POLICY "Allow public delete comments" ON comments
-  FOR DELETE USING (true);
+CREATE POLICY "Deny anon access comments" ON comments FOR ALL USING (false);
 
 -- Mentions and tags from other accounts
 CREATE TABLE mentions (
@@ -60,14 +53,7 @@ CREATE INDEX mentions_reply_status_idx ON mentions(reply_status);
 
 ALTER TABLE mentions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read mentions" ON mentions
-  FOR SELECT USING (true);
-CREATE POLICY "Allow public insert mentions" ON mentions
-  FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public update mentions" ON mentions
-  FOR UPDATE USING (true);
-CREATE POLICY "Allow public delete mentions" ON mentions
-  FOR DELETE USING (true);
+CREATE POLICY "Deny anon access mentions" ON mentions FOR ALL USING (false);
 
 -- Raw webhook event log for debugging and reprocessing
 CREATE TABLE webhook_events (
@@ -87,12 +73,7 @@ CREATE INDEX webhook_events_received_idx ON webhook_events(received_at DESC);
 
 ALTER TABLE webhook_events ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read webhook_events" ON webhook_events
-  FOR SELECT USING (true);
-CREATE POLICY "Allow public insert webhook_events" ON webhook_events
-  FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public update webhook_events" ON webhook_events
-  FOR UPDATE USING (true);
+CREATE POLICY "Deny anon access webhook_events" ON webhook_events FOR ALL USING (false);
 
 -- Denormalized counters for sidebar badge (avoids COUNT queries on every page nav)
 CREATE TABLE engagement_counts (

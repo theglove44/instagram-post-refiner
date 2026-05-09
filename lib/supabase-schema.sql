@@ -30,15 +30,7 @@ CREATE INDEX posts_instagram_media_id_idx ON posts(instagram_media_id);
 -- Enable Row Level Security
 ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
 
--- Create policy to allow public read/write (adjust as needed for your use case)
-CREATE POLICY "Allow public read" ON posts
-  FOR SELECT USING (true);
-
-CREATE POLICY "Allow public insert" ON posts
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow public update" ON posts
-  FOR UPDATE USING (true);
+CREATE POLICY "Deny anon access posts" ON posts FOR ALL USING (false);
 
 -- =====================================================
 -- Instagram Integration Tables (v2.0)
@@ -113,14 +105,7 @@ CREATE INDEX sync_status_completed_idx ON sync_status(completed_at DESC);
 
 ALTER TABLE sync_status ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read sync_status" ON sync_status
-  FOR SELECT USING (true);
-
-CREATE POLICY "Allow public insert sync_status" ON sync_status
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow public update sync_status" ON sync_status
-  FOR UPDATE USING (true);
+CREATE POLICY "Deny anon access sync_status" ON sync_status FOR ALL USING (false);
 
 -- Create index for metrics lookups
 CREATE INDEX post_metrics_post_id_idx ON post_metrics(post_id);
@@ -129,11 +114,7 @@ CREATE INDEX post_metrics_fetched_at_idx ON post_metrics(fetched_at DESC);
 -- Enable RLS on post_metrics
 ALTER TABLE post_metrics ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read post_metrics" ON post_metrics
-  FOR SELECT USING (true);
-
-CREATE POLICY "Allow public insert post_metrics" ON post_metrics
-  FOR INSERT WITH CHECK (true);
+CREATE POLICY "Deny anon access post_metrics" ON post_metrics FOR ALL USING (false);
 
 -- =====================================================
 -- Migration for existing posts table (run if upgrading)
@@ -168,12 +149,7 @@ CREATE TABLE account_insights_cache (
 
 ALTER TABLE account_insights_cache ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read account_insights_cache" ON account_insights_cache
-  FOR SELECT USING (true);
-CREATE POLICY "Allow public insert account_insights_cache" ON account_insights_cache
-  FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public update account_insights_cache" ON account_insights_cache
-  FOR UPDATE USING (true);
+CREATE POLICY "Deny anon access account_insights_cache" ON account_insights_cache FOR ALL USING (false);
 
 -- =====================================================
 -- Migration: add account_insights_cache table
@@ -212,14 +188,7 @@ CREATE INDEX account_snapshots_date_idx ON account_snapshots(snapshot_date DESC)
 
 ALTER TABLE account_snapshots ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read account_snapshots" ON account_snapshots
-  FOR SELECT USING (true);
-
-CREATE POLICY "Allow public insert account_snapshots" ON account_snapshots
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow public update account_snapshots" ON account_snapshots
-  FOR UPDATE USING (true);
+CREATE POLICY "Deny anon access account_snapshots" ON account_snapshots FOR ALL USING (false);
 
 -- =====================================================
 -- Migration: add account_snapshots table
@@ -265,17 +234,7 @@ CREATE INDEX match_suggestions_post_id_idx ON match_suggestions(post_id);
 
 ALTER TABLE match_suggestions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read match_suggestions" ON match_suggestions
-  FOR SELECT USING (true);
-
-CREATE POLICY "Allow public insert match_suggestions" ON match_suggestions
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow public update match_suggestions" ON match_suggestions
-  FOR UPDATE USING (true);
-
-CREATE POLICY "Allow public delete match_suggestions" ON match_suggestions
-  FOR DELETE USING (true);
+CREATE POLICY "Deny anon access match_suggestions" ON match_suggestions FOR ALL USING (false);
 
 -- =====================================================
 -- Migration: add match_suggestions table
@@ -322,17 +281,7 @@ CREATE INDEX hashtag_library_category_idx ON hashtag_library(category);
 
 ALTER TABLE hashtag_library ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read hashtag_library" ON hashtag_library
-  FOR SELECT USING (true);
-
-CREATE POLICY "Allow public insert hashtag_library" ON hashtag_library
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow public update hashtag_library" ON hashtag_library
-  FOR UPDATE USING (true);
-
-CREATE POLICY "Allow public delete hashtag_library" ON hashtag_library
-  FOR DELETE USING (true);
+CREATE POLICY "Deny anon access hashtag_library" ON hashtag_library FOR ALL USING (false);
 
 -- =====================================================
 -- Migration: add hashtag_library table
@@ -377,14 +326,7 @@ CREATE INDEX story_metrics_posted_idx ON story_metrics(posted_at DESC);
 
 ALTER TABLE story_metrics ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read story_metrics" ON story_metrics
-  FOR SELECT USING (true);
-
-CREATE POLICY "Allow public insert story_metrics" ON story_metrics
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow public update story_metrics" ON story_metrics
-  FOR UPDATE USING (true);
+CREATE POLICY "Deny anon access story_metrics" ON story_metrics FOR ALL USING (false);
 
 -- =====================================================
 -- Migration: add story_metrics table

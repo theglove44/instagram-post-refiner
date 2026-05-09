@@ -37,17 +37,7 @@ CREATE INDEX scheduled_posts_ig_media_id_idx ON scheduled_posts(ig_media_id);
 
 ALTER TABLE scheduled_posts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read scheduled_posts" ON scheduled_posts
-  FOR SELECT USING (true);
-
-CREATE POLICY "Allow public insert scheduled_posts" ON scheduled_posts
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow public update scheduled_posts" ON scheduled_posts
-  FOR UPDATE USING (true);
-
-CREATE POLICY "Allow public delete scheduled_posts" ON scheduled_posts
-  FOR DELETE USING (true);
+CREATE POLICY "Deny anon access scheduled_posts" ON scheduled_posts FOR ALL USING (false);
 
 -- Track uploaded media files and their public URLs
 CREATE TABLE media_uploads (
@@ -70,17 +60,7 @@ CREATE INDEX media_uploads_post_idx ON media_uploads(scheduled_post_id);
 
 ALTER TABLE media_uploads ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read media_uploads" ON media_uploads
-  FOR SELECT USING (true);
-
-CREATE POLICY "Allow public insert media_uploads" ON media_uploads
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow public update media_uploads" ON media_uploads
-  FOR UPDATE USING (true);
-
-CREATE POLICY "Allow public delete media_uploads" ON media_uploads
-  FOR DELETE USING (true);
+CREATE POLICY "Deny anon access media_uploads" ON media_uploads FOR ALL USING (false);
 
 -- Audit trail for publish attempts (debugging + history UI)
 CREATE TABLE publishing_log (
@@ -96,11 +76,7 @@ CREATE INDEX publishing_log_created_idx ON publishing_log(created_at DESC);
 
 ALTER TABLE publishing_log ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read publishing_log" ON publishing_log
-  FOR SELECT USING (true);
-
-CREATE POLICY "Allow public insert publishing_log" ON publishing_log
-  FOR INSERT WITH CHECK (true);
+CREATE POLICY "Deny anon access publishing_log" ON publishing_log FOR ALL USING (false);
 
 -- Saved caption templates for reuse
 CREATE TABLE caption_templates (
@@ -115,17 +91,7 @@ CREATE TABLE caption_templates (
 
 ALTER TABLE caption_templates ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read caption_templates" ON caption_templates
-  FOR SELECT USING (true);
-
-CREATE POLICY "Allow public insert caption_templates" ON caption_templates
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow public update caption_templates" ON caption_templates
-  FOR UPDATE USING (true);
-
-CREATE POLICY "Allow public delete caption_templates" ON caption_templates
-  FOR DELETE USING (true);
+CREATE POLICY "Deny anon access caption_templates" ON caption_templates FOR ALL USING (false);
 
 -- =====================================================
 -- Migration versions (run these if tables already exist)
