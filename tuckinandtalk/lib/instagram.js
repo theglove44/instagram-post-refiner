@@ -370,8 +370,31 @@ export async function getPostInsights(accessToken, mediaId, mediaProductType) {
     return { insights: null, newToken: lastToken, expiresIn: lastExpiry };
   }
 
-  // follows, profile_visits, and per-post follow_type breakdown are not
-  // available at media level under Standard Access / Development mode.
+  // Engagement actions (profile_visits, follows). Available for feed posts but
+  // Meta rejects them for some media types — request separately and ignore
+  // failures so the columns stay null rather than killing the whole sync.
+  try {
+    const tok = lastToken || accessToken;
+    const url = `${GRAPH_BASE}/${mediaId}/insights?metric=profile_visits,follows`;
+    const { data, newToken, expiresIn } = await graphFetchWithRefresh(url, tok);
+    if (newToken) { lastToken = newToken; lastExpiry = expiresIn; }
+    if (data.error) {
+      console.warn(`Action metrics unavailable for ${mediaId}: ${data.error.message}`);
+    } else {
+      (data.data || []).forEach((m) => {
+        insights[m.name] = m.values?.[0]?.value ?? m.total_value?.value ?? m.value ?? 0;
+      });
+    }
+  } catch (err) {
+    console.warn(`Action metrics fetch error for ${mediaId}: ${err.message}`);
+  }
+
+  // Note: reach split by follow_type is NOT available at the media level —
+  // Meta returns "(#100) Incompatible breakdowns (follow_type) for metric
+  // (reach)". follow_type reach only works at the account level (see the
+  // weekly snapshot). So reach_follower / reach_non_follower stay null
+  // per-post; non-follower amplification lives on the Dashboard instead.
+
   return { insights, newToken: lastToken, expiresIn: lastExpiry };
 }
 

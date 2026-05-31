@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import SkipRateBadge from '../../components/SkipRateBadge.js';
-import { formatNumber, formatPercent, computeNonFollowerRatio, formatDate } from '../../../lib/utils.js';
+import { formatNumber, formatDate } from '../../../lib/utils.js';
 
 const SORT_OPTIONS = [
   { key: 'published_at', label: 'Most Recent', desc: true },
   { key: 'reach', label: 'Reach', desc: true },
   { key: 'saves', label: 'Saves', desc: true },
-  { key: 'non_follower_ratio', label: 'Non-Follower %', desc: true },
   { key: 'follows', label: 'Follows', desc: true },
+  { key: 'profile_visits', label: 'Profile Visits', desc: true },
   { key: 'reels_skip_rate', label: 'Skip Rate (worst)', desc: true },
 ];
 
@@ -61,7 +61,6 @@ export default function PostsPage() {
   // Enrich with computed fields
   const enriched = posts.map((p) => ({
     ...p,
-    non_follower_ratio: computeNonFollowerRatio(p.reach_non_follower, p.reach_follower),
     is_reel: p.media_product_type === 'REELS' || p.media_product_type === 'REEL',
   }));
 
@@ -74,9 +73,6 @@ export default function PostsPage() {
 
   // Sort
   const sorted = [...filtered].sort((a, b) => {
-    if (sortKey === 'non_follower_ratio') {
-      return (b.non_follower_ratio ?? -1) - (a.non_follower_ratio ?? -1);
-    }
     if (sortKey === 'reels_skip_rate') {
       // Sort reels with data first (worst skip rate first), non-reels last
       if (a.reels_skip_rate === null && b.reels_skip_rate === null) return 0;
@@ -162,10 +158,6 @@ export default function PostsPage() {
 }
 
 function PostCard({ post }) {
-  const nonFollowerPct = post.non_follower_ratio !== null
-    ? formatPercent(post.non_follower_ratio)
-    : '—';
-
   const typeLabel = post.is_reel ? 'REEL' : post.media_type === 'CAROUSEL_ALBUM' ? 'CAROUSEL' : 'POST';
 
   return (
@@ -186,10 +178,6 @@ function PostCard({ post }) {
         <div className="post-metric">
           <span className="post-metric-value">{formatNumber(post.reach)}</span>
           <span className="post-metric-label">Reach</span>
-        </div>
-        <div className="post-metric">
-          <span className="post-metric-value" style={{ color: 'var(--accent-terra)' }}>{nonFollowerPct}</span>
-          <span className="post-metric-label">Non-Follower</span>
         </div>
         <div className="post-metric">
           <span className="post-metric-value" style={{ color: 'var(--accent-mustard)' }}>{formatNumber(post.saves)}</span>
