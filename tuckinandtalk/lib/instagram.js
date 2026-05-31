@@ -477,9 +477,13 @@ export async function getHashtagTopMedia(accessToken, hashtagId, igUserId) {
  */
 export async function getBusinessDiscovery(accessToken, igUserId, targetHandle) {
   const mediaFields = 'id,like_count,comments_count,media_type,timestamp';
+  // The target handle must be passed via .username(HANDLE); the metrics follow
+  // as a field selector in braces. The previous .fields(...) form omitted the
+  // handle, so Meta returned "(#100) The parameter username is required."
   const fields =
-    `business_discovery.fields(username,followers_count,media_count,` +
-    `media.limit(20){${mediaFields}})`;
+    `business_discovery.username(${targetHandle})` +
+    `{username,followers_count,media_count,` +
+    `media.limit(20){${mediaFields}}}`;
 
   const url = `${GRAPH_BASE}/${igUserId}?fields=${encodeURIComponent(fields)}`;
   const { data, newToken, expiresIn } = await graphFetchWithRefresh(url, accessToken);
