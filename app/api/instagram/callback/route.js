@@ -5,25 +5,20 @@ import { getServerSupabaseClient } from '@/lib/supabase-server';
 
 /**
  * Build a redirect URL using the public origin.
- * Behind a reverse proxy (Cloudflare Tunnel), request.url points to
- * localhost, so we derive the origin from headers or INSTAGRAM_REDIRECT_URI.
+ * The origin is derived ONLY from the server-controlled INSTAGRAM_REDIRECT_URI.
+ * Request headers (x-forwarded-host/-proto) are deliberately NOT trusted — they
+ * are client-controllable and were previously an open-redirect vector.
  */
 function buildRedirect(request, path) {
-  const forwardedHost = request.headers.get('x-forwarded-host');
-  const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
-
-  if (forwardedHost) {
-    return new URL(path, `${forwardedProto}://${forwardedHost}`);
-  }
-
-  // Fallback: derive from the configured redirect URI
   const redirectUri = process.env.INSTAGRAM_REDIRECT_URI;
   if (redirectUri) {
     const base = new URL(redirectUri);
     return new URL(path, base.origin);
   }
 
-  return new URL(path, request.url);
+  // Last-resort fallback (only when INSTAGRAM_REDIRECT_URI is unset): use the
+  // request's own origin. This is same-origin and cannot point at an attacker host.
+  return new URL(path, new URL(request.url).origin);
 }
 
 export async function GET(request) {

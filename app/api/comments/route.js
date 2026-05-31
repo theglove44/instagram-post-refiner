@@ -39,7 +39,11 @@ export async function GET(request) {
     }
 
     if (search) {
-      query = query.or(`text.ilike.%${search}%,username.ilike.%${search}%`);
+      // Neutralize PostgREST filter grammar before interpolating into .or().
+      // .or() parses its argument as a filter expression (not a value), so
+      // reserved chars in raw user input would inject arbitrary filter logic.
+      const safe = search.replace(/[,()*."':\\]/g, ' ');
+      query = query.or(`text.ilike.%${safe}%,username.ilike.%${safe}%`);
     }
 
     // Order and paginate
