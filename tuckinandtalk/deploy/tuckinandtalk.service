@@ -1,0 +1,18 @@
+[Unit]
+Description=Tuckin and Talk Analytics (Next.js)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/tuckinandtalk
+ExecStart=/usr/bin/npm run start
+Environment=NODE_ENV=production
+Environment=PORT=3001
+EnvironmentFile=/opt/tuckinandtalk/.env.local
+Restart=always
+RestartSec=5
+User=www-data
+
+[Install]
+WantedBy=multi-user.target

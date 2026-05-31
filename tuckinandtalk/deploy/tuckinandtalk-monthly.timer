@@ -1,0 +1,9 @@
+[Unit]
+Description=Run Tuckin and Talk monthly benchmark on the 1st at 04:00 UTC
+
+[Timer]
+OnCalendar=*-*-01 04:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

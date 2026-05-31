@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Tuckin and Talk nightly sync at 03:30 UTC
+
+[Timer]
+# 30 min after the parent logger's 03:00 sync to avoid Meta API contention
+OnCalendar=*-*-* 03:30:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

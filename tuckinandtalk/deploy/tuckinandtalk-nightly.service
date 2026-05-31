@@ -1,0 +1,14 @@
+[Unit]
+Description=Tuckin and Talk nightly sync (post + weekly insights, token refresh)
+After=network-online.target tuckinandtalk.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Calls the nightly cron endpoint which fans out to the daily sync tasks
+ExecStart=/usr/bin/curl -fsS -m 600 -H "x-cron-secret: ${TAT_CRON_SECRET}" http://localhost:3001/api/cron/nightly
+EnvironmentFile=/opt/tuckinandtalk/.env.cron
+User=www-data
+
+[Install]
+WantedBy=multi-user.target
