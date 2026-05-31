@@ -106,9 +106,11 @@ export async function POST() {
           recent_posts: discovery.recentPosts,
         };
 
+        // Upsert on (username, snapshot_date) so reruns within a day update
+        // the existing row instead of inserting duplicates.
         const { error: insertError } = await supabase
           .from('tat_competitor_snapshots')
-          .insert(row);
+          .upsert(row, { onConflict: 'username,snapshot_date' });
 
         if (insertError) throw new Error(insertError.message);
 

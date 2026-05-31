@@ -119,7 +119,10 @@ CREATE TABLE IF NOT EXISTS tat_competitor_snapshots (
   media_count integer,
   median_engagement_rate numeric(8,4),
   recent_posts jsonb,
-  created_at timestamptz DEFAULT now()
+  created_at timestamptz DEFAULT now(),
+  -- One row per competitor per day; the snapshot endpoint upserts on this.
+  CONSTRAINT tat_competitor_snapshots_username_snapshot_date_key
+    UNIQUE (username, snapshot_date)
 );
 
 ALTER TABLE tat_competitor_snapshots ENABLE ROW LEVEL SECURITY;
