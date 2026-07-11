@@ -66,7 +66,7 @@ CREATE POLICY "Deny anon access media_uploads" ON media_uploads FOR ALL USING (f
 -- Audit trail for publish attempts (debugging + history UI)
 CREATE TABLE publishing_log (
   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  scheduled_post_id BIGINT REFERENCES scheduled_posts(id) ON DELETE CASCADE,
+  scheduled_post_id BIGINT REFERENCES scheduled_posts(id) ON DELETE SET NULL,
   action TEXT NOT NULL,                      -- container_created, status_check, published, failed, retry
   details JSONB,                             -- API responses, error details
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
@@ -103,3 +103,33 @@ CREATE POLICY "Deny anon access caption_templates" ON caption_templates FOR ALL 
 -- CREATE TABLE IF NOT EXISTS caption_templates ( ... );
 -- ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS source_post_id BIGINT REFERENCES posts(id);
 -- CREATE INDEX IF NOT EXISTS scheduled_posts_source_post_id_idx ON scheduled_posts(source_post_id);
+
+-- Atomic idempotency guard used by publish-now and cron. One concurrent caller
+-- can change a claimable row to publishing; all others receive zero rows.
+CREATE OR REPLACE FUNCTION claim_scheduled_post_for_publishing(
+  p_post_id BIGINT,
+  p_allowed_statuses TEXT[],
+  p_require_due BOOLEAN DEFAULT FALSE
+)
+RETURNS SETOF scheduled_posts
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  UPDATE scheduled_posts
+  SET status = 'publishing', updated_at = now()
+  WHERE id = p_post_id
+    AND status = ANY(p_allowed_statuses)
+    AND (NOT p_require_due OR scheduled_at <= now())
+  RETURNING *;
+$$;
+
+REVOKE ALL ON FUNCTION claim_scheduled_post_for_publishing(BIGINT, TEXT[], BOOLEAN) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION claim_scheduled_post_for_publishing(BIGINT, TEXT[], BOOLEAN) TO service_role;
+
+-- Existing databases: preserve audit rows when a deletable draft/failed row is removed.
+ALTER TABLE publishing_log
+  DROP CONSTRAINT IF EXISTS publishing_log_scheduled_post_id_fkey;
+ALTER TABLE publishing_log
+  ADD CONSTRAINT publishing_log_scheduled_post_id_fkey
+  FOREIGN KEY (scheduled_post_id) REFERENCES scheduled_posts(id) ON DELETE SET NULL;

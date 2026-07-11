@@ -1,5 +1,9 @@
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { executePublish } from '@/lib/publishing';
+import {
+  PUBLISH_NOW_CLAIMABLE_STATUSES,
+  claimPostForPublishing,
+} from '@/lib/publish-state';
 
 export async function POST(request) {
   try {
@@ -29,8 +33,7 @@ export async function POST(request) {
       );
     }
 
-    const allowedStatuses = ['draft', 'scheduled', 'failed'];
-    if (!allowedStatuses.includes(post.status)) {
+    if (!PUBLISH_NOW_CLAIMABLE_STATUSES.includes(post.status)) {
       return Response.json(
         { success: false, error: `Cannot publish a post with status "${post.status}". Must be "draft", "scheduled", or "failed".` },
         { status: 400 }
@@ -54,19 +57,6 @@ export async function POST(request) {
       );
     }
 
-    // Update status to publishing
-    const { error: updateError } = await supabase
-      .from('scheduled_posts')
-      .update({
-        status: 'publishing',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id);
-
-    if (updateError) {
-      throw new Error(updateError.message);
-    }
-
     // Get Instagram account
     const { data: accounts, error: accountError } = await supabase
       .from('instagram_accounts')
@@ -74,12 +64,6 @@ export async function POST(request) {
       .limit(1);
 
     if (accountError || !accounts || accounts.length === 0) {
-      // Revert status since we can't publish
-      await supabase
-        .from('scheduled_posts')
-        .update({ status: post.status, updated_at: new Date().toISOString() })
-        .eq('id', id);
-
       return Response.json(
         { success: false, error: 'No Instagram account connected' },
         { status: 400 }
@@ -88,11 +72,32 @@ export async function POST(request) {
 
     const account = accounts[0];
 
+    const claimedPost = await claimPostForPublishing(
+      supabase,
+      id,
+      PUBLISH_NOW_CLAIMABLE_STATUSES
+    );
+
+    if (!claimedPost) {
+      return Response.json(
+        { success: false, error: 'Post is no longer claimable; another publisher may already be processing it' },
+        { status: 409 }
+      );
+    }
+
     // Kick off publish in the background (do NOT await)
-    const publishPromise = executePublish(account.access_token, account.instagram_user_id, post, mediaUploads, { dryRun: body.dryRun || false });
+    const publishPromise = executePublish(account.access_token, account.instagram_user_id, claimedPost, mediaUploads, { dryRun: body.dryRun || false });
     publishPromise.catch(async (err) => {
       const supabase = getServerSupabaseClient();
-      const newRetryCount = (post.retry_count || 0) + 1;
+      if (err.publishSucceeded) {
+        await supabase.from('scheduled_posts').update({
+          publish_error: err.message,
+          updated_at: new Date().toISOString(),
+        }).eq('id', claimedPost.id).eq('status', 'publishing');
+        return;
+      }
+
+      const newRetryCount = (claimedPost.retry_count || 0) + 1;
       if (newRetryCount < 3) {
         await supabase.from('scheduled_posts').update({
           status: 'scheduled',
@@ -100,18 +105,18 @@ export async function POST(request) {
           retry_count: newRetryCount,
           publish_error: err.message,
           updated_at: new Date().toISOString(),
-        }).eq('id', post.id);
+        }).eq('id', claimedPost.id).eq('status', 'publishing');
       } else {
         await supabase.from('scheduled_posts').update({
           status: 'failed',
           publish_error: err.message,
           retry_count: newRetryCount,
           updated_at: new Date().toISOString(),
-        }).eq('id', post.id);
+        }).eq('id', claimedPost.id).eq('status', 'publishing');
       }
     });
 
-    return Response.json({ success: true, status: 'publishing', id: post.id });
+    return Response.json({ success: true, status: 'publishing', id: claimedPost.id });
   } catch (error) {
     console.error('Publish now API error:', error);
     return Response.json(

@@ -1,6 +1,7 @@
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { deleteAllPostMedia } from '@/lib/media';
 import { resolvePostIdentity } from '@/lib/post-identity';
+import { HARD_DELETABLE_STATUSES, canHardDelete } from '@/lib/publish-state';
 
 export async function POST(request) {
   try {
@@ -162,21 +163,54 @@ export async function DELETE(request) {
       );
     }
 
-    // Delete media files from storage first
-    try {
-      await deleteAllPostMedia(id);
-    } catch (storageError) {
-      // Log but don't block deletion if storage cleanup fails
-      console.warn('Storage cleanup warning:', storageError.message);
+    const { data: existing, error: fetchError } = await supabase
+      .from('scheduled_posts')
+      .select('id, status')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !existing) {
+      return Response.json(
+        { success: false, error: 'Draft not found' },
+        { status: 404 }
+      );
     }
 
-    const { error } = await supabase
+    if (!canHardDelete(existing.status)) {
+      return Response.json(
+        {
+          success: false,
+          error: `Cannot delete a post with status "${existing.status}". Only ${HARD_DELETABLE_STATUSES.join(' or ')} posts can be deleted.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { data: deleted, error } = await supabase
       .from('scheduled_posts')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .in('status', HARD_DELETABLE_STATUSES)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       throw new Error(error.message);
+    }
+
+    if (!deleted) {
+      return Response.json(
+        { success: false, error: 'Post state changed before deletion; refresh and try again' },
+        { status: 409 }
+      );
+    }
+
+    // Database row is gone. Storage cleanup is best-effort and cannot affect
+    // publishing history because publishing_log uses ON DELETE SET NULL.
+    try {
+      await deleteAllPostMedia(id);
+    } catch (storageError) {
+      console.warn('Storage cleanup warning:', storageError.message);
     }
 
     return Response.json({ success: true });

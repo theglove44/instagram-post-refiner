@@ -1,4 +1,5 @@
 import { getServerSupabaseClient } from '@/lib/supabase-server';
+import { canCancel } from '@/lib/publish-state';
 
 export async function POST(request) {
   try {
@@ -28,23 +29,33 @@ export async function POST(request) {
       );
     }
 
-    if (post.status !== 'scheduled') {
+    if (!canCancel(post.status)) {
       return Response.json(
         { success: false, error: `Cannot cancel a post with status "${post.status}". Must be "scheduled".` },
         { status: 400 }
       );
     }
 
-    const { error: updateError } = await supabase
+    const { data: cancelled, error: updateError } = await supabase
       .from('scheduled_posts')
       .update({
         status: 'cancelled',
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('status', 'scheduled')
+      .select('id')
+      .maybeSingle();
 
     if (updateError) {
       throw new Error(updateError.message);
+    }
+
+    if (!cancelled) {
+      return Response.json(
+        { success: false, error: 'Post state changed before cancellation; refresh and try again' },
+        { status: 409 }
+      );
     }
 
     return Response.json({ success: true });

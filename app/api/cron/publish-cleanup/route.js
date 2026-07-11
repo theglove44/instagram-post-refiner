@@ -3,6 +3,7 @@
  * Daily cleanup for the publishing pipeline.
  * 1. Fails posts stuck in 'publishing' for >24 hours
  * 2. Deletes orphaned media uploads (no scheduled_post_id, older than 24h)
+ * 3. Removes old cancelled-post media while preserving post and audit records
  *
  * Called via systemd timer alongside the nightly cron.
  */
@@ -84,7 +85,7 @@ export async function GET() {
 
     if (cancelError) throw new Error(cancelError.message);
 
-    let cancelledCleaned = 0;
+    let cancelledMediaCleaned = 0;
     if (cancelledPosts && cancelledPosts.length > 0) {
       for (const post of cancelledPosts) {
         const { data: media } = await supabase
@@ -95,16 +96,14 @@ export async function GET() {
         if (media) {
           for (const m of media) {
             try { await deleteFromStorage(m.storage_path); } catch { /* noop */ }
+            await supabase.from('media_uploads').delete().eq('id', m.id);
+            cancelledMediaCleaned++;
           }
         }
-
-        // Delete the post (cascades to media_uploads and publishing_log)
-        await supabase.from('scheduled_posts').delete().eq('id', post.id);
-        cancelledCleaned++;
       }
     }
 
-    results.cancelledPostsCleaned = cancelledCleaned;
+    results.cancelledMediaCleaned = cancelledMediaCleaned;
 
     console.log('Publish cleanup completed:', JSON.stringify(results));
     return Response.json({ success: true, results });

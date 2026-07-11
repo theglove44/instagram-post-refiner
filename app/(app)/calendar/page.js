@@ -112,12 +112,16 @@ export default function CalendarPage() {
 
   async function handleCancelPost(postId) {
     try {
-      await fetch(`/api/publish/draft?id=${postId}`, { method: 'DELETE' });
-      fetchPosts(currentDate);
-      if (selectedDay) {
-        const remaining = posts.filter(p => p.id !== postId);
-        setPosts(remaining);
+      const res = await fetch('/api/publish/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: postId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to cancel post');
       }
+      fetchPosts(currentDate);
     } catch (err) {
       console.error('Failed to cancel post:', err);
     }

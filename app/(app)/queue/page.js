@@ -167,7 +167,15 @@ export default function QueuePage() {
 
   async function handleCancel(postId) {
     try {
-      await fetch(`/api/publish/draft?id=${postId}`, { method: 'DELETE' });
+      const res = await fetch('/api/publish/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: postId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to cancel post');
+      }
       await fetchAll();
     } catch (err) {
       console.error('Failed to cancel post:', err);

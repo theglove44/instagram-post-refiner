@@ -9,6 +9,10 @@
 
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { executePublish } from '@/lib/publishing';
+import {
+  CRON_CLAIMABLE_STATUSES,
+  claimPostForPublishing,
+} from '@/lib/publish-state';
 
 const MAX_POSTS_PER_RUN = 5;
 
@@ -46,18 +50,29 @@ export async function GET() {
 
     // Process each due post
     for (const post of duePosts) {
+      let claimedPost = null;
       try {
-        // Set status to publishing
-        await supabase
-          .from('scheduled_posts')
-          .update({ status: 'publishing', updated_at: new Date().toISOString() })
-          .eq('id', post.id);
+        claimedPost = await claimPostForPublishing(
+          supabase,
+          post.id,
+          CRON_CLAIMABLE_STATUSES,
+          { requireDue: true }
+        );
+
+        if (!claimedPost) {
+          results.push({
+            id: post.id,
+            status: 'skipped',
+            reason: 'Post already claimed or state changed',
+          });
+          continue;
+        }
 
         // Fetch media uploads
         const { data: media } = await supabase
           .from('media_uploads')
           .select('*')
-          .eq('scheduled_post_id', post.id)
+          .eq('scheduled_post_id', claimedPost.id)
           .order('sort_order', { ascending: true });
 
         if (!media || media.length === 0) {
@@ -68,8 +83,9 @@ export async function GET() {
               publish_error: 'No media files attached',
               updated_at: new Date().toISOString(),
             })
-            .eq('id', post.id);
-          results.push({ id: post.id, status: 'failed', error: 'No media files' });
+            .eq('id', claimedPost.id)
+            .eq('status', 'publishing');
+          results.push({ id: claimedPost.id, status: 'failed', error: 'No media files' });
           continue;
         }
 
@@ -77,15 +93,37 @@ export async function GET() {
         const result = await executePublish(
           account.access_token,
           account.instagram_user_id,
-          post,
+          claimedPost,
           media
         );
 
-        results.push({ id: post.id, status: 'published', mediaId: result.mediaId });
+        results.push({ id: claimedPost.id, status: 'published', mediaId: result.mediaId });
       } catch (err) {
         console.error(`Cron publish failed for post ${post.id}:`, err);
 
-        const newRetryCount = (post.retry_count || 0) + 1;
+        if (!claimedPost) {
+          results.push({ id: post.id, status: 'claim_failed', error: err.message });
+          continue;
+        }
+
+        if (err.publishSucceeded) {
+          await supabase
+            .from('scheduled_posts')
+            .update({
+              publish_error: err.message,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', claimedPost.id)
+            .eq('status', 'publishing');
+          results.push({
+            id: claimedPost.id,
+            status: 'state_save_failed',
+            error: err.message,
+          });
+          continue;
+        }
+
+        const newRetryCount = (claimedPost.retry_count || 0) + 1;
         if (newRetryCount < 3) {
           // Retry in 5 minutes
           await supabase
@@ -97,8 +135,9 @@ export async function GET() {
               publish_error: err.message,
               updated_at: new Date().toISOString(),
             })
-            .eq('id', post.id);
-          results.push({ id: post.id, status: 'retry', attempt: newRetryCount, error: err.message });
+            .eq('id', claimedPost.id)
+            .eq('status', 'publishing');
+          results.push({ id: claimedPost.id, status: 'retry', attempt: newRetryCount, error: err.message });
         } else {
           // Permanent failure
           await supabase
@@ -109,8 +148,9 @@ export async function GET() {
               retry_count: newRetryCount,
               updated_at: new Date().toISOString(),
             })
-            .eq('id', post.id);
-          results.push({ id: post.id, status: 'failed', error: err.message });
+            .eq('id', claimedPost.id)
+            .eq('status', 'publishing');
+          results.push({ id: claimedPost.id, status: 'failed', error: err.message });
         }
       }
     }
