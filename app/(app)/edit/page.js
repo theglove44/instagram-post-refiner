@@ -91,17 +91,29 @@ export default function EditPage() {
       <header className="header">
         <div className="header-main">
           <h1>Edit Post</h1>
-          <p>Paste from Claude Chat, edit to your voice, log for training</p>
+          <p>Paste an AI draft, refine it in your voice, then save what changed</p>
         </div>
       </header>
 
+      <div className="input-group editor-topic-field">
+        <label htmlFor="post-topic">Topic (optional)</label>
+        <input
+          id="post-topic"
+          type="text"
+          value={topic}
+          onChange={(e) => setTopic(e.target.value)}
+          placeholder="e.g., Selfridges Food Hall, M&S Night..."
+          disabled={isLocked}
+        />
+      </div>
+
       <div className="main-grid">
-        {/* Left Column - Original from Claude */}
+        {/* Left Column - Original AI draft */}
         <div className="card">
           <div className="card-header">
             <h2 className="card-title">
               <span className="step">1</span>
-              Original from Claude
+              AI Draft
             </h2>
             {isLocked && (
               <span className="status-badge status-locked">
@@ -110,24 +122,17 @@ export default function EditPage() {
             )}
           </div>
 
-          <div className="input-group">
-            <label>Topic (optional)</label>
-            <input
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g., Selfridges Food Hall, M&S Night..."
+          <div className="editor-field">
+            <label htmlFor="ai-draft">AI-generated draft</label>
+            <textarea
+              id="ai-draft"
+              value={original}
+              onChange={(e) => setOriginal(e.target.value)}
+              placeholder="Paste an AI-generated Instagram caption here..."
               disabled={isLocked}
+              style={isLocked ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
             />
           </div>
-
-          <textarea
-            value={original}
-            onChange={(e) => setOriginal(e.target.value)}
-            placeholder="Paste the Instagram post from Claude Chat here..."
-            disabled={isLocked}
-            style={isLocked ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
-          />
 
           {!isLocked && (
             <div className="btn-group">
@@ -147,7 +152,7 @@ export default function EditPage() {
           <div className="card-header">
             <h2 className="card-title">
               <span className="step">2</span>
-              Your Version
+              Refined Version
             </h2>
             {edited && (
               <button
@@ -160,18 +165,17 @@ export default function EditPage() {
             )}
           </div>
 
-          <div className="input-group" style={{ visibility: 'hidden', height: '72px' }}>
-            <label>Spacer</label>
-            <input type="text" disabled />
+          <div className="editor-field">
+            <label htmlFor="refined-version">Your refined caption</label>
+            <textarea
+              id="refined-version"
+              value={edited}
+              onChange={(e) => setEdited(e.target.value)}
+              placeholder={isLocked ? "Edit the caption to match your voice..." : "Start editing to lock the AI draft first..."}
+              disabled={!isLocked}
+              style={!isLocked ? { opacity: 0.4 } : {}}
+            />
           </div>
-
-          <textarea
-            value={edited}
-            onChange={(e) => setEdited(e.target.value)}
-            placeholder={isLocked ? "Edit the post here to match your voice..." : "Click 'Start Editing' first to lock the original..."}
-            disabled={!isLocked}
-            style={!isLocked ? { opacity: 0.4 } : {}}
-          />
 
           <div className="btn-group">
             <button
@@ -237,7 +241,7 @@ export default function EditPage() {
           <div className="workflow-container">
             <div className="workflow-step">
               <span className="workflow-icon">{'\uD83D\uDCAC'}</span>
-              <span className="workflow-label">Get post from<br/>Claude Chat</span>
+              <span className="workflow-label">Generate an<br/>AI draft</span>
             </div>
             <span className="workflow-arrow">{'\u2192'}</span>
             <div className="workflow-step">
@@ -252,7 +256,7 @@ export default function EditPage() {
             <span className="workflow-arrow">{'\u2192'}</span>
             <div className="workflow-step">
               <span className="workflow-icon">{'\uD83D\uDCBE'}</span>
-              <span className="workflow-label">Log for<br/>training</span>
+              <span className="workflow-label">Save changes<br/>to learn</span>
             </div>
           </div>
         </div>
@@ -260,7 +264,7 @@ export default function EditPage() {
 
       {/* Toast */}
       {toast && (
-        <div className={`toast toast-${toast.type}`}>
+        <div className={`toast toast-${toast.type}`} role={toast.type === 'error' ? 'alert' : 'status'}>
           {toast.type === 'success' ? '\u2713' : '\u2715'} {toast.message}
         </div>
       )}

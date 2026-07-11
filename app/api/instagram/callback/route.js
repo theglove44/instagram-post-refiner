@@ -30,13 +30,13 @@ export async function GET(request) {
   if (error) {
     const errorDescription = searchParams.get('error_description') || 'Authorization failed';
     return NextResponse.redirect(
-      buildRedirect(request, `/?instagram_error=${encodeURIComponent(errorDescription)}`)
+      buildRedirect(request, `/settings?instagram_error=${encodeURIComponent(errorDescription)}`)
     );
   }
 
   if (!code) {
     return NextResponse.redirect(
-      buildRedirect(request, '/?instagram_error=No authorization code received')
+      buildRedirect(request, '/settings?instagram_error=No authorization code received')
     );
   }
 
@@ -48,7 +48,7 @@ export async function GET(request) {
 
   if (!storedState || !returnedState || returnedState !== storedState) {
     return NextResponse.redirect(
-      buildRedirect(request, '/?instagram_error=OAuth state mismatch — please try connecting again')
+      buildRedirect(request, '/settings?instagram_error=OAuth state mismatch — please try connecting again')
     );
   }
 
@@ -84,13 +84,13 @@ export async function GET(request) {
     }
 
     return NextResponse.redirect(
-      buildRedirect(request, `/?instagram_connected=${encodeURIComponent(account.username)}`)
+      buildRedirect(request, `/settings?instagram_connected=${encodeURIComponent(account.username)}`)
     );
 
   } catch (error) {
     console.error('Instagram OAuth error:', error);
     return NextResponse.redirect(
-      buildRedirect(request, `/?instagram_error=${encodeURIComponent(error.message)}`)
+      buildRedirect(request, `/settings?instagram_error=${encodeURIComponent(error.message)}`)
     );
   }
 }

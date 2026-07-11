@@ -23,8 +23,8 @@
   /* Text */
   --text: #fafafa;
   --text-secondary: #b4b4b4;
-  --text-muted: #6b6b6b;
-  --text-dim: #444;
+  --text-muted: #9a9aa3;
+  --text-dim: #777780;
   
   /* Instagram gradient colors */
   --ig-pink: #e1306c;
@@ -340,6 +340,18 @@ body::before {
 .input-group input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.editor-topic-field {
+  max-width: 680px;
+}
+
+.editor-field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 /* Textarea */
@@ -1589,6 +1601,31 @@ textarea:focus-visible {
   color: var(--error);
   border-radius: var(--radius-sm);
   border-left: 3px solid var(--error);
+}
+
+.settings-feedback {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0 0 1.5rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid;
+  border-radius: var(--radius-md);
+}
+
+.settings-feedback-success {
+  background: var(--success-soft);
+  border-color: rgba(0, 210, 106, 0.4);
+  color: var(--success);
+}
+
+.settings-feedback-error {
+  background: var(--error-soft);
+  border-color: rgba(255, 71, 87, 0.4);
+  color: var(--error);
+}
+
+.settings-feedback span {
+  color: var(--text-secondary);
 }
 
 /* Performance Page Styles */
@@ -3112,6 +3149,11 @@ textarea:focus-visible {
   scrollbar-color: var(--bg-elevated) transparent;
 }
 
+.sidebar-utility-link {
+  flex-shrink: 0;
+  margin-top: 0.5rem;
+}
+
 .sidebar-nav::-webkit-scrollbar {
   width: 4px;
 }
@@ -3314,6 +3356,10 @@ textarea:focus-visible {
   background: rgba(0, 0, 0, 0.6);
   z-index: 90;
   backdrop-filter: blur(2px);
+  width: 100%;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
 }
 
 @media (max-width: 768px) {
@@ -3354,5 +3400,51 @@ textarea:focus-visible {
   .main-content .container {
     padding-left: 1rem;
     padding-right: 1rem;
+  }
+}
+
+/* Shared route states */
+.route-state {
+  min-height: 50vh;
+  display: grid;
+  place-items: center;
+}
+
+.route-state-card {
+  width: min(100%, 520px);
+  text-align: center;
+}
+
+.route-state-card h1 {
+  margin-bottom: 0.5rem;
+}
+
+.route-state-card p {
+  margin-bottom: 1.25rem;
+  color: var(--text-muted);
+}
+
+.route-loading-label {
+  margin-top: 1rem;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .workflow-step:hover,
+  .correlation-card:hover {
+    transform: none;
   }
 }

@@ -10,6 +10,7 @@ export default function SettingsPage() {
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [error, setError] = useState(null);
+  const [oauthFeedback, setOauthFeedback] = useState(null);
 
   // Import state
   const [importing, setImporting] = useState(false);
@@ -62,6 +63,19 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const connectedUsername = params.get('instagram_connected');
+    const oauthError = params.get('instagram_error');
+
+    if (connectedUsername) {
+      setOauthFeedback({
+        type: 'success',
+        message: `Instagram account @${connectedUsername} connected successfully.`,
+      });
+    } else if (oauthError) {
+      setOauthFeedback({ type: 'error', message: oauthError });
+    }
+
     loadInstagramAccount();
     loadLibrary();
     loadBackfillStatus();
@@ -268,6 +282,17 @@ export default function SettingsPage() {
           <p>Configure your Instagram connection and app preferences</p>
         </div>
       </header>
+
+      {oauthFeedback && (
+        <div
+          className={`settings-feedback settings-feedback-${oauthFeedback.type}`}
+          role={oauthFeedback.type === 'error' ? 'alert' : 'status'}
+          aria-live="polite"
+        >
+          <strong>{oauthFeedback.type === 'error' ? 'Instagram connection failed' : 'Instagram connected'}</strong>
+          <span>{oauthFeedback.message}</span>
+        </div>
+      )}
 
       {/* Instagram Connection */}
       <div className="card" style={{ marginTop: '1.5rem' }}>
@@ -761,6 +786,7 @@ INSTAGRAM_REDIRECT_URI=${typeof window !== 'undefined' ? window.location.origin 
                       {tag.hashtag}
                       <button
                         onClick={() => handleRemoveHashtag(tag.id)}
+                        aria-label={`Remove ${tag.hashtag} from library`}
                         style={{
                           background: 'none',
                           border: 'none',
@@ -770,7 +796,6 @@ INSTAGRAM_REDIRECT_URI=${typeof window !== 'undefined' ? window.location.origin 
                           fontSize: '0.9rem',
                           lineHeight: '1',
                         }}
-                        title="Remove"
                       >
                         x
                       </button>

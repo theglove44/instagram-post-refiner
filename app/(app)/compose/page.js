@@ -546,6 +546,7 @@ function ComposePageInner() {
                   onClick={() => setShowHashtagPicker(true)}
                   style={toolButtonStyle}
                   title="Insert hashtags"
+                  aria-label="Insert hashtags"
                 >
                   #
                 </button>
@@ -553,6 +554,7 @@ function ComposePageInner() {
                   onClick={() => setShowTemplatePicker(true)}
                   style={toolButtonStyle}
                   title="Load template"
+                  aria-label="Load caption template"
                 >
                   <TemplateIcon />
                 </button>
