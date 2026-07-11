@@ -32,7 +32,9 @@ export async function POST(request) {
 
     // Format response to match expected structure
     const newPost = {
-      id: data.post_id,
+      id: data.id,
+      postId: data.post_id,
+      post_id: data.post_id,
       topic: data.topic,
       aiVersion: data.ai_version,
       finalVersion: data.final_version,

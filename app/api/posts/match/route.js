@@ -1,6 +1,7 @@
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getRecentMedia } from '@/lib/instagram';
 import { findBestMatches } from '@/lib/matching';
+import { resolvePostIdentity } from '@/lib/post-identity';
 
 /**
  * GET /api/posts/match
@@ -12,6 +13,15 @@ export async function GET(request) {
     const postId = searchParams.get('postId');
 
     const supabase = getServerSupabaseClient();
+
+    let canonicalPostId = null;
+    if (postId) {
+      const post = await resolvePostIdentity(supabase, postId);
+      if (!post) {
+        return Response.json({ success: true, suggestions: [] });
+      }
+      canonicalPostId = post.id;
+    }
 
     let query = supabase
       .from('match_suggestions')
@@ -26,8 +36,8 @@ export async function GET(request) {
       .eq('status', 'pending')
       .order('confidence_score', { ascending: false });
 
-    if (postId) {
-      query = query.eq('post_id', postId);
+    if (canonicalPostId) {
+      query = query.eq('post_id', canonicalPostId);
     }
 
     const { data, error } = await query;
@@ -42,6 +52,7 @@ export async function GET(request) {
       instagramMediaId: s.instagram_media_id,
       instagramPermalink: s.instagram_permalink,
       instagramCaption: s.instagram_caption,
+      instagramPublishedAt: s.instagram_published_at || null,
       mediaType: s.media_type || null,
       confidenceScore: parseFloat(s.confidence_score),
       status: s.status,
@@ -151,18 +162,18 @@ export async function PUT(request) {
     }
 
     if (action === 'accept') {
-      // Look up the actual IG post timestamp from imported posts or via API
-      let publishedAt = null;
-      const { data: igPost } = await supabase
-        .from('posts')
-        .select('published_at')
-        .eq('instagram_media_id', suggestion.instagram_media_id)
-        .not('published_at', 'is', null)
-        .limit(1)
-        .single();
-
-      if (igPost?.published_at) {
-        publishedAt = igPost.published_at;
+      // New suggestions persist Graph timestamp. Legacy suggestions can still
+      // recover it from an already-imported post without inventing current time.
+      let publishedAt = suggestion.instagram_published_at || null;
+      if (!publishedAt) {
+        const { data: igPost } = await supabase
+          .from('posts')
+          .select('published_at')
+          .eq('instagram_media_id', suggestion.instagram_media_id)
+          .not('published_at', 'is', null)
+          .limit(1)
+          .maybeSingle();
+        publishedAt = igPost?.published_at || null;
       }
 
       // Link the post with Instagram data
@@ -171,7 +182,7 @@ export async function PUT(request) {
         .update({
           instagram_media_id: suggestion.instagram_media_id,
           instagram_permalink: suggestion.instagram_permalink,
-          published_at: publishedAt || new Date().toISOString(),
+          published_at: publishedAt,
           updated_at: new Date().toISOString(),
         })
         .eq('id', suggestion.post_id);
@@ -341,16 +352,21 @@ async function processMatchingInBackground(syncId, { mode, limit, dryRun }) {
             status: 'pending',
           };
 
-          // Try with media_type column first, fall back without it
+          // Optional columns allow zero-downtime rollout before the additive
+          // migration reaches every environment.
           let insertError;
           const { error: err1 } = await supabase
             .from('match_suggestions')
-            .upsert({ ...suggestionData, media_type: mediaType }, {
+            .upsert({
+              ...suggestionData,
+              media_type: mediaType,
+              instagram_published_at: match.igPost.timestamp || null,
+            }, {
               onConflict: 'post_id,instagram_media_id',
             });
 
-          if (err1 && err1.message?.includes('media_type')) {
-            // Column doesn't exist yet — insert without it
+          if (err1 && /media_type|instagram_published_at/.test(err1.message || '')) {
+            // Older schema: insert core suggestion fields without optional data.
             const { error: err2 } = await supabase
               .from('match_suggestions')
               .upsert(suggestionData, {

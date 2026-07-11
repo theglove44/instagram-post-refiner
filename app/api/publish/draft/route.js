@@ -1,10 +1,23 @@
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { deleteAllPostMedia } from '@/lib/media';
+import { resolvePostIdentity } from '@/lib/post-identity';
 
 export async function POST(request) {
   try {
     const supabase = getServerSupabaseClient();
     const { id, caption, mediaType, altText, userTags, coverUrl, sourcePostId } = await request.json();
+    let canonicalSourcePostId = null;
+
+    if (sourcePostId) {
+      const sourcePost = await resolvePostIdentity(supabase, sourcePostId);
+      if (!sourcePost) {
+        return Response.json(
+          { success: false, error: 'Source post not found' },
+          { status: 400 }
+        );
+      }
+      canonicalSourcePostId = sourcePost.id;
+    }
 
     // Caption defaults to empty string in the DB, so allow it to be missing
     // mediaType defaults to 'IMAGE' if not provided
@@ -41,7 +54,7 @@ export async function POST(request) {
       if (altText !== undefined) updates.alt_text = altText || null;
       if (userTags !== undefined) updates.user_tags = userTags || null;
       if (coverUrl !== undefined) updates.cover_url = coverUrl || null;
-      if (sourcePostId !== undefined) updates.source_post_id = sourcePostId || null;
+      if (sourcePostId !== undefined) updates.source_post_id = canonicalSourcePostId;
 
       const { data, error } = await supabase
         .from('scheduled_posts')
@@ -66,7 +79,7 @@ export async function POST(request) {
         alt_text: altText || null,
         user_tags: userTags || null,
         cover_url: coverUrl || null,
-        source_post_id: sourcePostId || null,
+        source_post_id: canonicalSourcePostId,
         status: 'draft',
       })
       .select()

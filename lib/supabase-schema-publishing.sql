@@ -34,6 +34,7 @@ CREATE TABLE scheduled_posts (
 CREATE INDEX scheduled_posts_status_idx ON scheduled_posts(status);
 CREATE INDEX scheduled_posts_scheduled_at_idx ON scheduled_posts(scheduled_at);
 CREATE INDEX scheduled_posts_ig_media_id_idx ON scheduled_posts(ig_media_id);
+CREATE INDEX scheduled_posts_source_post_id_idx ON scheduled_posts(source_post_id);
 
 ALTER TABLE scheduled_posts ENABLE ROW LEVEL SECURITY;
 
@@ -100,3 +101,5 @@ CREATE POLICY "Deny anon access caption_templates" ON caption_templates FOR ALL 
 -- CREATE TABLE IF NOT EXISTS media_uploads ( ... );
 -- CREATE TABLE IF NOT EXISTS publishing_log ( ... );
 -- CREATE TABLE IF NOT EXISTS caption_templates ( ... );
+-- ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS source_post_id BIGINT REFERENCES posts(id);
+-- CREATE INDEX IF NOT EXISTS scheduled_posts_source_post_id_idx ON scheduled_posts(source_post_id);

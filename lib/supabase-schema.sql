@@ -227,6 +227,7 @@ CREATE TABLE match_suggestions (
   instagram_media_id TEXT NOT NULL,
   instagram_permalink TEXT,
   instagram_caption TEXT,
+  instagram_published_at TIMESTAMP WITH TIME ZONE,
   media_type TEXT,
   confidence_score DECIMAL(4,3) NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
@@ -269,6 +270,7 @@ CREATE POLICY "Deny anon access match_suggestions" ON match_suggestions FOR ALL 
 -- Migration: add media_type to match_suggestions
 -- =====================================================
 -- ALTER TABLE match_suggestions ADD COLUMN IF NOT EXISTS media_type TEXT;
+-- ALTER TABLE match_suggestions ADD COLUMN IF NOT EXISTS instagram_published_at TIMESTAMP WITH TIME ZONE;
 
 -- =====================================================
 -- Niche hashtag library (manual input)
