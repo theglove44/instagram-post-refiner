@@ -125,6 +125,7 @@ AS $$
 $$;
 
 REVOKE ALL ON FUNCTION claim_scheduled_post_for_publishing(BIGINT, TEXT[], BOOLEAN) FROM PUBLIC;
+REVOKE ALL ON FUNCTION claim_scheduled_post_for_publishing(BIGINT, TEXT[], BOOLEAN) FROM anon, authenticated;
 GRANT EXECUTE ON FUNCTION claim_scheduled_post_for_publishing(BIGINT, TEXT[], BOOLEAN) TO service_role;
 
 -- Existing databases: preserve audit rows when a deletable draft/failed row is removed.

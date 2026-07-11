@@ -50,6 +50,7 @@ Release validation commands and results are recorded below after completion.
 - Publishing schema retains canonical `source_post_id` migration notes/index plus atomic claim function and `publishing_log` retention constraint.
 - Each source commit created `docs/mi/README.md` independently. Index was manually consolidated without dropping entries.
 - Root worktree and `tuckinandtalk/` changes were not modified.
+- Production migration verification found Supabase's role-specific default function grant left `anon` able to execute the `SECURITY DEFINER` publishing-claim RPC after revoking only `PUBLIC`. Explicit revokes for `anon` and `authenticated` were applied to production and added to both canonical SQL sources.
 
 ## Direct answers / conclusions
 
@@ -71,6 +72,9 @@ Cherry-pick requested commits in supplied order, manually combine only conflicti
 - `npm test -- --runInBand`: passed; 15 suites, 59 tests
 - `npm run build`: passed; optimized production build and 66 static pages generated
 - `git diff --check`: passed after final integration record update
+- Supabase migrations: applied to `Instagram Editor` (`ucpkeymrxbgmkkmmcgha`); post-origin backfill produced 114 training pairs and 1,811 Instagram imports with zero null origins
+- Supabase privilege verification: `service_role` can execute publishing-claim RPC; `anon` and `authenticated` cannot
+- Supabase advisors: no new migration-specific findings; existing warnings remain for mutable `increment_engagement_count` search path and broad public `post-media` listing policy, plus informational unused-index notices
 
 ## Current status / next steps
 
