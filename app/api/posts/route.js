@@ -24,7 +24,11 @@ export async function GET() {
     });
 
     const posts = sorted.map(post => ({
-      id: post.post_id,
+      // posts.id is the canonical internal identity used by API routes, UI
+      // links, and foreign keys. Keep both legacy spellings during migration.
+      id: post.id,
+      postId: post.post_id,
+      post_id: post.post_id,
       topic: post.topic,
       aiVersion: post.ai_version,
       finalVersion: post.final_version,

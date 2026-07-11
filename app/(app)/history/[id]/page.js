@@ -28,7 +28,11 @@ export default function ViewPostPage() {
     try {
       const res = await fetch('/api/posts');
       const data = await res.json();
-      const found = (data.posts || []).find(p => String(p.id) === String(id));
+      const found = (data.posts || []).find(p =>
+        String(p.id) === String(id) ||
+        String(p.postId) === String(id) ||
+        String(p.post_id) === String(id)
+      );
       setPost(found || null);
     } catch (error) {
       console.error('Failed to load post:', error);
@@ -75,6 +79,7 @@ export default function ViewPostPage() {
           postId: post.id,
           instagramMediaId: instagramPost.id,
           instagramPermalink: instagramPost.permalink,
+          publishedAt: instagramPost.timestamp,
         }),
       });
       const data = await res.json();
@@ -84,6 +89,7 @@ export default function ViewPostPage() {
           ...post,
           instagramMediaId: instagramPost.id,
           instagramPermalink: instagramPost.permalink,
+          publishedAt: instagramPost.timestamp,
         });
         setShowLinkModal(false);
       } else {
@@ -104,7 +110,7 @@ export default function ViewPostPage() {
       const data = await res.json();
       if (data.success) {
         showToast('Post unlinked from Instagram');
-        setPost({ ...post, instagramMediaId: null, instagramPermalink: null });
+        setPost({ ...post, instagramMediaId: null, instagramPermalink: null, publishedAt: null });
       } else {
         showToast(data.error || 'Failed to unlink', 'error');
       }
@@ -146,6 +152,7 @@ export default function ViewPostPage() {
               ...post,
               instagramMediaId: accepted.instagramMediaId,
               instagramPermalink: accepted.instagramPermalink,
+              publishedAt: accepted.instagramPublishedAt || post.publishedAt,
             });
           }
           setShowLinkModal(false);

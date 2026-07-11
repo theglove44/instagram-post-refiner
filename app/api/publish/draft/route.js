@@ -1,10 +1,24 @@
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { deleteAllPostMedia } from '@/lib/media';
+import { resolvePostIdentity } from '@/lib/post-identity';
+import { HARD_DELETABLE_STATUSES, canHardDelete } from '@/lib/publish-state';
 
 export async function POST(request) {
   try {
     const supabase = getServerSupabaseClient();
     const { id, caption, mediaType, altText, userTags, coverUrl, sourcePostId } = await request.json();
+    let canonicalSourcePostId = null;
+
+    if (sourcePostId) {
+      const sourcePost = await resolvePostIdentity(supabase, sourcePostId);
+      if (!sourcePost) {
+        return Response.json(
+          { success: false, error: 'Source post not found' },
+          { status: 400 }
+        );
+      }
+      canonicalSourcePostId = sourcePost.id;
+    }
 
     // Caption defaults to empty string in the DB, so allow it to be missing
     // mediaType defaults to 'IMAGE' if not provided
@@ -41,7 +55,7 @@ export async function POST(request) {
       if (altText !== undefined) updates.alt_text = altText || null;
       if (userTags !== undefined) updates.user_tags = userTags || null;
       if (coverUrl !== undefined) updates.cover_url = coverUrl || null;
-      if (sourcePostId !== undefined) updates.source_post_id = sourcePostId || null;
+      if (sourcePostId !== undefined) updates.source_post_id = canonicalSourcePostId;
 
       const { data, error } = await supabase
         .from('scheduled_posts')
@@ -66,7 +80,7 @@ export async function POST(request) {
         alt_text: altText || null,
         user_tags: userTags || null,
         cover_url: coverUrl || null,
-        source_post_id: sourcePostId || null,
+        source_post_id: canonicalSourcePostId,
         status: 'draft',
       })
       .select()
@@ -149,21 +163,54 @@ export async function DELETE(request) {
       );
     }
 
-    // Delete media files from storage first
-    try {
-      await deleteAllPostMedia(id);
-    } catch (storageError) {
-      // Log but don't block deletion if storage cleanup fails
-      console.warn('Storage cleanup warning:', storageError.message);
+    const { data: existing, error: fetchError } = await supabase
+      .from('scheduled_posts')
+      .select('id, status')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !existing) {
+      return Response.json(
+        { success: false, error: 'Draft not found' },
+        { status: 404 }
+      );
     }
 
-    const { error } = await supabase
+    if (!canHardDelete(existing.status)) {
+      return Response.json(
+        {
+          success: false,
+          error: `Cannot delete a post with status "${existing.status}". Only ${HARD_DELETABLE_STATUSES.join(' or ')} posts can be deleted.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { data: deleted, error } = await supabase
       .from('scheduled_posts')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .in('status', HARD_DELETABLE_STATUSES)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       throw new Error(error.message);
+    }
+
+    if (!deleted) {
+      return Response.json(
+        { success: false, error: 'Post state changed before deletion; refresh and try again' },
+        { status: 409 }
+      );
+    }
+
+    // Database row is gone. Storage cleanup is best-effort and cannot affect
+    // publishing history because publishing_log uses ON DELETE SET NULL.
+    try {
+      await deleteAllPostMedia(id);
+    } catch (storageError) {
+      console.warn('Storage cleanup warning:', storageError.message);
     }
 
     return Response.json({ success: true });

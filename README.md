@@ -147,6 +147,33 @@ npm run build
 npm start
 ```
 
+### Training-data integrity migration
+
+Existing installations must classify historical rows before deploying code that
+writes explicit origins:
+
+1. Back up the `posts` table.
+2. Run `lib/migrations/20260711_add_posts_origin.sql` in the Supabase SQL Editor.
+   It classifies stable `ig_` importer IDs as `instagram_import` and all other
+   existing rows as `training_pair`.
+3. Deploy application code. New logs and imports now set `origin` explicitly;
+   voice analysis excludes Instagram imports. Pre-migration rows remain readable
+   through the same stable-ID fallback.
+4. Dry-run historical edit-count recalculation with service-role credentials:
+
+   ```bash
+   npm run recalculate:edit-counts
+   ```
+
+5. Review the report and, during a maintenance window, opt into writes:
+
+   ```bash
+   npm run recalculate:edit-counts -- --apply --confirm=RECALCULATE_EDIT_COUNTS
+   ```
+
+The recalculation command never writes by default. It only considers rows marked
+`training_pair`; imported Instagram history remains untouched.
+
 ---
 
 ## Instagram Integration

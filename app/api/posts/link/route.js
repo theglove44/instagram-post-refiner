@@ -1,26 +1,60 @@
 import { getServerSupabaseClient } from '@/lib/supabase-server';
+import { resolvePostIdentity } from '@/lib/post-identity';
+
+async function resolvePublishedAt(supabase, instagramMediaId, suppliedTimestamp) {
+  if (suppliedTimestamp) {
+    const parsed = new Date(suppliedTimestamp);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new Error('publishedAt must be a valid timestamp');
+    }
+    return parsed.toISOString();
+  }
+
+  if (!instagramMediaId) return null;
+
+  const { data, error } = await supabase
+    .from('posts')
+    .select('published_at')
+    .eq('instagram_media_id', instagramMediaId)
+    .not('published_at', 'is', null)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data?.published_at || null;
+}
 
 // Link a logged post to an Instagram post
 export async function POST(request) {
   try {
-    const { postId, instagramMediaId, instagramPermalink } = await request.json();
+    const { postId, instagramMediaId, instagramPermalink, publishedAt } = await request.json();
     
     if (!postId) {
       return Response.json({ error: 'postId is required' }, { status: 400 });
     }
     
     const supabase = getServerSupabaseClient();
-    
-    // Update the post with Instagram link (use post_id which is the UUID)
+    const post = await resolvePostIdentity(supabase, postId);
+    if (!post) {
+      return Response.json({ error: 'Post not found' }, { status: 404 });
+    }
+
+    let instagramPublishedAt;
+    try {
+      instagramPublishedAt = await resolvePublishedAt(supabase, instagramMediaId, publishedAt);
+    } catch (error) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
+
     const { data, error } = await supabase
       .from('posts')
       .update({
         instagram_media_id: instagramMediaId || null,
         instagram_permalink: instagramPermalink || null,
-        published_at: instagramMediaId ? new Date().toISOString() : null,
+        published_at: instagramPublishedAt,
         updated_at: new Date().toISOString(),
       })
-      .eq('post_id', postId)
+      .eq('id', post.id)
       .select()
       .single();
     
@@ -51,7 +85,11 @@ export async function DELETE(request) {
     }
     
     const supabase = getServerSupabaseClient();
-    
+    const post = await resolvePostIdentity(supabase, postId);
+    if (!post) {
+      return Response.json({ error: 'Post not found' }, { status: 404 });
+    }
+
     const { data, error } = await supabase
       .from('posts')
       .update({
@@ -60,7 +98,7 @@ export async function DELETE(request) {
         published_at: null,
         updated_at: new Date().toISOString(),
       })
-      .eq('post_id', postId)
+      .eq('id', post.id)
       .select()
       .single();
     

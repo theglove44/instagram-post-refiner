@@ -1,5 +1,6 @@
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getRecentMedia, getTokenExpiryDate } from '@/lib/instagram';
+import { POST_ORIGINS } from '@/lib/post-origin';
 
 /**
  * Persist a refreshed access token to the instagram_accounts table.
@@ -97,6 +98,7 @@ async function processImportInBackground(syncId) {
         published_at: media.timestamp,
         media_type: media.media_type || null,
         media_product_type: media.media_product_type || null,
+        origin: POST_ORIGINS.INSTAGRAM_IMPORT,
       }));
 
       const { data: inserted, error: insertError } = await supabase

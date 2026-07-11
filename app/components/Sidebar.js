@@ -7,10 +7,10 @@ import EngagementBadge from './EngagementBadge';
 
 const NAV_SECTIONS = [
   {
-    label: 'CONTENT',
+    label: 'REFINE',
     items: [
-      { name: 'Edit Post', href: '/edit', icon: '\u270F\uFE0F' },
-      { name: 'Post History', href: '/history', icon: '\uD83D\uDCDA' },
+      { name: 'Editor', href: '/edit', icon: '\u270F\uFE0F' },
+      { name: 'History', href: '/history', icon: '\uD83D\uDCDA' },
       { name: 'Gallery', href: '/gallery', icon: '\uD83D\uDDBC\uFE0F' },
     ],
   },
@@ -24,33 +24,22 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    label: 'ENGAGEMENT',
+    label: 'MEASURE',
     items: [
+      { name: 'Dashboard', href: '/performance', icon: '\uD83D\uDCC8' },
+      { name: 'Post Metrics', href: '/performance/posts', icon: '\uD83D\uDCCB' },
       { name: 'Inbox', href: '/engagement', icon: '\uD83D\uDCEC', badge: true },
       { name: 'Mentions', href: '/engagement/mentions', icon: '\uD83D\uDD14' },
     ],
   },
   {
-    label: 'ANALYSIS',
+    label: 'LEARN',
     items: [
       { name: 'Voice Analysis', href: '/analysis', icon: '\uD83D\uDCCA' },
-    ],
-  },
-  {
-    label: 'PERFORMANCE',
-    items: [
-      { name: 'Dashboard', href: '/performance', icon: '\uD83D\uDCC8' },
-      { name: 'Post Metrics', href: '/performance/posts', icon: '\uD83D\uDCCB' },
       { name: 'Timing & Cadence', href: '/performance/timing', icon: '\u23F0' },
       { name: 'Content Analysis', href: '/performance/content', icon: '\uD83D\uDD0D' },
       { name: 'Hashtags', href: '/performance/hashtags', icon: '#' },
       { name: 'Audience', href: '/performance/audience', icon: '\uD83D\uDC65' },
-    ],
-  },
-  {
-    label: 'SETTINGS',
-    items: [
-      { name: 'Settings', href: '/settings', icon: '\u2699\uFE0F' },
     ],
   },
 ];
@@ -96,7 +85,9 @@ export default function Sidebar() {
       <button
         className="sidebar-mobile-toggle"
         onClick={toggleMobile}
-        aria-label="Toggle navigation"
+        aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
+        aria-expanded={mobileOpen}
+        aria-controls="primary-navigation"
       >
         <span className={`hamburger ${mobileOpen ? 'open' : ''}`}>
           <span />
@@ -107,14 +98,18 @@ export default function Sidebar() {
 
       {/* Mobile overlay backdrop */}
       {mobileOpen && (
-        <div className="sidebar-overlay" onClick={() => setMobileOpen(false)} />
+        <button
+          className="sidebar-overlay"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Close navigation"
+        />
       )}
 
-      <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''} ${mobileOpen ? 'sidebar-mobile-open' : ''}`}>
+      <aside id="primary-navigation" className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''} ${mobileOpen ? 'sidebar-mobile-open' : ''}`}>
         {/* App title */}
         <div className="sidebar-header">
-          <Link href="/edit" className="sidebar-logo">
-            <span className="sidebar-logo-icon">{'\uD83D\uDCF8'}</span>
+          <Link href="/edit" className="sidebar-logo" aria-label="Post Logger editor">
+            <span className="sidebar-logo-icon" aria-hidden="true">{'\uD83D\uDCF8'}</span>
             {!collapsed && <span className="sidebar-logo-text">Post Logger</span>}
           </Link>
         </div>
@@ -135,7 +130,7 @@ export default function Sidebar() {
                       className={`sidebar-link ${isActive(item.href) ? 'sidebar-link-active' : ''}`}
                       title={collapsed ? item.name : undefined}
                     >
-                      <span className="sidebar-link-icon">{item.icon}</span>
+                      <span className="sidebar-link-icon" aria-hidden="true">{item.icon}</span>
                       {!collapsed && (
                         <span className="sidebar-link-text">{item.name}</span>
                       )}
@@ -151,8 +146,23 @@ export default function Sidebar() {
           ))}
         </nav>
 
+        <Link
+          href="/settings"
+          className={`sidebar-link sidebar-utility-link ${isActive('/settings') ? 'sidebar-link-active' : ''}`}
+          aria-label={collapsed ? 'Settings' : undefined}
+          title={collapsed ? 'Settings' : undefined}
+        >
+          <span className="sidebar-link-icon" aria-hidden="true">{'\u2699\uFE0F'}</span>
+          {!collapsed && <span className="sidebar-link-text">Settings</span>}
+        </Link>
+
         {/* Collapse toggle */}
-        <button className="sidebar-collapse-btn" onClick={toggleCollapsed}>
+        <button
+          className="sidebar-collapse-btn"
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+          aria-expanded={!collapsed}
+        >
           <span className={`sidebar-collapse-icon ${collapsed ? 'sidebar-collapse-icon-flipped' : ''}`}>
             {'\u00AB'}
           </span>

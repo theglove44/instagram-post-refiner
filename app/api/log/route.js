@@ -1,4 +1,5 @@
 import { getServerSupabaseClient } from '@/lib/supabase-server';
+import { POST_ORIGINS } from '@/lib/post-origin';
 
 export async function POST(request) {
   try {
@@ -20,6 +21,7 @@ export async function POST(request) {
         ai_version: aiVersion,
         final_version: finalVersion,
         edit_count: editCount || 0,
+        origin: POST_ORIGINS.TRAINING_PAIR,
       })
       .select()
       .single();
@@ -30,7 +32,9 @@ export async function POST(request) {
 
     // Format response to match expected structure
     const newPost = {
-      id: data.post_id,
+      id: data.id,
+      postId: data.post_id,
+      post_id: data.post_id,
       topic: data.topic,
       aiVersion: data.ai_version,
       finalVersion: data.final_version,

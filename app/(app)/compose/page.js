@@ -110,9 +110,14 @@ function ComposePageInner() {
         .then((data) => {
           const posts = data.posts || data.data || [];
           const match = posts.find(
-            (p) => String(p.post_id) === fromPostId || String(p.id) === fromPostId
+            (p) => String(p.id) === fromPostId ||
+              String(p.postId) === fromPostId ||
+              String(p.post_id) === fromPostId
           );
           if (match) {
+            // Normalize legacy sourcePostId URLs before draft creation so the
+            // scheduled_posts foreign key always receives canonical posts.id.
+            sourcePostId.current = match.id;
             setCaption(match.final_version || match.finalVersion || '');
           }
         })
@@ -541,6 +546,7 @@ function ComposePageInner() {
                   onClick={() => setShowHashtagPicker(true)}
                   style={toolButtonStyle}
                   title="Insert hashtags"
+                  aria-label="Insert hashtags"
                 >
                   #
                 </button>
@@ -548,6 +554,7 @@ function ComposePageInner() {
                   onClick={() => setShowTemplatePicker(true)}
                   style={toolButtonStyle}
                   title="Load template"
+                  aria-label="Load caption template"
                 >
                   <TemplateIcon />
                 </button>

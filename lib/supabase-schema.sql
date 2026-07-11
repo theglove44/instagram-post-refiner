@@ -10,6 +10,8 @@ CREATE TABLE posts (
   ai_version TEXT NOT NULL,
   final_version TEXT NOT NULL,
   edit_count INT NOT NULL DEFAULT 0,
+  origin TEXT NOT NULL DEFAULT 'training_pair'
+    CHECK (origin IN ('training_pair', 'instagram_import')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   -- Instagram integration fields
@@ -26,6 +28,9 @@ CREATE INDEX posts_post_id_idx ON posts(post_id);
 
 -- Create index on instagram_media_id for metrics lookups
 CREATE INDEX posts_instagram_media_id_idx ON posts(instagram_media_id);
+
+-- Create index for filtering training pairs from Instagram imports
+CREATE INDEX posts_origin_idx ON posts(origin);
 
 -- Enable Row Level Security
 ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
@@ -122,6 +127,7 @@ CREATE POLICY "Deny anon access post_metrics" ON post_metrics FOR ALL USING (fal
 -- ALTER TABLE posts ADD COLUMN IF NOT EXISTS instagram_media_id TEXT;
 -- ALTER TABLE posts ADD COLUMN IF NOT EXISTS instagram_permalink TEXT;
 -- ALTER TABLE posts ADD COLUMN IF NOT EXISTS published_at TIMESTAMP WITH TIME ZONE;
+-- See lib/migrations/20260711_add_posts_origin.sql for safe origin backfill.
 -- CREATE INDEX IF NOT EXISTS posts_instagram_media_id_idx ON posts(instagram_media_id);
 
 -- =====================================================
@@ -221,6 +227,7 @@ CREATE TABLE match_suggestions (
   instagram_media_id TEXT NOT NULL,
   instagram_permalink TEXT,
   instagram_caption TEXT,
+  instagram_published_at TIMESTAMP WITH TIME ZONE,
   media_type TEXT,
   confidence_score DECIMAL(4,3) NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
@@ -263,6 +270,7 @@ CREATE POLICY "Deny anon access match_suggestions" ON match_suggestions FOR ALL 
 -- Migration: add media_type to match_suggestions
 -- =====================================================
 -- ALTER TABLE match_suggestions ADD COLUMN IF NOT EXISTS media_type TEXT;
+-- ALTER TABLE match_suggestions ADD COLUMN IF NOT EXISTS instagram_published_at TIMESTAMP WITH TIME ZONE;
 
 -- =====================================================
 -- Niche hashtag library (manual input)

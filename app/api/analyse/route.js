@@ -1,4 +1,5 @@
 import { getServerSupabaseClient } from '@/lib/supabase-server';
+import { isTrainingPair } from '@/lib/post-origin';
 
 // Common phrases that indicate marketing-speak to avoid
 const MARKETING_PHRASES = [
@@ -627,16 +628,17 @@ export async function GET() {
       throw new Error(error.message);
     }
 
-    if (!data || data.length === 0) {
+    const posts = (data || []).filter(isTrainingPair);
+
+    if (posts.length === 0) {
       return Response.json({
         totalPosts: 0,
-        message: 'No posts to analyse yet. Log some posts first!',
+        message: 'No training pairs to analyse yet. Log some posts first!',
         analysis: null,
         suggestions: []
       });
     }
 
-    const posts = data;
     const aiVersions = posts.map(p => p.ai_version);
     const finalVersions = posts.map(p => p.final_version);
     
