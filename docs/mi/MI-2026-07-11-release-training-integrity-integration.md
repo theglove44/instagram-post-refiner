@@ -26,6 +26,12 @@ npm ci
 npm test -- --runInBand
 npm run build
 git diff --check
+git push -u origin codex/release-training-integrity
+# GitHub PR #91 merged into main
+# Supabase migrations applied and verified through connected project tooling
+ssh tuckinandtalk 'cd ~/instagram-post-refiner && bash deploy/update.sh'
+npm run recalculate:edit-counts
+npm run recalculate:edit-counts -- --apply --confirm=RECALCULATE_EDIT_COUNTS
 ```
 
 Release validation commands and results are recorded below after completion.
@@ -75,7 +81,12 @@ Cherry-pick requested commits in supplied order, manually combine only conflicti
 - Supabase migrations: applied to `Instagram Editor` (`ucpkeymrxbgmkkmmcgha`); post-origin backfill produced 114 training pairs and 1,811 Instagram imports with zero null origins
 - Supabase privilege verification: `service_role` can execute publishing-claim RPC; `anon` and `authenticated` cannot
 - Supabase advisors: no new migration-specific findings; existing warnings remain for mutable `increment_engagement_count` search path and broad public `post-media` listing policy, plus informational unused-index notices
+- GitHub: PR #91 merged successfully; final main hardening commit `d7a3643` added explicit role revokes after production privilege verification
+- VM deploy: `deploy/update.sh` pulled final main, installed dependencies, built 66 static pages, and restarted `instagram-logger`
+- Live verification: authenticated localhost and `https://insta.mjoln1r.com/` returned HTTP 200; `instagram-logger` and `cloudflared` active; no service warnings after restart
+- Edit-count rollout: dry-run found 106 corrections across 114 training pairs; confirmed apply updated 106 rows; repeat dry-run found zero changes
+- VM user state: untracked `check_meta.js` preserved; `tuckinandtalk/` files untouched by integration
 
 ## Current status / next steps
 
-Integration and full local validation complete. Commit MI integration record, push branch, open and merge one PR, apply available database migrations, deploy through VM protocol, verify service/application health, and review edit-count dry-run before any confirmed mutation.
+Release complete. Code is on main and deployed, database migrations and RPC privilege hardening are verified, edit counts are recalculated, and final application health checks pass.
