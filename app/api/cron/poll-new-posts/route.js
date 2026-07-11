@@ -1,5 +1,6 @@
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getRecentMedia } from '@/lib/instagram';
+import { POST_ORIGINS } from '@/lib/post-origin';
 
 /**
  * Extract a short topic string from an Instagram caption.
@@ -75,6 +76,7 @@ export async function GET() {
       published_at: media.timestamp,
       media_type: media.media_type || null,
       media_product_type: media.media_product_type || null,
+      origin: POST_ORIGINS.INSTAGRAM_IMPORT,
     }));
 
     const { data: inserted, error: insertError } = await supabase

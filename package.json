@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "recalculate:edit-counts": "node scripts/recalculate-edit-counts.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.44.0",
