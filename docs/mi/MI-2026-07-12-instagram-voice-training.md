@@ -86,3 +86,41 @@ Live corpus was queried read-only through existing Supabase configuration to val
 ## Current status / next steps
 
 Implemented and validated. Future edit pairs automatically improve analyzer evidence without mixing final-only imports into transformation metrics.
+
+## Claude archive enrichment
+
+### Trigger
+
+User supplied `claude-archive-export-tuckinandtalk-posts-20260712.json` to improve Codex skill from full Claude project history.
+
+### Archive inspected
+
+- 145 conversations
+- 632 total messages
+- 87 caption-producing conversations
+- 148 assistant caption variants containing `#tuckinandtalk`
+- Explicit user-final captions and iterative criticism across restaurant, recipe, drink, travel, product, event, and gifted posts
+
+### Findings
+
+- Drafts repeatedly failed when brain-dump order became caption order.
+- User repeatedly requested shorter question hooks, better connective storytelling, and more strategic emoji.
+- User explicitly rejects em dashes and alien phrases such as `this place goes off` and `Reader, we cleared the lot`.
+- User-final captions are stronger evidence than first assistant drafts.
+- Five hashtags with `#tuckinandtalk` first is current house style.
+- Reel first-line maximum of 55 characters is a user house rule.
+- Verified handles and product names are useful; guessed handles are not acceptable.
+
+### Skill changes
+
+- Added `references/archive-lessons.md`.
+- Expanded `references/gold-captions.md` with explicit user-final examples for hidden bars, mixed restaurant visits, product discoveries, and gifted home food.
+- Made archive lessons and closest gold-caption selection mandatory before drafting.
+- Added no-em-dash, connected-storytelling, concise-hook, emoji, exact-five-hashtag, and verification rules.
+- Tightened deterministic caption checker for exact hashtag count and em dashes.
+
+### Validation
+
+- Skill schema validation: passed.
+- Caption checker smoke test: passed after updated five-hashtag fixture.
+- Packaged `.skill` ZIP integrity: passed.

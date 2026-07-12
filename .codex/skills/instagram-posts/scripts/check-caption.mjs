@@ -22,13 +22,15 @@ const hashtags = text.match(/#\w+/g) || [];
 const caps = text.match(/\b[A-Z]{2,}\b/g) || [];
 
 if (/^\p{Extended_Pictographic}/u.test(firstLine)) errors.push('Caption opens with emoji.');
-if (hashtags.length > 5) errors.push(`Hashtag count ${hashtags.length}; current maximum is 5.`);
+if (hashtags.length !== 5) errors.push(`Hashtag count ${hashtags.length}; current house rule is exactly 5.`);
 if (hashtags.length && !hashtags.map(tag => tag.toLowerCase()).includes('#tuckinandtalk')) {
-  warnings.push('Hashtags present without #tuckinandtalk.');
+  errors.push('Hashtags present without #tuckinandtalk.');
 }
+if (hashtags.length && hashtags[0].toLowerCase() !== '#tuckinandtalk') warnings.push('#tuckinandtalk is not first hashtag.');
 if (/\bproper(?:ly)?\b/i.test(text)) warnings.push('Uses proper/properly; repeated edit data says Chris usually removes it.');
 if (/\bbang on\b|\bclass\b|\bvibes\b/i.test(text)) warnings.push('Uses recurring AI-like wording: bang on/class/vibes.');
 if ((text.match(/\bhonestly\b/gi) || []).length > 1) warnings.push('Uses honestly more than once.');
+if (/—/.test(text)) errors.push('Uses em dash; Chris house style forbids it.');
 if (caps.length > 8) warnings.push(`High CAPS count: ${caps.length}.`);
 if (!/\n\s*\n/.test(text)) warnings.push('No blank-line paragraph spacing.');
 if (firstLine.length > 140) warnings.push(`Long first line: ${firstLine.length} characters.`);

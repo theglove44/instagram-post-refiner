@@ -10,6 +10,7 @@ Use these as reasoning patterns, not text templates.
 - [Use emotional pacing](#use-emotional-pacing)
 - [Prefer specific context](#prefer-specific-context)
 - [Keep opinion personal](#keep-opinion-personal)
+- [Synthesize brain dumps](#synthesize-brain-dumps)
 
 ## Remove empty engagement hook
 
@@ -62,3 +63,18 @@ Before: `that sauce was something else.`
 After: `that sauce was a delight 🤩`
 
 Lesson: concise personal reaction can be stronger than stock food-copy wording.
+
+## Synthesize brain dumps
+
+Weak approach: convert preparation, price, seasoning, timings, sauce, texture, reactions, and closing into one paragraph each in original note order.
+
+Strong approach:
+
+1. Lead with result.
+2. Connect value and decision to make them at home.
+3. Compress preparation and seasoning into one flowing setup.
+4. Explain cooking method without switching randomly between past narration and commands.
+5. Preserve strongest original phrase, such as `enough buffalo sauce to not be embarrassed`.
+6. Finish with supplied Chris and Tommo reaction.
+
+Lesson: brain dumps are evidence and inspiration. Select, group, reorder, and connect them into a story. Never treat them as an implicit outline.

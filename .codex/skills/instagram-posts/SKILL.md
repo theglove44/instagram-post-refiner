@@ -7,6 +7,27 @@ description: Write and refine Instagram captions for Chris's food, drink, travel
 
 Write experience-first northern lifestyle captions: warm, specific, opinionated, knowingly daft, and honest. Sound like Chris telling mates what happened, not a reviewer producing marketing copy.
 
+## Interpret input
+
+Treat structured fields as constraints and brain-dump text as raw material.
+
+- Use `VENUE`, `WHERE`, `TYPE`, `GIFTED`, `HAD`, `LEAD ON`, `HONEST NOTE`, and ordered media notes as factual anchors.
+- Mine brain dumps for useful facts, distinctive phrases, reactions, chronology, and humour.
+- Do not preserve brain-dump order by default.
+- Do not turn each thought into its own paragraph or mechanically paraphrase every sentence.
+- Group related details, remove repetition, choose one narrative spine, and build transitions between moments.
+- Preserve especially voice-rich phrases when they sound like Chris, but rewrite surrounding material into a coherent story.
+- Drop details that add no story, useful instruction, honest opinion, or personality.
+
+Before drafting:
+
+1. Read [gold-captions.md](references/gold-captions.md) and select the closest full-caption example by content type.
+2. Read [transformations.md](references/transformations.md) and apply relevant editing lessons.
+3. Read [archive-lessons.md](references/archive-lessons.md) and apply Chris's repeated feedback.
+4. Read the matching section of [post-types.md](references/post-types.md).
+
+Do not draft until all four references have informed the structure. Match narrative movement and density from the selected gold example without copying its wording. Prefer examples explicitly marked as Chris's final version over unedited Claude outputs.
+
 ## Gather facts
 
 Extract only supplied facts about:
@@ -19,6 +40,8 @@ Extract only supplied facts about:
 
 Never invent dishes, flavours, prices, venue history, Tommo's actions, emotional reactions, commercial relationships, or events. Omit missing detail. Ask one focused question only when missing information would materially alter the caption or disclosure.
 
+Verify exact social handles, product names, venue facts, and public details when tools are available and verification helps the post. State any uncertain verification outside the caption. Never silently guess a handle.
+
 ## Shape caption
 
 1. Lead with specific food, drink, place, or moment. Use a question only when it feels natural and invites a real answer.
@@ -27,8 +50,6 @@ Never invent dishes, flavours, prices, venue history, Tommo's actions, emotional
 4. Give Tommo agency when present: her choice, view, habit, disagreement, or reaction. Never force her into every paragraph.
 5. Add human texture from supplied facts: changed plans, weather, mild embarrassment, price concern, disagreement, cultural reference, or disappointment.
 6. Land on an honest verdict or forward-looking thought. Avoid generic calls to action.
-
-Use complete gold-standard transformations in [transformations.md](references/transformations.md) when matching rhythm. Use [post-types.md](references/post-types.md) for format-specific structure.
 
 ## Match voice
 
@@ -41,6 +62,8 @@ Use complete gold-standard transformations in [transformations.md](references/tr
 - Preserve mixed or negative opinions. Explain why without cruelty.
 - Use affectionate, equal treatment of Tommo. She is Chris's girlfriend, not a sidekick.
 - Keep natural imperfections when they carry voice; do not polish every sentence into formal prose.
+- Never use em dashes. Use commas, full stops, brackets, or sentence restructuring.
+- Avoid disconnected one-beat paragraphs. Link related sentences so caption tells a story rather than reading like bullet points.
 
 Useful language includes `lovely`, `nice`, `really`, `cheeky`, `flipping`, `brilliant`, `cracking`, `little`, `bit`, `we reckon`, and `you know`. Use only where natural.
 
@@ -48,16 +71,18 @@ Avoid default AI language: `proper`, `properly`, `bang on`, `class`, `vibes`, `u
 
 ## Format for current style
 
-- Separate most thoughts with blank lines. Evidence shows Chris roughly doubles AI line breaks when editing.
+- Separate most thoughts with blank lines, but let each paragraph carry a complete beat rather than one raw note.
 - Keep paragraphs to one or two related sentences.
 - Use CAPS selectively for genuine emphasis, typically 2–4 words or short names.
-- Place emoji at ends of thoughts where possible. Use them for emotion, comic timing, or visual emphasis—not decoration quotas.
+- Place emoji at ends of thoughts where possible. Use enough strategic emoji to keep longer captions warm, personal, and visually alive. Do not leave an otherwise lively experience looking flat.
 - Never open with an emoji.
 - Put handles naturally in caption or on their own line near end.
-- Use no more than five hashtags unless Chris explicitly requests otherwise.
-- Include `#tuckinandtalk` in current Chris posts unless told not to.
+- Use exactly five hashtags unless Chris explicitly requests otherwise.
+- Include `#tuckinandtalk` as first hashtag in current Chris posts unless told not to.
 - Put hashtags at very end, separated from caption.
-- For Reels, make first line especially compact. Do not force unsupported platform character limits.
+- Default opening to a concise, specific question that can earn a genuine reply. Avoid generic engagement farming.
+- Keep feed hooks as short as idea allows. Remove second clauses that explain question.
+- For Reels, keep first line at 55 characters or fewer as Chris's house rule.
 
 Treat length as consequence of useful detail. Current edited pairs average about 257 words and often grow slightly after editing. Never pad.
 
@@ -76,10 +101,11 @@ Before returning caption:
 1. Check every factual statement against supplied notes.
 2. Remove invented reactions and generic hype.
 3. Check `proper`, `properly`, `bang on`, `class`, `vibes`, and repeated `honestly`.
-4. Check disclosure.
-5. Check opening specificity, whitespace, CAPS, emoji placement, and hashtags.
-6. Run `node scripts/check-caption.mjs <caption-file>` when caption exists as file.
-7. Return caption only unless user asks for alternatives or explanation.
+4. Check for em dashes, staccato note-by-note structure, and invented connective details.
+5. Check disclosure.
+6. Check opening specificity, whitespace, CAPS, emoji placement, and exactly five hashtags.
+7. Run `node scripts/check-caption.mjs <caption-file>` when caption exists as file.
+8. Return caption only unless user asks for alternatives or explanation.
 
 ## Learn from edits
 
