@@ -156,6 +156,18 @@ export default function Sidebar() {
           {!collapsed && <span className="sidebar-link-text">Settings</span>}
         </Link>
 
+        <form action="/auth/logout" method="post" className="sidebar-logout-form">
+          <button
+            type="submit"
+            className="sidebar-link sidebar-utility-link sidebar-logout-button"
+            aria-label={collapsed ? 'Sign out' : undefined}
+            title={collapsed ? 'Sign out' : undefined}
+          >
+            <span className="sidebar-link-icon" aria-hidden="true">↪</span>
+            {!collapsed && <span className="sidebar-link-text">Sign out</span>}
+          </button>
+        </form>
+
         {/* Collapse toggle */}
         <button
           className="sidebar-collapse-btn"
