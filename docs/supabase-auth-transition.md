@@ -10,4 +10,4 @@ This is authentication, not complete tenant authorization:
 - Existing HTTP Basic Auth remains a temporary fallback during operator migration.
 - Signup is server-denied unless `SUPABASE_AUTH_SIGNUP_ENABLED=true`; enabling it intentionally permits self-registration when Supabase email signup is also enabled.
 
-Before multi-user or tenant use: add ownership columns and RLS, validate `getClaims()` in each sensitive Route Handler/Server Action, authorize with immutable server-controlled data such as `app_metadata` or database membership, migrate routes away from service-role access, then remove Basic Auth fallback. Never authorize from `user_metadata`.
+Before multi-user or tenant use: apply and backfill the staged ownership migration, validate `getClaims()` in each sensitive Route Handler/Server Action, authorize through database membership, add workspace/account filters to every service-role query, then remove Basic Auth fallback. Never authorize from `user_metadata`.

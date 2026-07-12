@@ -82,11 +82,12 @@ Every logged post pair becomes training data. Over time, the analytics dashboard
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Next.js | 16.0.10 | Full-stack React framework (App Router) |
-| React | 19.2.0 | UI components |
-| Supabase | 2.44.0 | PostgreSQL database with Row Level Security |
+| Next.js | 16.2.10 | Full-stack React framework (App Router) |
+| React | 19.2.7 | UI components |
+| Supabase JS | 2.86.0 | PostgreSQL, Auth, Storage, and Row Level Security |
+| Supabase SSR | 0.8.0 | Cookie-based server authentication |
 | Instagram Graph API | v21.0 | Post metrics, account insights, Stories data |
-| Vercel Analytics | 1.5.0 | Performance monitoring and Web Vitals |
+| Vercel Analytics | 2.0.1 | Performance monitoring and Web Vitals |
 | Jest | 30.2.0 | Unit testing |
 
 ---
@@ -95,7 +96,7 @@ Every logged post pair becomes training data. Over time, the analytics dashboard
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20.9+
 - A [Supabase](https://supabase.com) project (free tier works)
 - (Optional) Instagram Business or Creator account for performance tracking
 
@@ -110,8 +111,10 @@ npm install
 ### 2. Set up the database
 
 1. Create a new project at [supabase.com](https://supabase.com)
-2. Open the **SQL Editor** and run the contents of `lib/supabase-schema.sql`
-3. Copy your project URL and anon key from **Settings > API**
+2. Run the three `lib/supabase-schema*.sql` files in the SQL Editor.
+3. For existing installations, apply migrations in `lib/migrations/` using their runbooks.
+4. Copy project URL, anon key, and server-only service-role key from **Settings > API**.
+5. Create initial operator in Supabase Auth. Keep public signup disabled until tenant route authorization is complete.
 
 ### 3. Configure environment variables
 
@@ -123,8 +126,16 @@ Edit `.env.local`:
 
 ```env
 # Required
+APP_URL=http://localhost:3000
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+CRON_SECRET=your-long-random-cron-secret
+
+# Authentication
+SUPABASE_AUTH_SIGNUP_ENABLED=false
+ADMIN_USER=admin
+ADMIN_PASS=temporary-basic-auth-fallback
 
 # Optional: Instagram integration
 INSTAGRAM_APP_ID=your-facebook-app-id
@@ -138,7 +149,7 @@ INSTAGRAM_REDIRECT_URI=https://your-domain.com/api/instagram/callback
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The content editor is available immediately. Instagram features require the optional credentials above.
+Open [http://localhost:3000](http://localhost:3000). Sign in with Supabase Auth or temporary Basic Auth fallback. Instagram features require optional Meta credentials above.
 
 ### 5. Build for production
 
@@ -342,9 +353,13 @@ instagram-post-refiner/
 │   ├── layout.js                     # Root layout with Analytics
 │   ├── page.js                       # Root redirect
 │   └── globals.css                   # Dark theme styling
+├── proxy.js                          # Supabase Auth, cron, and webhook request gate
 ├── lib/
-│   ├── supabase.js                   # Supabase client initialization
-│   ├── supabase-schema.sql           # Full database schema (9 tables)
+│   ├── supabase.js                   # Browser-safe anon client
+│   ├── supabase-server.js            # Server-only service-role client
+│   ├── supabase-auth/                # Request-scoped SSR Auth clients
+│   ├── supabase-schema*.sql          # Application schema (17 tables)
+│   ├── migrations/                   # Staged data/schema migrations and runbooks
 │   ├── instagram.js                  # Instagram Graph API client
 │   ├── diff.js                       # Diff computation and edit counting
 │   ├── matching.js                   # Text similarity matching algorithm

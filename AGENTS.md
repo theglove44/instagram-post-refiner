@@ -1,6 +1,6 @@
 # Instagram Post Logger v3.0 - Developer Guide
 
-Last Updated: May 2026
+Last Updated: July 2026
 
 ## Project Overview
 
@@ -17,8 +17,8 @@ Instagram Post Logger is a web application for tracking Instagram post edits, cr
 
 ## Technology Stack
 
-- **Next.js 16.2.5** - Full-stack React framework (App Router)
-- **React 19.2.0** - UI library
+- **Next.js 16.2.10** - Full-stack React framework (App Router)
+- **React 19.2.7** - UI library
 - **Supabase 2.86.0** - PostgreSQL database
 - **Instagram Graph API v21.0** - Post metrics, account insights, stories
 - **Vercel Analytics 2.0.1** - Performance monitoring
@@ -31,7 +31,7 @@ app/
 ├── layout.js                       # Root layout with Analytics
 ├── page.js                         # Redirect to /edit
 ├── globals.css                     # Global styling (~3300 lines, dark theme)
-├── middleware.js                   # HTTP Basic Auth gate on all routes
+├── proxy.js                        # Supabase Auth gate + cron/webhook exceptions
 ├── components/
 │   ├── Sidebar.js                  # Collapsible sidebar navigation
 │   ├── BestPosts.js                # Best performing posts display
@@ -142,10 +142,12 @@ deploy/
 └── instagram-snapshot.timer        # Snapshot timer
 ```
 
-## Database Schema (17 tables)
+## Database Schema (17 application tables + 3 tenancy tables)
 
 Schema is split across 3 files. All tables use Supabase PostgreSQL with RLS enabled.
 All server-side code uses the service role key which bypasses RLS. The permissive `USING(true)` policies were replaced with `USING(false)` on sensitive tables during security hardening.
+
+Additive tenancy migration (`lib/migrations/2026-07-12-tenant-workspace-foundation.sql`) adds `profiles`, `workspaces`, `workspace_members`, nullable workspace/account keys, and membership RLS. Production backfill and route-level workspace scoping remain required before multi-user access.
 
 **Core schema** (`lib/supabase-schema.sql`):
 
@@ -264,12 +266,14 @@ All server-side code uses the service role key which bypasses RLS. The permissiv
 ## Key Architecture Decisions
 
 ### Authentication
-All routes are protected by HTTP Basic Auth middleware (`middleware.js`). The `x-cron-secret` header is accepted as an alternative for systemd services and internal cron-to-cron fetch calls. The webhook endpoint (`/api/webhooks/*`) is exempted — Meta calls it server-to-server; POST requests are protected by HMAC-SHA256 signature verification instead.
+`proxy.js` refreshes Supabase SSR sessions and accepts verified `getClaims()` identities. HTTP Basic Auth remains a temporary operator fallback. The `x-cron-secret` header supports systemd services and internal cron calls. Webhooks remain public at proxy level because Meta calls them server-to-server; POST requests require HMAC-SHA256 verification. Proxy authentication is not final tenant authorization: service-role API routes still need request subject checks and workspace/account filters before multi-user launch.
 
 ### Supabase Client Split
-Two Supabase clients exist:
+Four Supabase client paths exist:
 - `lib/supabase.js` — anon key, browser-safe, used for any future client-side reads
 - `lib/supabase-server.js` — service role key (server-only, never expose to browser), used by all API routes. Bypasses RLS.
+- `lib/supabase-auth/browser.js` — browser Supabase Auth client
+- `lib/supabase-auth/server.js` — request-scoped SSR client using cookies and anon key
 
 ### Background Processing Pattern
 Long operations (metrics refresh, import, matching) return immediately with a `syncId` and process in the background. The frontend polls `/api/instagram/health` for completion.
@@ -310,6 +314,7 @@ Supabase has a default 1000-row limit on queries. Endpoints that return large re
 ## Environment Variables
 
 **Required (Supabase):**
+- `APP_URL` - Canonical public origin; HTTPS required in production
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon public key (safe to expose in browser)
 - `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key (**server-side only** — never use `NEXT_PUBLIC_` prefix; bypasses RLS)
@@ -321,9 +326,12 @@ Supabase has a default 1000-row limit on queries. Endpoints that return large re
 - `WEBHOOK_VERIFY_TOKEN` - Token set in Meta App Dashboard → Webhooks → Verify Token
 
 **Required (Auth):**
-- `ADMIN_USER` - HTTP Basic Auth username for app access
-- `ADMIN_PASS` - HTTP Basic Auth password for app access
 - `CRON_SECRET` - Secret header value used by systemd services and internal cron calls (`x-cron-secret` header)
+- `SUPABASE_AUTH_SIGNUP_ENABLED` - Keep `false` until self-registration is intentionally enabled
+
+**Transitional (Auth):**
+- `ADMIN_USER` - Temporary HTTP Basic Auth fallback username
+- `ADMIN_PASS` - Temporary HTTP Basic Auth fallback password
 
 Hosting details, SSH credentials, and Facebook app configuration are stored in the Codex auto-memory file, not in committed code.
 
@@ -374,11 +382,12 @@ Triggered by `instagram-metrics-sync.timer`, calls `/api/cron/nightly` which run
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| `next` | 16.2.5 | Full-stack React framework (App Router) |
-| `react` | ^19.2.0 | UI library |
-| `react-dom` | ^19.2.0 | React DOM rendering |
-| `@supabase/supabase-js` | ^2.86.0 | Supabase PostgreSQL client |
-| `@vercel/analytics` | ^2.0.1 | Performance monitoring |
+| `next` | 16.2.10 | Full-stack React framework (App Router) |
+| `react` | 19.2.7 | UI library |
+| `react-dom` | 19.2.7 | React DOM rendering |
+| `@supabase/ssr` | 0.8.0 | Cookie-based Supabase Auth integration |
+| `@supabase/supabase-js` | 2.86.0 | Supabase PostgreSQL client |
+| `@vercel/analytics` | 2.0.1 | Performance monitoring |
 
 **Dev dependencies:** jest, @testing-library/react, @testing-library/jest-dom, jest-environment-jsdom
 

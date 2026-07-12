@@ -1,6 +1,6 @@
 # Instagram Content Management Platform — Development Roadmap
 
-Last Updated: March 2026
+Last Updated: July 2026
 
 ## Vision
 
@@ -101,18 +101,21 @@ Turns the app from "publish and track" into "publish, track, and engage."
 
 ## Phase 4: Multi-Account & Monetisation 💰
 
-**Status:** Not started
+**Status:** In progress — authentication and additive tenant schema foundation complete
 
 ### Planned Features
 
 #### User Authentication
-- Add login system (Supabase Auth or NextAuth)
-- Currently single-user with no auth layer
-- Session management, password reset, etc.
+- ✅ Supabase Auth SSR clients, email/password login, PKCE callback, logout
+- ✅ Verified `getClaims()` request gate with temporary Basic Auth fallback
+- ✅ Self-registration disabled by default
+- ⏳ Password reset, operator provisioning, and removal of Basic Auth fallback
 
 #### Multi-Account Support
+- ✅ Additive `profiles`, `workspaces`, `workspace_members`, tenant keys, and membership RLS migration
+- ⏳ Apply production migration and explicit owner/workspace backfill
+- ⏳ Add route-level membership checks and workspace/account filters
 - One user manages multiple Instagram accounts
-- All tables scoped by account
 - Account switcher in UI
 
 #### Tiered Pricing
