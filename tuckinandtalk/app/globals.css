@@ -1,3 +1,60 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* =============================================================
+   Design tokens → Tailwind theme bridge
+   -------------------------------------------------------------
+   `@theme inline` exposes the existing :root custom properties
+   (defined below) as Tailwind utilities WITHOUT copying their
+   values — so utilities and the hand-written CSS share one source
+   of truth. Adding/renaming a swatch here is the only step needed
+   to make it available as bg-x, text-x, border-x, ring-x utilities.
+   ============================================================= */
+@theme inline {
+  /* Surfaces */
+  --color-bg:          var(--bg-base);
+  --color-card:        var(--bg-card);
+  --color-card-hover:  var(--bg-card-hover);
+  --color-sidebar:     var(--bg-sidebar);
+  --color-field:       var(--bg-input);
+
+  /* Lines */
+  --color-border:       var(--border);
+  --color-border-light: var(--border-light);
+
+  /* Foreground */
+  --color-fg:           var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-muted:     var(--text-muted);
+  --color-fg-number:    var(--text-number);
+
+  /* Accents */
+  --color-terra:         var(--accent-terra);
+  --color-terra-hover:   var(--accent-terra-hover);
+  --color-mustard:       var(--accent-mustard);
+  --color-mustard-light: var(--accent-mustard-light);
+  --color-cream:         var(--accent-cream);
+
+  /* Semantic status (fg + bg pairs) */
+  --color-success:    var(--status-green);
+  --color-success-bg: var(--status-green-bg);
+  --color-warning:    var(--status-amber);
+  --color-warning-bg: var(--status-amber-bg);
+  --color-danger:     var(--status-red);
+  --color-danger-bg:  var(--status-red-bg);
+  --color-info:       var(--status-blue);
+  --color-info-bg:    var(--status-blue-bg);
+
+  /* Type families (drive font-sans / font-serif / font-mono) */
+  --font-sans:  'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Fraunces', Georgia, serif;
+  --font-mono:  'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* Radius / shadow tokens keep their existing :root names and are
+   consumed in components via rounded-[var(--radius-md)] etc. — they
+   are not re-declared here to avoid same-name self-reference. */
+
 /* =============================================================
    Tuckin and Talk Analytics — Global Styles
    Dark editorial aesthetic: terracotta + cream palette
@@ -10,52 +67,52 @@
 }
 
 :root {
-  /* Base palette */
-  --bg-base:       #0d0d0d;
-  --bg-card:       #1a1614;
-  --bg-card-hover: #211e1b;
-  --bg-sidebar:    #111009;
-  --bg-input:      #1e1b18;
+  /* Base palette — light & airy (warm off-white canvas, white cards) */
+  --bg-base:       #f6f5f2;
+  --bg-card:       #ffffff;
+  --bg-card-hover: #faf8f5;
+  --bg-sidebar:    #ffffff;
+  --bg-input:      #ffffff;
 
-  /* Borders */
-  --border:        #2e2825;
-  --border-light:  #3a3430;
+  /* Borders — warm hairlines */
+  --border:        #e8e4dd;
+  --border-light:  #d7d1c8;
 
-  /* Typography */
-  --text-primary:  #f4ede0;
-  --text-secondary: #a89b8c;
-  --text-muted:    #6b5f55;
-  --text-number:   #e8d9c4;
+  /* Typography — warm near-black on light */
+  --text-primary:  #1c1917;
+  --text-secondary: #57534e;
+  --text-muted:    #9a938a;
+  --text-number:   #1c1917;
 
-  /* Accents */
-  --accent-terra:  #b0461c;
-  --accent-terra-hover: #c94e20;
-  --accent-mustard: #c49414;
-  --accent-mustard-light: #dba91a;
-  --accent-cream:  #f4ede0;
+  /* Accents — terracotta, deepened for AA contrast on white */
+  --accent-terra:  #b8431a;
+  --accent-terra-hover: #9e3914;
+  --accent-mustard: #a16207;
+  --accent-mustard-light: #ca8a04;
+  --accent-cream:  #ffffff;
 
-  /* Status colours */
-  --status-green:  #4a8c5c;
-  --status-green-bg: #1a2e22;
-  --status-amber:  #b08030;
-  --status-amber-bg: #2e2212;
-  --status-red:    #9c3030;
-  --status-red-bg: #2e1414;
-  --status-blue:   #3060a0;
-  --status-blue-bg: #121e30;
+  /* Status colours — light-mode (readable fg on tinted bg) */
+  --status-green:  #15803d;
+  --status-green-bg: #e7f5ec;
+  --status-amber:  #b45309;
+  --status-amber-bg: #fbf0e2;
+  --status-red:    #b91c1c;
+  --status-red-bg: #fdeaea;
+  --status-blue:   #1d4ed8;
+  --status-blue-bg: #e9eefc;
 
   /* Spacing */
   --sidebar-width: 220px;
   --sidebar-collapsed: 56px;
 
   /* Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
 
-  /* Shadows */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.5);
+  /* Shadows — Stripe-style layered, soft */
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.08);
+  --shadow-elevated: 0 4px 12px rgba(16, 24, 40, 0.08), 0 16px 32px -8px rgba(16, 24, 40, 0.14);
 }
 
 html, body {
@@ -170,7 +227,7 @@ h4 { font-size: 0.95rem; font-weight: 400; }
   justify-content: center;
   font-family: 'Fraunces', serif;
   font-size: 14px;
-  color: var(--text-primary);
+  color: #ffffff;
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -229,13 +286,14 @@ h4 { font-size: 0.95rem; font-weight: 400; }
 }
 
 .nav-item:hover {
-  background: var(--bg-card);
+  background: var(--bg-base);
   color: var(--text-primary);
 }
 
 .nav-item.active {
-  background: var(--bg-card);
+  background: color-mix(in srgb, var(--accent-terra) 10%, transparent);
   color: var(--accent-terra);
+  font-weight: 500;
 }
 
 .nav-icon {
@@ -313,6 +371,7 @@ h4 { font-size: 0.95rem; font-weight: 400; }
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 20px;
+  box-shadow: var(--shadow-card);
 }
 
 .metric-card-label {
@@ -371,11 +430,14 @@ h4 { font-size: 0.95rem; font-weight: 400; }
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 20px;
-  transition: border-color 0.12s;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s;
 }
 
 .post-card:hover {
   border-color: var(--border-light);
+  box-shadow: var(--shadow-elevated);
+  transform: translateY(-1px);
 }
 
 .post-card-header {
@@ -468,20 +530,20 @@ h4 { font-size: 0.95rem; font-weight: 400; }
 
 .skip-rate-badge.good {
   background: var(--status-green-bg);
-  color: #6abf84;
-  border: 1px solid #2a4e35;
+  color: var(--status-green);
+  border: 1px solid color-mix(in srgb, var(--status-green) 25%, transparent);
 }
 
 .skip-rate-badge.warning {
   background: var(--status-amber-bg);
-  color: #d4a040;
-  border: 1px solid #4e3810;
+  color: var(--status-amber);
+  border: 1px solid color-mix(in srgb, var(--status-amber) 25%, transparent);
 }
 
 .skip-rate-badge.danger {
   background: var(--status-red-bg);
-  color: #c05050;
-  border: 1px solid #4e2020;
+  color: var(--status-red);
+  border: 1px solid color-mix(in srgb, var(--status-red) 25%, transparent);
 }
 
 .skip-rate-badge.neutral {
@@ -575,7 +637,7 @@ tbody td {
 
 .btn-primary {
   background: var(--accent-terra);
-  color: var(--text-primary);
+  color: #ffffff;
   border-color: var(--accent-terra);
 }
 
@@ -608,8 +670,8 @@ tbody td {
 
 .btn-danger {
   background: transparent;
-  color: #c05050;
-  border-color: #4e2020;
+  color: var(--status-red);
+  border-color: color-mix(in srgb, var(--status-red) 35%, transparent);
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -685,21 +747,21 @@ tbody td {
 }
 
 .tier-badge.competitive {
-  background: #2e1414;
-  color: #c05050;
-  border: 1px solid #4e2020;
+  background: var(--status-red-bg);
+  color: var(--status-red);
+  border: 1px solid color-mix(in srgb, var(--status-red) 25%, transparent);
 }
 
 .tier-badge.reachable {
   background: var(--status-amber-bg);
-  color: #d4a040;
-  border: 1px solid #4e3810;
+  color: var(--status-amber);
+  border: 1px solid color-mix(in srgb, var(--status-amber) 25%, transparent);
 }
 
 .tier-badge.local {
   background: var(--status-green-bg);
-  color: #6abf84;
-  border: 1px solid #2a4e35;
+  color: var(--status-green);
+  border: 1px solid color-mix(in srgb, var(--status-green) 25%, transparent);
 }
 
 .tier-badge.unknown {
@@ -726,9 +788,9 @@ tbody td {
   flex-shrink: 0;
 }
 
-.token-dot.valid { background: #4a8c5c; }
+.token-dot.valid { background: var(--status-green); }
 .token-dot.expiring { background: var(--accent-mustard); }
-.token-dot.expired { background: #9c3030; }
+.token-dot.expired { background: var(--status-red); }
 .token-dot.unknown { background: var(--text-muted); }
 
 /* =============================================================
@@ -888,26 +950,26 @@ tbody td {
 
 .alert-info {
   background: var(--status-blue-bg);
-  border: 1px solid #1a2e50;
-  color: #6090c0;
+  border: 1px solid color-mix(in srgb, var(--status-blue) 22%, transparent);
+  color: var(--status-blue);
 }
 
 .alert-success {
   background: var(--status-green-bg);
-  border: 1px solid #1a4e2a;
-  color: #6abf84;
+  border: 1px solid color-mix(in srgb, var(--status-green) 22%, transparent);
+  color: var(--status-green);
 }
 
 .alert-warning {
   background: var(--status-amber-bg);
-  border: 1px solid #4e3008;
-  color: #d4a040;
+  border: 1px solid color-mix(in srgb, var(--status-amber) 22%, transparent);
+  color: var(--status-amber);
 }
 
 .alert-error {
   background: var(--status-red-bg);
-  border: 1px solid #4e1818;
-  color: #c05050;
+  border: 1px solid color-mix(in srgb, var(--status-red) 22%, transparent);
+  color: var(--status-red);
 }
 
 /* =============================================================

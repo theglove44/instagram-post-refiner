@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security Review — Instagram Post Logger</title>
+<style>
+  :root {
+    --bg: #0a0a0a; --card: #141414; --border: #262626; --muted: #8b8b8b;
+    --text: #ededed; --pink: #e1306c; --high: #ef4444; --med: #f59e0b;
+    --low: #3b82f6; --ok: #22c55e; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 48px 24px 96px; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 32px; }
+  h1 { font-size: 28px; margin: 0 0 6px; }
+  h1 .accent { color: var(--pink); }
+  .sub { color: var(--muted); font-size: 14px; }
+  h2 { font-size: 20px; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+  .stat .n { font-size: 30px; font-weight: 700; }
+  .stat .l { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; }
+  .n.high { color: var(--high); } .n.med { color: var(--med); } .n.ok { color: var(--ok); }
+  .finding { background: var(--card); border: 1px solid var(--border); border-left-width: 4px;
+    border-radius: 10px; padding: 20px 24px; margin: 20px 0; }
+  .finding.high { border-left-color: var(--high); }
+  .finding.med { border-left-color: var(--med); }
+  .finding h3 { margin: 0 0 12px; font-size: 17px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 5px; text-transform: uppercase; letter-spacing: .5px; }
+  .badge.high { background: rgba(239,68,68,.15); color: var(--high); }
+  .badge.med { background: rgba(245,158,11,.15); color: var(--med); }
+  .badge.cat { background: rgba(225,48,108,.15); color: var(--pink); }
+  .badge.conf { background: #1f1f1f; color: var(--muted); }
+  .finding code, code.loc { font-family: var(--mono); font-size: 13px; background: #1c1c1c;
+    padding: 2px 6px; border-radius: 4px; color: #d4d4d4; }
+  .finding .row { margin: 12px 0; }
+  .finding .row b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--muted); margin-bottom: 4px; }
+  pre { background: #0d0d0d; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px;
+    overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.5; color: #d4d4d4; margin: 8px 0; }
+  pre .del { color: #f87171; } pre .add { color: #4ade80; } pre .cmt { color: #6b7280; }
+  .fix { background: rgba(34,197,94,.07); border: 1px solid rgba(34,197,94,.2); border-radius: 8px; padding: 14px 16px; margin-top: 12px; }
+  .fix b { color: var(--ok); }
+  .cleared { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 24px; }
+  .cleared li { margin: 12px 0; list-style: none; padding-left: 26px; position: relative; }
+  .cleared li::before { content: "✓"; position: absolute; left: 0; color: var(--ok); font-weight: 700; }
+  .cleared b { color: var(--text); }
+  .rec-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  .rec-table th, .rec-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .rec-table th { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+  .rec-table .p { font-weight: 700; white-space: nowrap; }
+  .p1 { color: var(--high); } .p2 { color: var(--med); } .p3 { color: var(--low); }
+  footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+  .note { color: var(--muted); font-size: 13px; }
+  a { color: var(--pink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Security Review — <span class="accent">Instagram Post Logger</span></h1>
+  <div class="sub">Full-codebase audit · 48 API routes, ~25k LOC · Next.js 16 / React 19 / Supabase · 2026-05-30</div>
+</header>
+
+<p>Whole-project security audit (no PR diff existed, so the entire app was reviewed). Five parallel
+specialist passes covered: auth/middleware/webhooks, OAuth &amp; token handling, data-layer injection &amp;
+exposure, publishing/media/storage, and XSS/unsafe rendering. Every reported finding was re-verified
+against source. Threat model is <b>single-admin</b> behind one HTTP Basic Auth credential — there is no
+multi-tenant boundary, so findings are scoped to "authenticated admin / external attacker" rather than
+cross-user escalation.</p>
+
+<div class="summary-grid">
+  <div class="stat"><div class="n high">0</div><div class="l">High</div></div>
+  <div class="stat"><div class="n med">2</div><div class="l">Medium</div></div>
+  <div class="stat"><div class="n ok">5</div><div class="l">Areas cleared</div></div>
+  <div class="stat"><div class="n">≥8</div><div class="l">Confidence bar</div></div>
+</div>
+
+<h2>Findings</h2>
+
+<div class="finding med">
+  <h3>
+    <span class="badge med">Medium</span>
+    <span class="badge cat">Filter Injection</span>
+    <span class="badge conf">Confidence 9/10</span>
+    <code class="loc">app/api/comments/route.js:42</code>
+  </h3>
+
+  <div class="row"><b>Description</b>
+  The comments list endpoint builds a PostgREST <code>.or()</code> filter expression by interpolating the
+  raw, unescaped <code>search</code> query parameter directly into the filter <em>grammar</em>. Unlike
+  <code>.eq()</code>/<code>.ilike(col, val)</code> — which parameterize the <em>value</em> — <code>.or()</code>
+  parses its string argument as a PostgREST expression. Reserved characters (<code>, ( ) . :</code>) in
+  <code>search</code> break out of the intended <code>ilike</code> predicate and inject attacker-chosen
+  filter logic. The route uses the <b>service-role client (RLS bypassed)</b>, so the injected filter runs
+  with full table privileges.</div>
+
+  <pre><span class="cmt">// app/api/comments/route.js:41-43</span>
+if (search) {
+  query = query.or(<span class="del">`text.ilike.%${search}%,username.ilike.%${search}%`</span>);
+}</pre>
+
+  <div class="row"><b>Exploit scenario</b>
+  Authenticated request <code>GET /api/comments?search=foo,reply_status.eq.replied)</code> closes the
+  injected predicate group and appends conditions, altering the query's boolean logic — e.g. returning
+  hidden comments the <code>filter</code> switch was meant to gate, or pivoting filters onto columns the
+  endpoint never intended to expose. The parse error is reflected into the 500 response body
+  (<code>error.message</code>), giving a syntax oracle to iteratively craft a working payload. Impact is
+  query-semantic manipulation + schema probing within the single admin tier (not cross-tenant theft) — hence Medium.</div>
+
+  <div class="fix"><b>Fix</b> — Stop interpolating user input into <code>.or()</code>. Either run two
+  parameterized <code>.ilike()</code> queries (the value form is safe) and merge, or escape PostgREST
+  reserved chars before building the expression:
+  <pre><span class="cmt">// option A — value form is parameterized, no injection</span>
+const term = `%${search}%`;
+query = query.ilike('text', term);  <span class="cmt">// + second query on username, merge</span>
+
+<span class="cmt">// option B — neutralize PostgREST grammar chars before interpolation</span>
+const safe = search.replace(/[,()*.":\\]/g, ' ');
+query = query.or(`text.ilike.%${safe}%,username.ilike.%${safe}%`);</pre>
+  </div>
+</div>
+
+<div class="finding med">
+  <h3>
+    <span class="badge med">Medium</span>
+    <span class="badge cat">Open Redirect</span>
+    <span class="badge conf">Confidence 8/10</span>
+    <code class="loc">app/api/instagram/callback/route.js:11–27</code>
+  </h3>
+
+  <div class="row"><b>Description</b>
+  <code>buildRedirect()</code> constructs every OAuth-callback redirect target from the client-supplied
+  <code>x-forwarded-host</code> / <code>x-forwarded-proto</code> headers with no allowlist. Both headers are
+  attacker-controllable at the HTTP layer. The <em>path</em> is fixed (<code>/?instagram_…</code>) but the
+  <em>scheme + host</em> are attacker-chosen. The <code>error</code> and <code>!code</code> branches
+  (lines 35-46) redirect <b>before</b> CSRF-state validation, so the redirect fires unauthenticated.</div>
+
+  <pre><span class="cmt">// app/api/instagram/callback/route.js:11-17</span>
+function buildRedirect(request, path) {
+  const forwardedHost = request.headers.get(<span class="del">'x-forwarded-host'</span>);
+  const forwardedProto = request.headers.get(<span class="del">'x-forwarded-proto'</span>) || 'https';
+  if (forwardedHost) {
+    return new URL(path, <span class="del">`${forwardedProto}://${forwardedHost}`</span>);
+  }</pre>
+
+  <div class="row"><b>Exploit scenario</b>
+  Attacker sends a victim a link to <code>https://insta.mjoln1r.com/api/instagram/callback?error=x</code>
+  through a path that injects request headers (direct origin access bypassing the Cloudflare Tunnel, a
+  forgotten/misconfigured proxy hop, or any intermediary trusting client <code>X-Forwarded-*</code>), with
+  <code>X-Forwarded-Host: evil.example</code>. The victim's browser follows the 307 to
+  <code>https://evil.example/?instagram_error=…</code> — a phishing redirect that begins on the trusted
+  host. <span class="note">Mitigating factor: Cloudflare Tunnel normally overwrites these headers, so in
+  the deployed topology this is hard to reach from the public edge — hence Medium, not High. No token or
+  secret travels in the redirect.</span></div>
+
+  <div class="fix"><b>Fix</b> — Don't trust request headers for redirect origin. Derive it solely from the
+  server-controlled <code>INSTAGRAM_REDIRECT_URI</code> (already imported), or validate
+  <code>x-forwarded-host</code> against an explicit hostname allowlist:
+  <pre><span class="cmt">// build redirects from the configured origin only</span>
+function buildRedirect(request, path) {
+  const base = new URL(process.env.INSTAGRAM_REDIRECT_URI).origin;
+  return new URL(path, base);
+}</pre>
+  </div>
+</div>
+
+<h2>Areas Reviewed &amp; Cleared</h2>
+<ul class="cleared">
+  <li><b>Webhook HMAC (POST /api/webhooks/instagram)</b> — signature verified via
+  <code>crypto.timingSafeEqual</code> <em>before</em> any parse/DB work; length-mismatch throw caught and
+  failed-closed. Spoofing requires <code>INSTAGRAM_APP_SECRET</code>. Sound.</li>
+  <li><b>Middleware auth gate &amp; matcher</b> — <code>'/((?!_next/static|_next/image|favicon.ico).*)'</code>
+  covers all 48 routes incl. every <code>/api/cron/*</code>. Only static assets + the (HMAC-protected)
+  webhook are exempt. Missing <code>CRON_SECRET</code> fails closed (<code>cronSecret && …</code> guard). No bypass.</li>
+  <li><b>OAuth CSRF state</b> — <code>crypto.randomBytes(16)</code>, httpOnly cookie, strict
+  <code>!==</code> compare with presence checks, cookie deleted after use. Correct.</li>
+  <li><b>Token handling &amp; data exposure</b> — <code>access_token</code> never returned to the browser or
+  logged; <code>account</code> routes hand-pick fields. Service-role key (<code>lib/supabase-server.js</code>)
+  has no <code>NEXT_PUBLIC_</code> prefix and is imported only server-side. RLS migrations replace permissive
+  <code>USING(true)</code> with <code>USING(false)</code> on <code>instagram_accounts</code> /
+  <code>engagement_counts</code>.</li>
+  <li><b>Media upload / storage &amp; XSS</b> — storage keys built from validated <code>/^\d+$/</code> post id +
+  <code>crypto.randomUUID()</code> + mime-mapped extension (no <code>file.name</code> in path → no traversal);
+  deletes operate on DB-looked-up paths, not client input. Zero unsafe sinks repo-wide
+  (<code>dangerouslySetInnerHTML</code>, <code>innerHTML</code>, <code>eval</code>, <code>new Function</code>);
+  all Instagram-derived strings render through auto-escaping JSX.</li>
+</ul>
+
+<h2>Recommendations</h2>
+<table class="rec-table">
+  <thead><tr><th>Pri</th><th>Action</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td class="p p1">P1</td><td>Patch <code>.or()</code> injection in <code>comments/route.js:42</code></td><td>Only concrete injection path found; service-role bypasses RLS.</td></tr>
+    <tr><td class="p p2">P2</td><td>Pin OAuth redirect origin to <code>INSTAGRAM_REDIRECT_URI</code></td><td>Removes header-trust open-redirect; tunnel mitigation is not a guarantee.</td></tr>
+    <tr><td class="p p2">P2</td><td>Stop reflecting raw <code>error.message</code> in 500 bodies (e.g. comments route)</td><td>Removes the injection-syntax oracle; return generic errors, log details server-side.</td></tr>
+    <tr><td class="p p3">P3</td><td>Use <code>crypto.timingSafeEqual</code> for Basic Auth + webhook GET <code>verify_token</code> compares</td><td>Defense-in-depth; current <code>===</code> is non-constant-time (low practical risk over network).</td></tr>
+    <tr><td class="p p3">P3</td><td>Confirm deployed <code>ADMIN_PASS</code> / <code>CRON_SECRET</code> are strong, not placeholders</td><td>The single Basic Auth credential is the whole app's critical key — code couldn't verify the live values.</td></tr>
+    <tr><td class="p p3">P3</td><td>Verify the RLS hardening migration actually ran on the live DB</td><td>Schema files are correct as written, but enforcement depends on the migration having been applied top-to-bottom.</td></tr>
+  </tbody>
+</table>
+
+<footer>
+  Methodology: 5 parallel specialist agents at confidence ≥8 bar, findings re-verified against source by
+  the lead reviewer. Excluded per scope: DoS / rate-limiting, secrets-on-disk, outdated-dependency CVEs,
+  theoretical timing attacks, path-only SSRF, client-side trust assumptions. Generated 2026-05-30.
+</footer>
+
+</div>
+</body>
+</html>

@@ -17,6 +17,10 @@ build/
 
 # Data
 data/
+.memsearch/
+
+# Local backups
+**/.backups/
 
 # Debug
 npm-debug.log*

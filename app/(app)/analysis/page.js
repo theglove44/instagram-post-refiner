@@ -37,7 +37,7 @@ export default function AnalysisPage() {
   const generateSkillUpdates = () => {
     if (!analysis) return '';
     
-    let updates = `## Suggested SKILL.md Updates\n\nBased on analysis of ${analysis.totalPosts} logged posts:\n\n`;
+    let updates = `## Suggested SKILL.md Updates\n\nBased on ${analysis.totalPosts} genuine AI-to-final edit pairs. Final-only imports were excluded from transformation metrics.\n\n`;
     
     // Tone Descriptors - Natural language voice description
     if (analysis.toneDescriptors && analysis.toneDescriptors.length > 0) {
@@ -247,39 +247,37 @@ export default function AnalysisPage() {
     <div className="container">
       <header className="header">
         <h1>📊 Post Analysis</h1>
-        <p>Patterns from {analysis.totalPosts} logged posts • Avg {analysis.avgEditCount} edits per post</p>
+        <p>Patterns from {analysis.totalPosts} genuine edit pairs • Avg {analysis.avgEditCount} edits per post</p>
       </header>
 
-      {/* Voice Score - Prominent Display */}
-      {analysis.voiceScore && (
+      {/* Training readiness - based on usable evidence, not subjective voice scoring */}
+      {analysis.trainingReadiness && (
         <div className="card" style={{ marginBottom: '1.5rem', textAlign: 'center', padding: '2rem' }}>
-          <h2 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Voice Consistency Score</h2>
+          <h2 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Training Data Readiness</h2>
           <div style={{ 
             fontSize: '4rem', 
             fontWeight: '700',
-            background: analysis.voiceScore.score >= 80 ? 'linear-gradient(135deg, var(--success), #00ff88)' 
-              : analysis.voiceScore.score >= 60 ? 'linear-gradient(135deg, var(--warning), #ffcc00)'
+            background: analysis.trainingReadiness.score >= 80 ? 'linear-gradient(135deg, var(--success), #00ff88)'
+              : analysis.trainingReadiness.score >= 50 ? 'linear-gradient(135deg, var(--warning), #ffcc00)'
               : 'linear-gradient(135deg, var(--error), #ff6b6b)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             marginBottom: '0.5rem'
           }}>
-            {analysis.voiceScore.score}%
+            {analysis.trainingReadiness.score}%
           </div>
           <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
-            {analysis.voiceScore.score >= 80 ? 'Excellent! Your voice is shining through.' 
-              : analysis.voiceScore.score >= 60 ? 'Good progress. Keep refining!'
-              : 'Keep editing - your voice will emerge.'}
+            {analysis.trainingReadiness.level === 'strong'
+              ? 'Strong evidence base for voice retrieval and skill refinement.'
+              : analysis.trainingReadiness.level === 'good'
+                ? `Good evidence base. Aim for ${analysis.trainingReadiness.nextPairTarget} clean edit pairs next.`
+                : `Keep logging edits. Aim for ${analysis.trainingReadiness.nextPairTarget} clean edit pairs next.`}
           </p>
-          {analysis.voiceScore.factors.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center' }}>
-              {analysis.voiceScore.factors.map((factor, i) => (
-                <span key={i} className={`tag ${factor.impact > 0 ? 'tag-added' : 'tag-removed'}`}>
-                  {factor.name}: {factor.impact > 0 ? '+' : ''}{factor.impact}
-                </span>
-              ))}
-            </div>
-          )}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center' }}>
+            <span className="tag tag-added">{analysis.dataset.editedPairs} edit pairs</span>
+            <span className="tag tag-neutral">{analysis.dataset.currentVoiceExamples} current voice examples</span>
+            <span className="tag tag-removed">{analysis.dataset.likelyTommoAuthored} likely Tommo-authored</span>
+          </div>
         </div>
       )}
 
@@ -287,15 +285,15 @@ export default function AnalysisPage() {
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-value accent">
-            {analysis.totalPosts}
+            {analysis.dataset?.totalRecords ?? analysis.totalPosts}
           </div>
-          <div className="stat-label">Posts Logged</div>
+          <div className="stat-label">All Records</div>
         </div>
         <div className="stat-card">
           <div className="stat-value warning">
-            {analysis.avgEditCount}
+            {analysis.dataset?.editedPairs ?? analysis.totalPosts}
           </div>
-          <div className="stat-label">Avg Edits</div>
+          <div className="stat-label">Clean Edit Pairs</div>
         </div>
         <div className="stat-card">
           <div className="stat-value success">
@@ -346,8 +344,8 @@ export default function AnalysisPage() {
           </div>
           <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>
             {analysis.improvementTrend.improving 
-              ? "You're getting better at prompting Claude - your posts need fewer edits over time!"
-              : "Your recent posts need more edits. Consider updating your prompting strategy."}
+              ? "AI drafts are moving closer to your final voice over time."
+              : "Recent drafts need more edits. Refresh the skill with recent transformations."}
           </p>
         </div>
       )}
@@ -644,13 +642,18 @@ export default function AnalysisPage() {
       <div className="card" style={{ marginTop: '1.5rem' }}>
         <div className="card-header">
           <h2 className="card-title">📝 Suggested SKILL.md Updates</h2>
-          <button 
-            className="btn btn-primary"
-            onClick={copySkillUpdates}
-            style={{ padding: '0.6rem 1.25rem' }}
-          >
-            {copiedSkill ? '✓ Copied!' : '📋 Copy Updates'}
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <a className="btn btn-secondary" href="/api/analyse/training" download>
+              ↓ Export Training JSON
+            </a>
+            <button
+              className="btn btn-primary"
+              onClick={copySkillUpdates}
+              style={{ padding: '0.6rem 1.25rem' }}
+            >
+              {copiedSkill ? '✓ Copied!' : '📋 Copy Updates'}
+            </button>
+          </div>
         </div>
         
         <div className="code-block">

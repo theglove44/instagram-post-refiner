@@ -1,0 +1,4 @@
+interface:
+  display_name: "Instagram Posts"
+  short_description: "Write captions in Chris’s current voice"
+  default_prompt: "Use $instagram-posts to turn my notes into an Instagram caption in my current voice."

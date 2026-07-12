@@ -2,6 +2,20 @@
  * Shared utility helpers for the Tuckin and Talk analytics app.
  */
 
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+/**
+ * Merge class names with conflict resolution.
+ * clsx handles conditional/array/object inputs; tailwind-merge dedupes
+ * conflicting Tailwind utilities so the last one wins (e.g. cn('p-2','p-4')→'p-4').
+ * This is the standard shadcn/ui `cn` helper — every UI component uses it so
+ * callers can override any class via a `className` prop.
+ */
+export function cn(...inputs) {
+  return twMerge(clsx(inputs));
+}
+
 /**
  * Pause execution for the given number of milliseconds.
  * Use between Instagram API calls to respect rate limits.

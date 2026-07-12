@@ -1,5 +1,5 @@
 import { getServerSupabaseClient } from '@/lib/supabase-server';
-import { isTrainingPair } from '@/lib/post-origin';
+import { classifyPosts, fetchTrainingPosts, summarizeTrainingData } from '@/lib/training-data';
 
 // Common phrases that indicate marketing-speak to avoid
 const MARKETING_PHRASES = [
@@ -24,10 +24,8 @@ const SALESY_EMOJIS = ['🤩', '🔥', '💯', '🚀', '😍', '🙌', '💪'];
 
 // Good British expressions
 const BRITISH_EXPRESSIONS = [
-  'proper',
   'brilliant',
   'lovely',
-  'bang on',
   'flipping',
   'moreish',
   'cracking',
@@ -38,6 +36,17 @@ const BRITISH_EXPRESSIONS = [
   'belter',
   'hoovered',
 ];
+
+function calculateTrainingReadiness(dataset) {
+  const pairScore = Math.min(70, (dataset.editedPairs / 150) * 70);
+  const exampleScore = Math.min(30, (dataset.currentVoiceExamples / 300) * 30);
+  const score = Math.round(pairScore + exampleScore);
+  return {
+    score,
+    level: score >= 80 ? 'strong' : score >= 50 ? 'good' : 'developing',
+    nextPairTarget: dataset.editedPairs < 150 ? 150 : 300,
+  };
+}
 
 function tokenize(text) {
   return text.toLowerCase().split(/\s+/).filter(Boolean);
@@ -617,28 +626,21 @@ export async function GET() {
   try {
     const supabase = getServerSupabaseClient();
     
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .order('published_at', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .limit(5000);
+    const data = await fetchTrainingPosts(supabase);
 
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    const posts = (data || []).filter(isTrainingPair);
+    const classifiedPosts = classifyPosts(data);
+    const dataset = summarizeTrainingData(classifiedPosts);
+    const posts = classifiedPosts.filter(post => post.training.recordType === 'edited-pair');
 
     if (posts.length === 0) {
       return Response.json({
-        totalPosts: 0,
-        message: 'No training pairs to analyse yet. Log some posts first!',
+        totalPosts: data.length,
         analysis: null,
-        suggestions: []
+        dataset,
+        message: 'No genuine AI-to-final edit pairs found yet.',
+        suggestions: [],
       });
     }
-
     const aiVersions = posts.map(p => p.ai_version);
     const finalVersions = posts.map(p => p.final_version);
     
@@ -726,6 +728,8 @@ export async function GET() {
     
     const analysis = {
       totalPosts: posts.length,
+      dataset,
+      trainingReadiness: calculateTrainingReadiness(dataset),
       avgEditCount: avgEditCount.toFixed(1),
       marketingPhrasesRemoved,
       salesyEmojisRemoved,

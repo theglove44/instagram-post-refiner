@@ -15,9 +15,9 @@ export default function MetricCard({ label, value, sub, accent, trend, children 
   const trendColor = trend === null || trend === undefined
     ? 'var(--text-muted)'
     : trend > 0
-    ? '#6abf84'
+    ? 'var(--status-green)'
     : trend < 0
-    ? '#c05050'
+    ? 'var(--status-red)'
     : 'var(--text-muted)';
 
   return (
