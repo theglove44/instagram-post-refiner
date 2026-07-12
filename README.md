@@ -174,6 +174,16 @@ writes explicit origins:
 The recalculation command never writes by default. It only considers rows marked
 `training_pair`; imported Instagram history remains untouched.
 
+### Tenant/workspace foundation migration
+
+Existing installations can apply
+`lib/migrations/2026-07-12-tenant-workspace-foundation.sql` before auth-aware
+route work. Migration adds `profiles`, `workspaces`, `workspace_members`, nullable
+tenant keys, indexes, tenant-aligned foreign keys, and membership RLS. It does not
+guess an owner or rewrite existing rows. Follow the reviewed bootstrap/backfill
+procedure in `lib/migrations/README.md`; keep tenant columns nullable until every
+route and cron write supplies them.
+
 ---
 
 ## Instagram Integration
@@ -411,7 +421,8 @@ instagram-post-refiner/
 
 ## Database Schema
 
-Nine tables in Supabase PostgreSQL. Full schema with indexes and RLS policies is in `lib/supabase-schema.sql`.
+Seventeen application tables live across the three `lib/supabase-schema*.sql`
+files. The tenant foundation migration adds three auth/workspace tables.
 
 | Table | Purpose |
 |-------|---------|
@@ -441,7 +452,10 @@ Nine tables in Supabase PostgreSQL. Full schema with indexes and RLS policies is
 
 **Client-side diff computation.** The diff algorithm runs entirely in the browser. No server round-trip is needed when editing, which keeps the editing experience responsive.
 
-**Single-tenant by design.** The application assumes one Instagram account per deployment. RLS policies are permissive (public read/write) because access control is handled at the network level (Cloudflare Tunnel, private VM). For multi-tenant use, add Supabase Auth and scope RLS policies to authenticated users.
+**Tenant migration is staged.** Current server routes and cron jobs still use the
+service role. The additive workspace schema and membership RLS are ready, but
+existing rows require an explicit owner/workspace backfill and routes still need
+tenant-aware reads and writes before browser-authenticated multi-tenant use.
 
 ### Key Patterns
 
