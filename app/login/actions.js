@@ -1,21 +1,13 @@
 'use server';
 
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase-auth/server';
+import { getPublicOrigin } from '@/lib/app-url';
 
 function safeNext(value) {
   return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')
     ? value
     : '/edit';
-}
-
-async function requestOrigin() {
-  const requestHeaders = await headers();
-  const origin = requestHeaders.get('origin');
-  if (origin) return origin;
-  const protocol = requestHeaders.get('x-forwarded-proto') || 'http';
-  return `${protocol}://${requestHeaders.get('host')}`;
 }
 
 export async function authenticate(_previousState, formData) {
@@ -32,7 +24,7 @@ export async function authenticate(_previousState, formData) {
       return { error: 'Account creation disabled. Ask administrator for access.' };
     }
 
-    const origin = await requestOrigin();
+    const origin = getPublicOrigin();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

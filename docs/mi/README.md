@@ -7,3 +7,4 @@
 - [MI-2026-07-11 Release training-integrity integration](MI-2026-07-11-release-training-integrity-integration.md)
 - [MI-2026-07-11 Product, code, and UI/UX audit](MI-2026-07-11-product-code-ui-audit.md)
 - [MI-2026-07-12 Instagram voice training](MI-2026-07-12-instagram-voice-training.md)
+- [MI-2026-07-12 SaaS P0 foundation](MI-2026-07-12-saas-p0-foundation.md) — dependency security, Supabase Auth, and tenant/RLS foundation

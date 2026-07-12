@@ -7,10 +7,17 @@ jest.mock('@/lib/supabase-auth/server', () => ({ createServerSupabaseClient: jes
 
 describe('Supabase Auth callback', () => {
   const exchangeCodeForSession = jest.fn();
+  const originalAppUrl = process.env.APP_URL;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env.APP_URL = 'https://example.com';
     createServerSupabaseClient.mockResolvedValue({ auth: { exchangeCodeForSession } });
+  });
+
+  afterAll(() => {
+    if (originalAppUrl === undefined) delete process.env.APP_URL;
+    else process.env.APP_URL = originalAppUrl;
   });
 
   test('exchanges PKCE code and redirects to safe next path', async () => {
