@@ -1,27 +1,19 @@
+/** @jest-environment node */
+
+import { NextRequest, NextResponse } from 'next/server';
 import { config, proxy } from './proxy';
+import {
+  authenticateSupabaseRequest,
+  unauthenticatedResponse,
+} from '@/lib/supabase-auth/middleware';
 
-jest.mock('next/server', () => {
-  class MockNextResponse {
-    constructor(body, options = {}) {
-      this.body = body;
-      this.status = options.status ?? 200;
-      this.headers = new Headers(options.headers);
-    }
+jest.mock('@/lib/supabase-auth/middleware', () => ({
+  authenticateSupabaseRequest: jest.fn(),
+  unauthenticatedResponse: jest.fn(),
+}));
 
-    static next() {
-      return { allowed: true };
-    }
-  }
-
-  return { NextResponse: MockNextResponse };
-});
-
-function request(pathname, headers = {}) {
-  const normalizedHeaders = new Headers(headers);
-  return {
-    nextUrl: { pathname },
-    headers: { get: (name) => normalizedHeaders.get(name) },
-  };
+function request(path, headers = {}) {
+  return new NextRequest(`https://example.com${path}`, { headers });
 }
 
 function basicAuth(user, pass) {
@@ -29,55 +21,65 @@ function basicAuth(user, pass) {
 }
 
 describe('proxy authentication gate', () => {
-  const originalEnv = {
-    ADMIN_USER: process.env.ADMIN_USER,
-    ADMIN_PASS: process.env.ADMIN_PASS,
-    CRON_SECRET: process.env.CRON_SECRET,
-  };
-
   beforeEach(() => {
-    process.env.ADMIN_USER = 'admin';
-    process.env.ADMIN_PASS = 'secret:with:colons';
+    jest.clearAllMocks();
     process.env.CRON_SECRET = 'cron-secret';
+    process.env.ADMIN_USER = 'legacy';
+    process.env.ADMIN_PASS = 'password:with:colons';
+    authenticateSupabaseRequest.mockResolvedValue({
+      authenticated: false,
+      response: NextResponse.next(),
+    });
+    unauthenticatedResponse.mockReturnValue(new Response(null, { status: 401 }));
   });
 
-  afterAll(() => {
-    for (const [key, value] of Object.entries(originalEnv)) {
-      if (value === undefined) delete process.env[key];
-      else process.env[key] = value;
-    }
+  test('keeps webhook, login, and PKCE callback routes public', async () => {
+    expect((await proxy(request('/api/webhooks/instagram'))).status).toBe(200);
+    expect((await proxy(request('/login'))).status).toBe(200);
+    expect((await proxy(request('/auth/callback?code=test'))).status).toBe(200);
+    expect(authenticateSupabaseRequest).not.toHaveBeenCalled();
   });
 
-  it('keeps Instagram webhook routes public', () => {
-    expect(proxy(request('/api/webhooks/instagram'))).toEqual({ allowed: true });
+  test('protects logout route', async () => {
+    expect((await proxy(request('/auth/logout'))).status).toBe(401);
+    expect(authenticateSupabaseRequest).toHaveBeenCalled();
   });
 
-  it('accepts the cron secret header', () => {
-    expect(proxy(request('/api/cron/nightly', {
+  test('preserves cron-secret access', async () => {
+    const response = await proxy(request('/api/cron/nightly', {
       'x-cron-secret': 'cron-secret',
-    }))).toEqual({ allowed: true });
+    }));
+    expect(response.status).toBe(200);
+    expect(authenticateSupabaseRequest).not.toHaveBeenCalled();
   });
 
-  it('accepts valid Basic Auth, including colons in the password', () => {
-    expect(proxy(request('/settings', {
-      authorization: basicAuth('admin', 'secret:with:colons'),
-    }))).toEqual({ allowed: true });
+  test('accepts verified Supabase claims', async () => {
+    authenticateSupabaseRequest.mockResolvedValue({
+      authenticated: true,
+      response: NextResponse.next(),
+    });
+    expect((await proxy(request('/edit'))).status).toBe(200);
+    expect(unauthenticatedResponse).not.toHaveBeenCalled();
   });
 
-  it.each([
+  test('retains Basic Auth as transitional fallback', async () => {
+    const response = await proxy(request('/edit', {
+      authorization: basicAuth('legacy', 'password:with:colons'),
+    }));
+    expect(response.status).toBe(200);
+  });
+
+  test.each([
     ['missing credentials', {}],
     ['wrong cron secret', { 'x-cron-secret': 'wrong' }],
-    ['wrong Basic Auth', { authorization: basicAuth('admin', 'wrong') }],
+    ['wrong Basic Auth', { authorization: basicAuth('legacy', 'wrong') }],
     ['malformed Basic Auth', { authorization: `Basic ${Buffer.from('missing-colon').toString('base64')}` }],
-  ])('returns a Basic Auth challenge for %s', (_label, headers) => {
-    const response = proxy(request('/settings', headers));
-
-    expect(response.status).toBe(401);
-    expect(response.body).toBe('Unauthorized');
-    expect(response.headers.get('www-authenticate')).toBe('Basic realm="Instagram Logger"');
+  ])('rejects %s', async (_label, headers) => {
+    expect((await proxy(request('/api/posts', headers))).status).toBe(401);
+    expect(unauthenticatedResponse).toHaveBeenCalled();
   });
 
-  it('preserves the static asset exclusions', () => {
+  test('preserves static asset exclusions', () => {
     expect(config.matcher).toEqual(['/((?!_next/static|_next/image|favicon.ico).*)']);
   });
 });
