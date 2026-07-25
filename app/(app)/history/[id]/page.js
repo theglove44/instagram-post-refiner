@@ -46,13 +46,18 @@ export default function ViewPostPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const copyToClipboard = async (text) => {
+  const copyToClipboard = async (text, successMessage = 'Copied to clipboard!') => {
     try {
       await navigator.clipboard.writeText(text);
-      showToast('Copied to clipboard!');
+      showToast(successMessage);
     } catch {
       showToast('Failed to copy', 'error');
     }
+  };
+
+  const copyFinalForKeep = () => {
+    if (!post?.finalVersion) return;
+    copyToClipboard(post.finalVersion, 'Copied — paste into Keep for Michelle');
   };
 
   const loadInstagramPosts = async () => {
@@ -223,10 +228,29 @@ export default function ViewPostPage() {
         </div>
       </header>
 
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <div className="card-header">
+          <h2 className="card-title">{'\u2705'} Final caption</h2>
+          <button
+            className="btn btn-primary"
+            onClick={copyFinalForKeep}
+            style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+          >
+            {'\uD83D\uDCCB'} Copy final for Keep
+          </button>
+        </div>
+        <div className="post-content">
+          {post.finalVersion}
+        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.75rem' }}>
+          Paste into Google Keep so Michelle can post it in the Instagram app.
+        </p>
+      </div>
+
       <div className="main-grid">
         <div className="card">
           <div className="card-header">
-            <h2 className="card-title">{'\uD83E\uDD16'} Original (Claude)</h2>
+            <h2 className="card-title">AI draft</h2>
             <button
               className="btn btn-secondary"
               onClick={() => copyToClipboard(post.aiVersion)}
@@ -242,13 +266,13 @@ export default function ViewPostPage() {
 
         <div className="card">
           <div className="card-header">
-            <h2 className="card-title">{'\u2705'} Final Version</h2>
+            <h2 className="card-title">Final (same as above)</h2>
             <button
               className="btn btn-secondary"
-              onClick={() => copyToClipboard(post.finalVersion)}
+              onClick={copyFinalForKeep}
               style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
             >
-              {'\uD83D\uDCCB'} Copy
+              {'\uD83D\uDCCB'} Copy for Keep
             </button>
           </div>
           <div className="post-content">
@@ -276,15 +300,15 @@ export default function ViewPostPage() {
         </div>
       </div>
 
-      {/* Instagram Link Section */}
-      <div className="card" style={{ marginTop: '1.5rem' }}>
-        <div className="card-header">
-          <h2 className="card-title">{'\uD83D\uDCF8'} Instagram Link</h2>
-        </div>
-        {post.instagramPermalink ? (
+      {/* Cold feature: Instagram link kept for existing linked posts only */}
+      {post.instagramPermalink && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">{'\uD83D\uDCF8'} Instagram link</h2>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ color: 'var(--success)' }}>{'\u2713'} Linked to Instagram</span>
+              <span style={{ color: 'var(--success)' }}>{'\u2713'} Linked</span>
               <a
                 href={post.instagramPermalink}
                 target="_blank"
@@ -303,29 +327,19 @@ export default function ViewPostPage() {
               {linkingPost ? 'Unlinking...' : '\u2715 Unlink'}
             </button>
           </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              Link this post to an Instagram post to track performance metrics
-            </p>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-              <button className="btn btn-primary" onClick={openLinkModal}>
-                {'\uD83D\uDD17'} Link to Instagram Post
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+      <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <button className="btn btn-primary" onClick={copyFinalForKeep}>
+          {'\uD83D\uDCCB'} Copy final for Keep
+        </button>
         <button className="btn btn-secondary" onClick={() => router.push('/history')}>
           {'\u2190'} Back to History
         </button>
-        {!post.instagramMediaId && (
-          <button className="btn btn-primary" onClick={() => router.push(`/compose?sourcePostId=${post.id}`)}>
-            {'\uD83D\uDCDD'} Compose & Publish
-          </button>
-        )}
+        <button className="btn btn-secondary" onClick={() => router.push('/edit')}>
+          New in Workshop
+        </button>
       </div>
 
       {/* Instagram Link Modal */}

@@ -1,8 +1,12 @@
-# Instagram Post Logger
+# Voice Workshop (Tuck In and Talk)
 
-A self-hosted Instagram analytics and content management platform. Log AI-generated posts alongside your manual edits to build training data, import your full Instagram history, and track performance across six dedicated analytics dashboards.
+Personal **tone-of-voice workshop** for Instagram captions.
 
-Built with Next.js 16, React 19, Supabase, and the Instagram Graph API v21.0.
+**Daily loop:** photos in Google Keep → notes + AI draft in this app → edit to Chris's voice → **Copy final for Keep** → Michelle posts in the Instagram app.
+
+The product is voice tracking (AI draft + final pair), not analytics or publishing. Publish/metrics code still exists in the repo but is **cold** (hidden from nav).
+
+Built with Next.js 16, React 19, and Supabase. Instagram Graph API pieces remain for cold features only.
 
 ---
 

@@ -12,8 +12,8 @@ import RootLayout, { metadata } from './layout';
 
 describe('RootLayout', () => {
   it('should have correct metadata', () => {
-    expect(metadata.title).toBe('Instagram Post Refiner');
-    expect(metadata.description).toBe('Refine Instagram posts to match your authentic voice');
+    expect(metadata.title).toBe('Voice Workshop');
+    expect(metadata.description).toBe('Turn notes into Tuck In and Talk captions, then copy the final into Keep');
   });
 
   it('should render children inside body tag', () => {

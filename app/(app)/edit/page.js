@@ -1,33 +1,49 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { computeDiff, countEdits } from '@/lib/diff';
+
+const NOTES_TEMPLATE = `VENUE:
+WHERE:
+TYPE: Feed post / Reel
+GIFTED: Yes / No
+HAD:
+LEAD ON:
+HONEST NOTE:
+MEDIA NOTES:
+HANDLES:
+DON'T MENTION:
+NOTES/BRAIN DUMP:
+`;
 
 export default function EditPage() {
   const [topic, setTopic] = useState('');
+  const [notes, setNotes] = useState(NOTES_TEMPLATE);
   const [original, setOriginal] = useState('');
   const [edited, setEdited] = useState('');
   const [isLocked, setIsLocked] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const [toast, setToast] = useState(null);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 3500);
   };
 
   const handleStartEditing = () => {
     if (!original.trim()) {
-      showToast('Please paste a post first', 'error');
+      showToast('Paste an AI draft first', 'error');
       return;
     }
     setEdited(original);
     setIsLocked(true);
+    setJustSaved(false);
   };
 
   const handleSave = async () => {
     if (!original.trim() || !edited.trim()) {
-      showToast('Both original and edited versions are required', 'error');
+      showToast('AI draft and final caption are both required', 'error');
       return;
     }
 
@@ -52,13 +68,8 @@ export default function EditPage() {
         throw new Error(data.error || 'Failed to save post');
       }
 
-      showToast(`Post logged! (${editCount} edits tracked)`);
-
-      // Reset form
-      setTopic('');
-      setOriginal('');
-      setEdited('');
-      setIsLocked(false);
+      setJustSaved(true);
+      showToast(`Saved (${editCount} edit${editCount !== 1 ? 's' : ''}). Copy final into Keep for Michelle.`);
     } catch (error) {
       showToast(error.message, 'error');
     } finally {
@@ -67,16 +78,22 @@ export default function EditPage() {
   };
 
   const handleReset = () => {
+    setTopic('');
+    setNotes(NOTES_TEMPLATE);
     setOriginal('');
     setEdited('');
-    setTopic('');
     setIsLocked(false);
+    setJustSaved(false);
   };
 
-  const copyToClipboard = async (text) => {
+  const copyFinalForKeep = async () => {
+    if (!edited.trim()) {
+      showToast('Nothing to copy yet', 'error');
+      return;
+    }
     try {
-      await navigator.clipboard.writeText(text);
-      showToast('Copied to clipboard!');
+      await navigator.clipboard.writeText(edited);
+      showToast('Copied — paste into Keep for Michelle');
     } catch {
       showToast('Failed to copy', 'error');
     }
@@ -90,29 +107,50 @@ export default function EditPage() {
     <div className="container">
       <header className="header">
         <div className="header-main">
-          <h1>Edit Post</h1>
-          <p>Paste an AI draft, refine it in your voice, then save what changed</p>
+          <h1>Voice Workshop</h1>
+          <p>Notes in → caption out → copy to Keep for Michelle</p>
         </div>
       </header>
 
       <div className="input-group editor-topic-field">
-        <label htmlFor="post-topic">Topic (optional)</label>
+        <label htmlFor="post-topic">Topic</label>
         <input
           id="post-topic"
           type="text"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          placeholder="e.g., Selfridges Food Hall, M&S Night..."
-          disabled={isLocked}
+          placeholder="e.g. Berry and Rye, Lidl ice cream, wing night..."
+          disabled={isLocked && justSaved}
         />
       </div>
 
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <div className="card-header">
+          <h2 className="card-title">
+            <span className="step">1</span>
+            Notes
+          </h2>
+        </div>
+        <div className="editor-field">
+          <label htmlFor="post-notes">Notes template (stays here while you work — not saved yet)</label>
+          <textarea
+            id="post-notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={14}
+            spellCheck
+          />
+        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+          Photos stay in Google Keep. Use Claude or ChatGPT with these notes to draft the caption, then paste it below.
+        </p>
+      </div>
+
       <div className="main-grid">
-        {/* Left Column - Original AI draft */}
         <div className="card">
           <div className="card-header">
             <h2 className="card-title">
-              <span className="step">1</span>
+              <span className="step">2</span>
               AI Draft
             </h2>
             {isLocked && (
@@ -128,7 +166,7 @@ export default function EditPage() {
               id="ai-draft"
               value={original}
               onChange={(e) => setOriginal(e.target.value)}
-              placeholder="Paste an AI-generated Instagram caption here..."
+              placeholder="Paste the AI caption from Claude or ChatGPT..."
               disabled={isLocked}
               style={isLocked ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
             />
@@ -141,43 +179,36 @@ export default function EditPage() {
                 onClick={handleStartEditing}
                 disabled={!original.trim()}
               >
-                {'\u270F\uFE0F'} Start Editing
+                {'\u270F\uFE0F'} Start editing final
               </button>
             </div>
           )}
         </div>
 
-        {/* Right Column - Your Edited Version */}
         <div className="card">
           <div className="card-header">
             <h2 className="card-title">
-              <span className="step">2</span>
-              Refined Version
+              <span className="step">3</span>
+              Final caption
             </h2>
-            {edited && (
-              <button
-                className="btn btn-secondary"
-                onClick={() => copyToClipboard(edited)}
-                style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
-              >
-                {'\uD83D\uDCCB'} Copy
-              </button>
-            )}
           </div>
 
           <div className="editor-field">
-            <label htmlFor="refined-version">Your refined caption</label>
+            <label htmlFor="refined-version">Your final caption (what Michelle posts)</label>
             <textarea
               id="refined-version"
               value={edited}
-              onChange={(e) => setEdited(e.target.value)}
-              placeholder={isLocked ? "Edit the caption to match your voice..." : "Start editing to lock the AI draft first..."}
+              onChange={(e) => {
+                setEdited(e.target.value);
+                setJustSaved(false);
+              }}
+              placeholder={isLocked ? 'Edit until it sounds like you...' : 'Lock the AI draft first, then refine here...'}
               disabled={!isLocked}
               style={!isLocked ? { opacity: 0.4 } : {}}
             />
           </div>
 
-          <div className="btn-group">
+          <div className="btn-group" style={{ flexWrap: 'wrap' }}>
             <button
               className="btn btn-success"
               onClick={handleSave}
@@ -189,26 +220,38 @@ export default function EditPage() {
                   Saving...
                 </>
               ) : (
-                '\uD83D\uDCBE Log & Save'
+                '\uD83D\uDCBE Save pair'
               )}
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={copyFinalForKeep}
+              disabled={!edited.trim()}
+            >
+              {'\uD83D\uDCCB'} Copy final for Keep
             </button>
             {isLocked && (
               <button
                 className="btn btn-secondary"
                 onClick={handleReset}
               >
-                {'\uD83D\uDD04'} Start Over
+                {'\uD83D\uDD04'} New post
               </button>
             )}
           </div>
+
+          {justSaved && (
+            <p style={{ color: 'var(--success)', fontSize: '0.9rem', marginTop: '0.75rem' }}>
+              Pair saved. Hit Copy final for Keep, paste into Google Keep, Michelle posts from there.
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Diff View */}
       {isLocked && hasChanges && (
         <div className="card" style={{ marginTop: '1.5rem' }}>
           <div className="card-header">
-            <h2 className="card-title">{'\uD83D\uDCCA'} Your Changes</h2>
+            <h2 className="card-title">{'\uD83D\uDCCA'} Your changes</h2>
             <div className="diff-stats">
               <span className="diff-stat edits">
                 {'\u270F\uFE0F'} {editCount} edit{editCount !== 1 ? 's' : ''}
@@ -234,19 +277,20 @@ export default function EditPage() {
         </div>
       )}
 
-      {/* Workflow reminder */}
       {!isLocked && !original && (
         <div className="card" style={{ marginTop: '1.5rem', textAlign: 'center', padding: '2.5rem 2rem' }}>
-          <h3 style={{ marginBottom: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Workflow</h3>
+          <h3 style={{ marginBottom: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Daily loop
+          </h3>
           <div className="workflow-container">
             <div className="workflow-step">
-              <span className="workflow-icon">{'\uD83D\uDCAC'}</span>
-              <span className="workflow-label">Generate an<br/>AI draft</span>
+              <span className="workflow-icon">{'\uD83D\uDDBC\uFE0F'}</span>
+              <span className="workflow-label">Photos<br/>in Keep</span>
             </div>
             <span className="workflow-arrow">{'\u2192'}</span>
             <div className="workflow-step">
-              <span className="workflow-icon">{'\uD83D\uDCCB'}</span>
-              <span className="workflow-label">Paste &<br/>lock original</span>
+              <span className="workflow-icon">{'\uD83D\uDCDD'}</span>
+              <span className="workflow-label">Notes + AI<br/>draft here</span>
             </div>
             <span className="workflow-arrow">{'\u2192'}</span>
             <div className="workflow-step">
@@ -255,14 +299,13 @@ export default function EditPage() {
             </div>
             <span className="workflow-arrow">{'\u2192'}</span>
             <div className="workflow-step">
-              <span className="workflow-icon">{'\uD83D\uDCBE'}</span>
-              <span className="workflow-label">Save changes<br/>to learn</span>
+              <span className="workflow-icon">{'\uD83D\uDCCB'}</span>
+              <span className="workflow-label">Copy final<br/>to Keep</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Toast */}
       {toast && (
         <div className={`toast toast-${toast.type}`} role={toast.type === 'error' ? 'alert' : 'status'}>
           {toast.type === 'success' ? '\u2713' : '\u2715'} {toast.message}

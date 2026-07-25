@@ -3,43 +3,13 @@
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import EngagementBadge from './EngagementBadge';
 
 const NAV_SECTIONS = [
   {
-    label: 'REFINE',
+    label: 'VOICE',
     items: [
-      { name: 'Editor', href: '/edit', icon: '\u270F\uFE0F' },
+      { name: 'Workshop', href: '/edit', icon: '\u270F\uFE0F' },
       { name: 'History', href: '/history', icon: '\uD83D\uDCDA' },
-      { name: 'Gallery', href: '/gallery', icon: '\uD83D\uDDBC\uFE0F' },
-    ],
-  },
-  {
-    label: 'PUBLISH',
-    items: [
-      { name: 'Compose', href: '/compose', icon: '\uD83D\uDCDD' },
-      { name: 'Calendar', href: '/calendar', icon: '\uD83D\uDCC5' },
-      { name: 'Drafts', href: '/drafts', icon: '\uD83D\uDCC4' },
-      { name: 'Queue', href: '/queue', icon: '\u23F3' },
-    ],
-  },
-  {
-    label: 'MEASURE',
-    items: [
-      { name: 'Dashboard', href: '/performance', icon: '\uD83D\uDCC8' },
-      { name: 'Post Metrics', href: '/performance/posts', icon: '\uD83D\uDCCB' },
-      { name: 'Inbox', href: '/engagement', icon: '\uD83D\uDCEC', badge: true },
-      { name: 'Mentions', href: '/engagement/mentions', icon: '\uD83D\uDD14' },
-    ],
-  },
-  {
-    label: 'LEARN',
-    items: [
-      { name: 'Voice Analysis', href: '/analysis', icon: '\uD83D\uDCCA' },
-      { name: 'Timing & Cadence', href: '/performance/timing', icon: '\u23F0' },
-      { name: 'Content Analysis', href: '/performance/content', icon: '\uD83D\uDD0D' },
-      { name: 'Hashtags', href: '/performance/hashtags', icon: '#' },
-      { name: 'Audience', href: '/performance/audience', icon: '\uD83D\uDC65' },
     ],
   },
 ];
@@ -73,15 +43,11 @@ export default function Sidebar() {
   };
 
   const isActive = (href) => {
-    if (href === '/performance') {
-      return pathname === '/performance';
-    }
     return pathname === href || pathname.startsWith(href + '/');
   };
 
   return (
     <>
-      {/* Mobile hamburger toggle */}
       <button
         className="sidebar-mobile-toggle"
         onClick={toggleMobile}
@@ -96,7 +62,6 @@ export default function Sidebar() {
         </span>
       </button>
 
-      {/* Mobile overlay backdrop */}
       {mobileOpen && (
         <button
           className="sidebar-overlay"
@@ -106,15 +71,13 @@ export default function Sidebar() {
       )}
 
       <aside id="primary-navigation" className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''} ${mobileOpen ? 'sidebar-mobile-open' : ''}`}>
-        {/* App title */}
         <div className="sidebar-header">
-          <Link href="/edit" className="sidebar-logo" aria-label="Post Logger editor">
-            <span className="sidebar-logo-icon" aria-hidden="true">{'\uD83D\uDCF8'}</span>
-            {!collapsed && <span className="sidebar-logo-text">Post Logger</span>}
+          <Link href="/edit" className="sidebar-logo" aria-label="Voice Workshop">
+            <span className="sidebar-logo-icon" aria-hidden="true">{'\uD83D\uDCDD'}</span>
+            {!collapsed && <span className="sidebar-logo-text">Voice Workshop</span>}
           </Link>
         </div>
 
-        {/* Navigation */}
         <nav className="sidebar-nav">
           {NAV_SECTIONS.map((section) => (
             <div key={section.label} className="sidebar-section">
@@ -134,7 +97,6 @@ export default function Sidebar() {
                       {!collapsed && (
                         <span className="sidebar-link-text">{item.name}</span>
                       )}
-                      {item.badge && !collapsed && <EngagementBadge />}
                       {!collapsed && isActive(item.href) && (
                         <span className="sidebar-active-indicator" />
                       )}
@@ -168,7 +130,6 @@ export default function Sidebar() {
           </button>
         </form>
 
-        {/* Collapse toggle */}
         <button
           className="sidebar-collapse-btn"
           onClick={toggleCollapsed}

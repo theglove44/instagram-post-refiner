@@ -8,3 +8,4 @@
 - [MI-2026-07-11 Product, code, and UI/UX audit](MI-2026-07-11-product-code-ui-audit.md)
 - [MI-2026-07-12 Instagram voice training](MI-2026-07-12-instagram-voice-training.md)
 - [MI-2026-07-12 SaaS P0 foundation](MI-2026-07-12-saas-p0-foundation.md) — dependency security, Supabase Auth, and tenant/RLS foundation
+- [MI-2026-07-24 Voice workshop pivot](MI-2026-07-24-voice-workshop-pivot.md) — strip CMS chrome; product is notes → voice caption → Keep

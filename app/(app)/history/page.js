@@ -135,14 +135,28 @@ export default function HistoryPage() {
     router.push(`/history/${post.id}`);
   };
 
+  const copyFinalForKeep = async (event, text) => {
+    event.stopPropagation();
+    if (!text?.trim()) {
+      showToast('No final caption to copy', 'error');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('Copied — paste into Keep for Michelle');
+    } catch {
+      showToast('Failed to copy', 'error');
+    }
+  };
+
   const filteredHistory = getFilteredHistory();
 
   return (
     <div className="container">
       <header className="header">
         <div className="header-main">
-          <h1>Post History</h1>
-          <p>Browse and search all your logged posts</p>
+          <h1>History</h1>
+          <p>Past voice pairs — copy any final caption into Keep for Michelle</p>
         </div>
       </header>
 
@@ -312,7 +326,7 @@ export default function HistoryPage() {
                 <path d="M8 12h8"/>
               </svg>
               <p>{history.length === 0 ? 'No posts logged yet.' : 'No posts match your filters.'}<br/>
-              {history.length === 0 && 'Edit and log your first post to get started!'}</p>
+              {history.length === 0 && 'Open Workshop, save a pair, then copy the final into Keep.'}</p>
             </div>
           ) : (
             <div className="history-list">
@@ -411,8 +425,20 @@ export default function HistoryPage() {
                       </div>
                     </div>
                     <div className="history-item-preview">
-                      {post.finalVersion.substring(0, 120)}...
+                      {(post.finalVersion || '').substring(0, 120)}
+                      {(post.finalVersion || '').length > 120 ? '...' : ''}
                     </div>
+                    {!compareMode && (
+                      <div style={{ marginTop: '0.65rem' }}>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={(event) => copyFinalForKeep(event, post.finalVersion)}
+                        >
+                          {'\uD83D\uDCCB'} Copy final for Keep
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

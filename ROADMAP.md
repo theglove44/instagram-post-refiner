@@ -1,157 +1,69 @@
-# Instagram Content Management Platform — Development Roadmap
+# Voice Workshop — Roadmap
 
 Last Updated: July 2026
 
 ## Vision
 
-Evolve the Instagram Post Logger from a voice-training tool into a full content management platform that can be monetised as a SaaS product. The unique differentiator is the AI voice refinement pipeline — no competitor learns how you edit AI-generated content.
+A personal **tone-of-voice workshop** for Tuck In and Talk.
+
+One job: turn messy notes into a final caption in Chris's voice, remember how he edits, and hand the final to Google Keep so Michelle can post in the Instagram app.
+
+Photos stay in Keep. Instagram publish, metrics, inbox, and SaaS multi-tenant work are **cold** (code kept, not product).
 
 ---
 
-## Phase 1: Content Publishing & Scheduling ✅ COMPLETE
+## Phase 0: Simplified shell ✅ DONE
 
-**Status:** Live and working
+**Status:** Complete (2026-07-24)
 
-The core feature that makes this a product people pay for.
+### Done
+- Sidebar cut to Workshop + History + Settings
+- Workshop screen: notes → AI draft → final → save pair → **Copy final for Keep**
+- History: final-first, Copy for Keep on list and detail
+- Metrics / publish / engagement nav removed (routes still exist, cold)
 
-### What was built
-- **Content Composer** — Caption editor with character counter, hashtag library integration, caption templates, Instagram post preview
-- **Media Upload** — Drag-and-drop image/video upload to Supabase Storage, carousel support (up to 10 images), reordering
-- **Publishing Engine** — Container-based Instagram Graph API publishing for images, carousels, reels, and stories. Dry-run mode for safe testing.
-- **Scheduling** — Schedule posts for future publishing with best-time suggestions from historical analytics. 1-minute systemd timer processes the queue.
-- **Draft Management** — Auto-save drafts, drafts page, edit existing drafts
-- **Calendar View** — Month/week views showing scheduled, published, and failed posts
-- **Queue View** — Upcoming posts timeline, failed posts with retry, rate limit display
-- **Edit-to-Publish Flow** — "Compose & Publish" button on post history pages pre-fills caption from voice-refined content
-
-### Technical Details
-- 31 new files, 2 modified
-- 4 new DB tables: `scheduled_posts`, `media_uploads`, `publishing_log`, `caption_templates`
-- 17 new API routes under `/api/publish/`
-- 9 new React components
-- Systemd timer for scheduled publishing
-- Zero new npm dependencies
+### Explicit non-goals
+- No in-app LLM yet
+- No photo upload
+- No Instagram publish UI
+- No performance dashboards in nav
 
 ---
 
-## Phase 2: Engagement Hub ✅ COMPLETE
+## Phase 1: AI inside the app 🔜 NEXT
 
-**Status:** Live and working
+**Status:** Not started — after Phase 0 is used on real posts
 
-Turns the app from "publish and track" into "publish, track, and engage."
+### Planned
+- `POST /api/caption/generate` from notes + voice pack (skill + gold examples + recent Chris finals)
+- **Generate** button in Workshop fills AI draft
+- Optional `notes` column on `posts` so history stores notes → AI → final
+- Claude/ChatGPT become optional, not required
 
-### What was built
-- **Comment Inbox** — Unified view of all comments across posts with reply/hide/delete actions. Filter by All/Unreplied/Replied/Hidden. Search by text or username. Bulk actions.
-- **Reply from Inbox** — Type and send replies directly from the app via Instagram API
-- **Comment Moderation** — Hide/unhide and delete comments
-- **Mentions & Tags Dashboard** — See when other accounts tag or @mention you
-- **Webhook Infrastructure** — Endpoint for real-time Meta webhook notifications (comments, mentions). Verification and event processing.
-- **Sidebar Badge** — Unreplied comment count badge on the Inbox nav item
-- **Comment Sync** — Initial full sync of all historical comments, then nightly 7-day sweep. Hybrid approach with webhook real-time updates.
-- **Nightly Cron Integration** — Comment and mention sync added to existing nightly job
-
-### Technical Details
-- 22 new files, 3 modified
-- 4 new DB tables: `comments`, `mentions`, `webhook_events`, `engagement_counts`
-- 11 new API routes under `/api/comments/`, `/api/mentions/`, `/api/webhooks/`
-- 7 new React components
-- New OAuth scope: `instagram_manage_comments`
-- New env var: `WEBHOOK_VERIFY_TOKEN`
-
-### Webhook Setup (pending)
-1. Add `WEBHOOK_VERIFY_TOKEN=<random-string>` to `.env.local` on VM
-2. Meta App Dashboard > Webhooks > set callback URL `https://insta.mjoln1r.com/api/webhooks/instagram`
-3. Subscribe to `comments` and `mentions` fields
+### Success
+- Notes-only input produces a draft that only needs light Chris edits
+- Pair still saves as AI + final for training
 
 ---
 
-## Phase 3: Content Planning & Research 🔜 NEXT
+## Phase 2: Parked
 
-**Status:** Not started
+Only if still needed after Phase 1:
 
-### Planned Features
-
-#### Hashtag Research Tool
-- Search Instagram API for hashtags, see top/recent media
-- Cross-reference with your own performance data
-- "These hashtags actually work for your account" insights
-- Competitor hashtag analysis
-
-#### AI Caption Generation ("Write Like Me")
-- Use existing ai_version → final_version training pairs as fine-tuning data
-- AI generates captions that match your editing patterns and voice
-- Voice consistency scoring before publishing
-- A/B style testing (which voice patterns get better engagement)
-- **This is the unique moat** — no competitor has this
-
-#### Content Calendar Enhancements
-- Drag-and-drop rescheduling on calendar
-- Recurring post templates
-- Content series planning
-- Content gaps detection
-
-#### DM Inbox
-- Read and respond to DMs (webhook infrastructure from Phase 2 already supports this)
-- The messaging API is webhook-only with no history, so only sees messages from enablement forward
-
-### Permissions Needed
-- `instagram_manage_messages` (for DMs)
+- Photo attach in app (optional Keep replacement for media)
+- Shared read-only link for Michelle
+- Re-enable publish/schedule
+- Fine-tuning a custom model (unlikely to beat skill + examples)
 
 ---
 
-## Phase 4: Multi-Account & Monetisation 💰
+## Cold surfaces (not product)
 
-**Status:** In progress — authentication and additive tenant schema foundation complete
+These remain in the repo for recovery, not in the main nav:
 
-### Planned Features
+- Compose, Calendar, Drafts, Queue
+- Performance dashboards, Hashtags, Audience, Timing
+- Engagement inbox / mentions
+- Gallery, full Voice Analysis page (URL still works if needed)
 
-#### User Authentication
-- ✅ Supabase Auth SSR clients, email/password login, PKCE callback, logout
-- ✅ Verified `getClaims()` request gate with temporary Basic Auth fallback
-- ✅ Self-registration disabled by default
-- ⏳ Password reset, operator provisioning, and removal of Basic Auth fallback
-
-#### Multi-Account Support
-- ✅ Additive `profiles`, `workspaces`, `workspace_members`, tenant keys, and membership RLS migration
-- ⏳ Apply production migration and explicit owner/workspace backfill
-- ⏳ Add route-level membership checks and workspace/account filters
-- One user manages multiple Instagram accounts
-- Account switcher in UI
-
-#### Tiered Pricing
-- **Free tier:** 1 account, analytics only (current Phase 0 features)
-- **Pro tier:** Publishing, scheduling, comment inbox, AI captions
-- **Business tier:** Multiple accounts, team members, priority support
-
-#### Billing Integration
-- Stripe for payment processing
-- Subscription management
-- Usage tracking
-
-### Technical Requirements
-- Facebook App Review (required for serving accounts beyond the developer's own)
-- Privacy policy and terms of service
-- Demo video for App Review submission
-- Production-grade error handling and monitoring
-
----
-
-## Architecture Notes
-
-### Rate Limits
-- Meta Graph API: ~200 calls/user/hour
-- Publishing: 100 posts per 24h per account
-- Comment sync uses 1 API call per post (with field expansion for replies)
-- All API calls use 2-second delays for rate limiting
-
-### Background Processing Pattern
-Long operations return immediately with `{ syncId, status: "running" }` and process in the background. Frontend polls status endpoint. Required due to Cloudflare 100-second timeout.
-
-### Infrastructure
-- Self-hosted on Ubuntu VM via Cloudflare Tunnel
-- Supabase PostgreSQL + Storage
-- Systemd timers for cron jobs (nightly sync at 3am UTC, publish scheduler every minute)
-- No external dependencies beyond Next.js, React, Supabase client
-
-### Key Differentiator
-The voice refinement loop (ai_version → final_version training pairs) is unique. Buffer doesn't learn your voice. Later doesn't track how you edit AI drafts. This training data powers Phase 3's "Write Like Me" AI caption generation — the feature that makes this platform worth paying for.
+Do not expand SaaS/monetisation work until the daily voice loop is solid.

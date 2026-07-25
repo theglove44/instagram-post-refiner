@@ -6,8 +6,8 @@ import { Analytics } from "@vercel/analytics/next";
 // in this layout but is a core dependency for the application backend.
 
 export const metadata = {
-  title: 'Instagram Post Refiner',
-  description: 'Refine Instagram posts to match your authentic voice',
+  title: 'Voice Workshop',
+  description: 'Turn notes into Tuck In and Talk captions, then copy the final into Keep',
 };
 
 export default function RootLayout({ children }) {
