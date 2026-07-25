@@ -30,19 +30,19 @@ Photos stay in Keep. Instagram publish, metrics, inbox, and SaaS multi-tenant wo
 
 ---
 
-## Phase 1: AI inside the app 🔜 NEXT
+## Phase 1: AI inside the app ✅ DONE
 
-**Status:** Not started — after Phase 0 is used on real posts
+**Status:** Complete (2026-07-25)
 
-### Planned
-- `POST /api/caption/generate` from notes + voice pack (skill + gold examples + recent Chris finals)
-- **Generate** button in Workshop fills AI draft
-- Optional `notes` column on `posts` so history stores notes → AI → final
-- Claude/ChatGPT become optional, not required
+### Done
+- `POST /api/caption/generate` — OpenAI + on-disk voice pack (skill + gold + archive lessons)
+- Workshop **Generate caption** button fills AI draft; paste path still works
+- Nullable `notes` column on `posts` (migration `2026-07-25-posts-notes.sql`) logged with each pair
+- Env: `OPENAI_API_KEY`, optional `OPENAI_CAPTION_MODEL` (default `gpt-4o`)
 
 ### Success
-- Notes-only input produces a draft that only needs light Chris edits
-- Pair still saves as AI + final for training
+- Notes + Generate produces a draft without leaving the app
+- Pair still saves as notes + AI + final for training
 
 ---
 

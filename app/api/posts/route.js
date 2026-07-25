@@ -30,6 +30,7 @@ export async function GET() {
       postId: post.post_id,
       post_id: post.post_id,
       topic: post.topic,
+      notes: post.notes || null,
       aiVersion: post.ai_version,
       finalVersion: post.final_version,
       editCount: post.edit_count,

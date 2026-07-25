@@ -23,6 +23,7 @@ export default function EditPage() {
   const [edited, setEdited] = useState('');
   const [isLocked, setIsLocked] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -31,9 +32,47 @@ export default function EditPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  const handleGenerate = async () => {
+    if (isGenerating) return;
+
+    if (original.trim()) {
+      const replace = window.confirm('Replace the current AI draft with a new generate?');
+      if (!replace) return;
+    }
+
+    setIsGenerating(true);
+    setJustSaved(false);
+    try {
+      const res = await fetch('/api/caption/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: topic || 'Untitled',
+          notes,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to generate caption');
+      }
+      if (!data.caption?.trim()) {
+        throw new Error('Generate returned an empty caption');
+      }
+
+      setOriginal(data.caption);
+      setEdited('');
+      setIsLocked(false);
+      showToast('Draft ready — review it, then start editing final');
+    } catch (error) {
+      showToast(error.message, 'error');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleStartEditing = () => {
     if (!original.trim()) {
-      showToast('Paste an AI draft first', 'error');
+      showToast('Generate or paste an AI draft first', 'error');
       return;
     }
     setEdited(original);
@@ -56,6 +95,7 @@ export default function EditPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           topic: topic || 'Untitled',
+          notes,
           aiVersion: original,
           finalVersion: edited,
           editCount,
@@ -108,7 +148,7 @@ export default function EditPage() {
       <header className="header">
         <div className="header-main">
           <h1>Voice Workshop</h1>
-          <p>Notes in → caption out → copy to Keep for Michelle</p>
+          <p>Notes in → generate → edit final → copy to Keep for Michelle</p>
         </div>
       </header>
 
@@ -132,7 +172,7 @@ export default function EditPage() {
           </h2>
         </div>
         <div className="editor-field">
-          <label htmlFor="post-notes">Notes template (stays here while you work — not saved yet)</label>
+          <label htmlFor="post-notes">Notes template (saved with the pair when you log it)</label>
           <textarea
             id="post-notes"
             value={notes}
@@ -141,8 +181,25 @@ export default function EditPage() {
             spellCheck
           />
         </div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-          Photos stay in Google Keep. Use Claude or ChatGPT with these notes to draft the caption, then paste it below.
+        <div className="btn-group" style={{ marginTop: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleGenerate}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <>
+                <span className="loading-spinner" />
+                Generating...
+              </>
+            ) : (
+              '\u2728 Generate caption'
+            )}
+          </button>
+        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.75rem' }}>
+          Photos stay in Google Keep. Generate fills the AI draft below (or paste from ChatGPT/Claude if you prefer).
         </p>
       </div>
 
@@ -166,7 +223,7 @@ export default function EditPage() {
               id="ai-draft"
               value={original}
               onChange={(e) => setOriginal(e.target.value)}
-              placeholder="Paste the AI caption from Claude or ChatGPT..."
+              placeholder="Hit Generate caption, or paste a draft here..."
               disabled={isLocked}
               style={isLocked ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
             />
@@ -289,8 +346,8 @@ export default function EditPage() {
             </div>
             <span className="workflow-arrow">{'\u2192'}</span>
             <div className="workflow-step">
-              <span className="workflow-icon">{'\uD83D\uDCDD'}</span>
-              <span className="workflow-label">Notes + AI<br/>draft here</span>
+              <span className="workflow-icon">{'\u2728'}</span>
+              <span className="workflow-label">Notes +<br/>Generate</span>
             </div>
             <span className="workflow-arrow">{'\u2192'}</span>
             <div className="workflow-step">

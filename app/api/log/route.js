@@ -4,7 +4,7 @@ import { POST_ORIGINS } from '@/lib/post-origin';
 export async function POST(request) {
   try {
     const supabase = getServerSupabaseClient();
-    const { topic, aiVersion, finalVersion, editCount } = await request.json();
+    const { topic, notes, aiVersion, finalVersion, editCount } = await request.json();
 
     if (!aiVersion || !finalVersion) {
       return Response.json(
@@ -13,18 +13,34 @@ export async function POST(request) {
       );
     }
 
-    // Insert new post into Supabase
-    const { data, error } = await supabase
+    const insertPayload = {
+      topic: topic || 'Untitled',
+      ai_version: aiVersion,
+      final_version: finalVersion,
+      edit_count: editCount || 0,
+      origin: POST_ORIGINS.TRAINING_PAIR,
+    };
+
+    // notes column is additive; only send when provided so older DBs still insert
+    if (typeof notes === 'string' && notes.trim()) {
+      insertPayload.notes = notes;
+    }
+
+    // Insert new post into Supabase. If notes column not migrated yet, retry without it.
+    let { data, error } = await supabase
       .from('posts')
-      .insert({
-        topic: topic || 'Untitled',
-        ai_version: aiVersion,
-        final_version: finalVersion,
-        edit_count: editCount || 0,
-        origin: POST_ORIGINS.TRAINING_PAIR,
-      })
+      .insert(insertPayload)
       .select()
       .single();
+
+    if (error && insertPayload.notes != null && /notes/i.test(error.message || '')) {
+      delete insertPayload.notes;
+      ({ data, error } = await supabase
+        .from('posts')
+        .insert(insertPayload)
+        .select()
+        .single());
+    }
 
     if (error) {
       throw new Error(error.message);
@@ -36,6 +52,7 @@ export async function POST(request) {
       postId: data.post_id,
       post_id: data.post_id,
       topic: data.topic,
+      notes: data.notes || null,
       aiVersion: data.ai_version,
       finalVersion: data.final_version,
       editCount: data.edit_count,
