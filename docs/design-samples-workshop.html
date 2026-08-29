@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voice Workshop — Design Samples</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Board chrome (outside mockups) ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body.board {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: #111113;
+      color: #f4f4f5;
+      min-height: 100vh;
+    }
+    .board-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(17, 17, 19, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 1rem 1.5rem 0;
+    }
+    .board-header h1 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .board-header p {
+      color: #a1a1aa;
+      font-size: 0.875rem;
+      margin: 0.35rem 0 1rem;
+      max-width: 62ch;
+      line-height: 1.5;
+    }
+    .dir-tabs {
+      display: flex;
+      gap: 0.25rem;
+      overflow-x: auto;
+      padding-bottom: 0;
+    }
+    .dir-tab {
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: #a1a1aa;
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+    }
+    .dir-tab:hover { color: #e4e4e7; }
+    .dir-tab[aria-selected="true"] {
+      color: #fff;
+      border-bottom-color: #e1306c;
+    }
+    .board-body { padding: 1.5rem; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .brief {
+      max-width: 720px;
+      margin-bottom: 1.25rem;
+      padding: 1rem 1.15rem;
+      border-radius: 12px;
+      background: #1a1a1e;
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: #d4d4d8;
+    }
+    .brief strong { color: #fafafa; }
+    .brief ul { margin: 0.6rem 0 0 1.1rem; }
+    .brief li { margin: 0.25rem 0; }
+    .tokens {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .swatch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      color: #a1a1aa;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .swatch i {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.15);
+      display: block;
+    }
+
+    .frame {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.45);
+      min-height: 720px;
+    }
+    .mock {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: 720px;
+    }
+    @media (max-width: 900px) {
+      .mock { grid-template-columns: 1fr; }
+      .mock-side { display: none; }
+    }
+
+    /* Shared mock elements */
+    .mock-main { padding: 1.75rem 2rem 2.5rem; overflow: auto; }
+    .mock-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+    .mock-title { letter-spacing: -0.03em; margin-bottom: 0.35rem; }
+    .mock-sub { font-size: 0.9rem; margin-bottom: 1.25rem; line-height: 1.45; }
+    .field { margin-bottom: 1rem; }
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 500;
+      margin-bottom: 0.4rem;
+    }
+    .field input, .field textarea {
+      width: 100%;
+      font: inherit;
+      resize: vertical;
+    }
+    .field textarea { min-height: 120px; line-height: 1.6; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+    .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .card-h {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.85rem;
+    }
+    .card-h h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.55rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      margin: 0.15rem 0.5rem;
+    }
+    .nav-sec {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 1rem 1rem 0.4rem;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 1.15rem 1rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border-bottom: 1px solid transparent;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1.1rem;
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: none;
+      cursor: default;
+      border-radius: 10px;
+    }
+    .step-pill {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+    }
+    .hint { font-size: 0.8rem; margin-top: 0.65rem; line-height: 1.4; }
+    .diff-line {
+      font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+      font-size: 0.78rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      margin: 0.15rem 0;
+      white-space: pre-wrap;
+    }
+
+    /* ════════════ CURRENT ════════════ */
+    .d0 {
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: #080808;
+      color: #fafafa;
+    }
+    .d0 .mock-side {
+      background: #101012;
+      border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    .d0 .logo { border-bottom-color: rgba(255,255,255,0.08); color: #fafafa; }
+    .d0 .nav-sec { color: #777780; }
+    .d0 .nav-item { color: #b4b4b4; }
+    .d0 .nav-item.active {
+      background: linear-gradient(135deg, rgba(131,58,180,0.2), rgba(225,48,108,0.2));
+      color: #fff;
+      box-shadow: inset 0 0 0 1px rgba(225,48,108,0.3);
+    }
+    .d0 .mock-main {
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(131,58,180,0.15), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 60%, rgba(225,48,108,0.08), transparent),
+        #080808;
+    }
+    .d0 .mock-title {
+      font-size: 1.85rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #e1306c 50%, #833ab4 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .d0 .mock-sub { color: #9a9aa3; }
+    .d0 .mock-label { color: #9a9aa3; }
+    .d0 .field label { color: #9a9aa3; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; }
+    .d0 .field input, .d0 .field textarea {
+      background: #18181c;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      color: #fafafa;
+      padding: 0.85rem 1rem;
+    }
+    .d0 .card {
+      background: #141416;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 1.35rem;
+      margin-bottom: 1rem;
+    }
+    .d0 .step-pill {
+      background: linear-gradient(135deg, #833ab4, #e1306c);
+      color: #fff;
+      box-shadow: 0 0 20px rgba(225,48,108,0.3);
+    }
+    .d0 .btn-primary {
+      background: linear-gradient(135deg, #833ab4, #e1306c);
+      color: #fff;
+      box-shadow: 0 0 20px rgba(225,48,108,0.2);
+    }
+    .d0 .btn-success {
+      background: linear-gradient(135deg, #00b86b, #00d26a);
+      color: #fff;
+    }
+    .d0 .btn-secondary {
+      background: #18181c;
+      color: #b4b4b4;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .d0 .badge {
+      background: rgba(225,48,108,0.15);
+      color: #e1306c;
+    }
+    .d0 .hint { color: #9a9aa3; }
+    .d0 .diff-line.add { background: rgba(0,210,106,0.12); color: #00d26a; }
+    .d0 .diff-line.rem { background: rgba(255,71,87,0.12); color: #ff4757; }
+    .d0 .header-rule {
+      height: 2px;
+      width: 120px;
+      margin: 0 auto 1.5rem;
+      background: linear-gradient(90deg, #833ab4, #e1306c, #fd1d1d);
+      border-radius: 2px;
+    }
+    .d0 .header-block { text-align: center; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 1.5rem; padding-bottom: 1.25rem; position: relative; }
+    .d0 .header-block::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 2px;
+      background: linear-gradient(90deg, #833ab4, #e1306c, #fcb045);
+      border-radius: 2px;
+    }
+
+    /* ════════════ A: INK ROOM ════════════ */
+    .dA {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: #f3efe6;
+      color: #1c1917;
+    }
+    .dA .mock-side {
+      background: #1c1917;
+      color: #f5f0e8;
+      border-right: none;
+    }
+    .dA .logo {
+      color: #f5f0e8;
+      border-bottom-color: rgba(245,240,232,0.1);
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+    .dA .logo span.mark {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      background: #c45c4a;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: 'Fraunces', serif;
+      font-size: 0.9rem;
+      color: #fff;
+    }
+    .dA .nav-sec { color: rgba(245,240,232,0.4); }
+    .dA .nav-item { color: rgba(245,240,232,0.7); border-radius: 6px; }
+    .dA .nav-item.active {
+      background: rgba(196,92,74,0.2);
+      color: #f5f0e8;
+      box-shadow: inset 3px 0 0 #c45c4a;
+      border-radius: 0 6px 6px 0;
+      margin-left: 0;
+      padding-left: calc(0.75rem + 3px);
+    }
+    .dA .mock-main { background: #f3efe6; }
+    .dA .mock-title {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 2rem;
+      font-weight: 600;
+      color: #1c1917;
+      letter-spacing: -0.02em;
+    }
+    .dA .mock-sub { color: #57534e; max-width: 48ch; }
+    .dA .mock-label { color: #78716c; font-family: 'IBM Plex Mono', monospace; font-weight: 500; }
+    .dA .field label {
+      color: #57534e;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .dA .field input, .dA .field textarea {
+      background: #faf7f0;
+      border: 1px solid #d6d0c4;
+      border-radius: 4px;
+      color: #1c1917;
+      padding: 0.8rem 0.95rem;
+      box-shadow: inset 0 1px 2px rgba(28,25,23,0.04);
+    }
+    .dA .field textarea {
+      background-image: repeating-linear-gradient(
+        transparent,
+        transparent 1.55rem,
+        rgba(196,92,74,0.08) 1.55rem,
+        rgba(196,92,74,0.08) calc(1.55rem + 1px)
+      );
+      background-attachment: local;
+      line-height: 1.6;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .dA .card {
+      background: #faf7f0;
+      border: 1px solid #d6d0c4;
+      border-radius: 4px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 0 rgba(28,25,23,0.04);
+    }
+    .dA .card-h h3 { font-family: 'Fraunces', serif; font-weight: 600; }
+    .dA .step-pill {
+      background: transparent;
+      border: 1.5px solid #1c1917;
+      color: #1c1917;
+      border-radius: 4px;
+      width: 22px;
+      height: 22px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .dA .btn { border-radius: 4px; }
+    .dA .btn-primary { background: #c45c4a; color: #fff; }
+    .dA .btn-success { background: #1c1917; color: #faf7f0; }
+    .dA .btn-secondary {
+      background: transparent;
+      color: #57534e;
+      border: 1px solid #d6d0c4;
+    }
+    .dA .badge {
+      background: #1c1917;
+      color: #faf7f0;
+      border-radius: 3px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+    }
+    .dA .hint { color: #78716c; }
+    .dA .diff-line {
+      font-family: 'IBM Plex Mono', monospace;
+      border-left: 3px solid transparent;
+      border-radius: 0;
+    }
+    .dA .diff-line.add { background: #e8f0e6; color: #2f5d3a; border-left-color: #3d7a4a; }
+    .dA .diff-line.rem { background: #f5e8e6; color: #8b3a32; border-left-color: #c45c4a; text-decoration: line-through; }
+    .dA .masthead {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 2px solid #1c1917;
+      padding-bottom: 1rem;
+      margin-bottom: 1.5rem;
+      gap: 1rem;
+    }
+    .dA .masthead-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      color: #78716c;
+      text-align: right;
+      line-height: 1.5;
+    }
+
+    /* ════════════ B: NIGHT DESK ════════════ */
+    .dB {
+      font-family: 'Instrument Sans', system-ui, sans-serif;
+      background: #0e1014;
+      color: #e8eaed;
+    }
+    .dB .mock-side {
+      background: #0a0c10;
+      border-right: 1px solid #1e232c;
+      width: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem 0;
+      gap: 0.35rem;
+    }
+    .dB .mock { grid-template-columns: 64px 1fr; }
+    .dB .logo {
+      border: none;
+      padding: 0 0 1rem;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #f0a020;
+      color: #0a0c10;
+      font-weight: 700;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.5rem;
+    }
+    .dB .nav-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6b7280;
+      font-size: 1.05rem;
+      background: transparent;
+    }
+    .dB .nav-icon.active {
+      background: #161a22;
+      color: #f0a020;
+      box-shadow: inset 0 0 0 1px #2a3140;
+    }
+    .dB .mock-main { background: #0e1014; padding: 1.5rem 2rem 2rem; }
+    .dB .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      gap: 1rem;
+    }
+    .dB .mock-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #f3f4f6;
+      letter-spacing: -0.03em;
+    }
+    .dB .mock-sub { color: #8b929e; margin: 0; font-size: 0.85rem; }
+    .dB .stage {
+      display: flex;
+      gap: 0;
+      background: #161a22;
+      border: 1px solid #252b36;
+      border-radius: 10px;
+      padding: 0.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .dB .stage span {
+      flex: 1;
+      text-align: center;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #6b7280;
+      border-radius: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.02em;
+    }
+    .dB .stage span.on {
+      background: #0e1014;
+      color: #f0a020;
+      box-shadow: 0 1px 0 #252b36;
+    }
+    .dB .field label {
+      color: #8b929e;
+      font-size: 0.75rem;
+      font-weight: 500;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .dB .field input, .dB .field textarea {
+      background: #12151c;
+      border: 1px solid #252b36;
+      border-radius: 10px;
+      color: #e8eaed;
+      padding: 0.75rem 0.9rem;
+    }
+    .dB .field input:focus, .dB .field textarea:focus {
+      outline: none;
+      border-color: #f0a020;
+      box-shadow: 0 0 0 3px rgba(240,160,32,0.15);
+    }
+    .dB .card {
+      background: #12151c;
+      border: 1px solid #252b36;
+      border-radius: 12px;
+      padding: 1.15rem;
+      margin-bottom: 0.85rem;
+    }
+    .dB .card-h h3 { font-size: 0.88rem; font-weight: 600; color: #e8eaed; }
+    .dB .step-pill {
+      background: transparent;
+      border: 1px solid #3a4252;
+      color: #8b929e;
+      font-family: 'IBM Plex Mono', monospace;
+      border-radius: 6px;
+      width: 22px; height: 22px;
+      font-size: 0.7rem;
+    }
+    .dB .step-pill.on { border-color: #f0a020; color: #f0a020; }
+    .dB .btn { border-radius: 8px; font-weight: 600; }
+    .dB .btn-primary { background: #f0a020; color: #0a0c10; }
+    .dB .btn-success { background: #1a3d2e; color: #4ade80; border: 1px solid #245c40; }
+    .dB .btn-secondary {
+      background: transparent;
+      color: #8b929e;
+      border: 1px solid #252b36;
+    }
+    .dB .badge {
+      background: #1a3d2e;
+      color: #4ade80;
+      border: 1px solid #245c40;
+      border-radius: 6px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .dB .hint { color: #6b7280; }
+    .dB .diff-line {
+      font-family: 'IBM Plex Mono', monospace;
+      background: #0a0c10;
+      border-radius: 4px;
+    }
+    .dB .diff-line.add { color: #4ade80; }
+    .dB .diff-line.rem { color: #f87171; }
+    .dB .kpi {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .dB .kpi div {
+      flex: 1;
+      background: #12151c;
+      border: 1px solid #252b36;
+      border-radius: 10px;
+      padding: 0.65rem 0.85rem;
+    }
+    .dB .kpi strong {
+      display: block;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #f3f4f6;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .dB .kpi span {
+      font-size: 0.7rem;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* ════════════ C: GALLERY LIGHT ════════════ */
+    .dC {
+      font-family: 'Instrument Sans', system-ui, sans-serif;
+      background: #f7f6f3;
+      color: #1a1a1a;
+    }
+    .dC .mock-side {
+      background: #fff;
+      border-right: 1px solid #e5e2db;
+    }
+    .dC .logo {
+      color: #1a1a1a;
+      border-bottom-color: #e5e2db;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .dC .logo .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #5b6cff;
+      box-shadow: 0 0 0 3px rgba(91,108,255,0.2);
+    }
+    .dC .nav-sec { color: #9a958c; }
+    .dC .nav-item { color: #5c5952; border-radius: 10px; }
+    .dC .nav-item.active {
+      background: #eef0ff;
+      color: #3d4ad6;
+      font-weight: 600;
+    }
+    .dC .mock-main { background: #f7f6f3; }
+    .dC .mock-title {
+      font-size: 1.65rem;
+      font-weight: 700;
+      letter-spacing: -0.035em;
+      color: #121212;
+    }
+    .dC .mock-sub { color: #6b6660; }
+    .dC .field label { color: #6b6660; font-size: 0.8rem; font-weight: 500; }
+    .dC .field input, .dC .field textarea {
+      background: #fff;
+      border: 1px solid #e0dbd2;
+      border-radius: 14px;
+      color: #1a1a1a;
+      padding: 0.85rem 1rem;
+      box-shadow: 0 1px 2px rgba(26,26,26,0.03);
+    }
+    .dC .card {
+      background: #fff;
+      border: 1px solid #e5e2db;
+      border-radius: 18px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 8px rgba(26,26,26,0.03);
+    }
+    .dC .card-h h3 { font-size: 0.95rem; font-weight: 600; }
+    .dC .step-pill {
+      background: #eef0ff;
+      color: #3d4ad6;
+      border-radius: 8px;
+      width: 26px; height: 26px;
+      font-weight: 700;
+    }
+    .dC .btn { border-radius: 12px; font-weight: 600; }
+    .dC .btn-primary {
+      background: #5b6cff;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(91,108,255,0.25);
+    }
+    .dC .btn-success { background: #121212; color: #fff; }
+    .dC .btn-secondary {
+      background: #fff;
+      color: #5c5952;
+      border: 1px solid #e0dbd2;
+    }
+    .dC .badge {
+      background: #eef0ff;
+      color: #3d4ad6;
+      border-radius: 8px;
+    }
+    .dC .hint { color: #8a847a; }
+    .dC .diff-line {
+      border-radius: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .dC .diff-line.add { background: #e9f7ef; color: #1b6b3a; }
+    .dC .diff-line.rem { background: #fdecee; color: #a1283a; }
+    .dC .flow {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.35rem;
+      flex-wrap: wrap;
+    }
+    .dC .flow i {
+      font-style: normal;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid #e0dbd2;
+      color: #6b6660;
+    }
+    .dC .flow i.on {
+      background: #121212;
+      border-color: #121212;
+      color: #fff;
+    }
+    .dC .flow i.done {
+      background: #eef0ff;
+      border-color: transparent;
+      color: #3d4ad6;
+    }
+
+    .verdict {
+      margin-top: 1.5rem;
+      max-width: 760px;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: #a1a1aa;
+    }
+    .verdict h2 {
+      font-size: 0.95rem;
+      color: #fafafa;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body class="board">
+  <header class="board-header">
+    <h1>Voice Workshop — design samples</h1>
+    <p>
+      Static mockups of the main Workshop screen only. Same workflow content in each:
+      notes → generate → AI draft → final caption. Pick a direction; implementation
+      stays scoped to tokens + a few layout refinements, not a rebuild.
+    </p>
+    <div class="dir-tabs" role="tablist">
+      <button class="dir-tab" role="tab" aria-selected="true" data-panel="p0">0 · Current</button>
+      <button class="dir-tab" role="tab" aria-selected="false" data-panel="pA">A · Ink Room</button>
+      <button class="dir-tab" role="tab" aria-selected="false" data-panel="pB">B · Night Desk</button>
+      <button class="dir-tab" role="tab" aria-selected="false" data-panel="pC">C · Gallery Light</button>
+      <button class="dir-tab" role="tab" aria-selected="false" data-panel="pR">Compare</button>
+    </div>
+  </header>
+
+  <div class="board-body">
+
+    <!-- CURRENT -->
+    <section id="p0" class="panel active" role="tabpanel">
+      <div class="brief">
+        <strong>Current (baseline)</strong> — Dark Instagram-gradient skin. Outfit type,
+        purple→pink CTAs, glow on steps and buttons, centred gradient title with shimmer.
+        Reads as “social dashboard,” not “writing studio.” Competent, but the IG rainbow
+        competes with the actual job: refining captions.
+        <div class="tokens">
+          <span class="swatch"><i style="background:#080808"></i>#080808</span>
+          <span class="swatch"><i style="background:#141416"></i>#141416</span>
+          <span class="swatch"><i style="background:#e1306c"></i>#e1306c</span>
+          <span class="swatch"><i style="background:#833ab4"></i>#833ab4</span>
+          <span class="swatch"><i style="background:#00d26a"></i>#00d26a</span>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="mock d0">
+          <aside class="mock-side">
+            <div class="logo">📝 Voice Workshop</div>
+            <div class="nav-sec">Voice</div>
+            <div class="nav-item active">✏️ Workshop</div>
+            <div class="nav-item">📚 History</div>
+            <div style="flex:1"></div>
+            <div class="nav-item" style="margin-top:auto">⚙️ Settings</div>
+          </aside>
+          <main class="mock-main">
+            <div class="header-block">
+              <h1 class="mock-title">Voice Workshop</h1>
+              <p class="mock-sub">Notes in → generate → edit final → copy to Keep for Michelle</p>
+            </div>
+            <div class="field">
+              <label>Topic</label>
+              <input value="Berry and Rye — Saturday brunch" readonly />
+            </div>
+            <div class="card">
+              <div class="card-h">
+                <h3><span class="step-pill">1</span> Notes</h3>
+              </div>
+              <div class="field">
+                <label>Notes template</label>
+                <textarea readonly rows="5">VENUE: Berry and Rye
+WHERE: Hebden Bridge
+TYPE: Feed post
+GIFTED: No
+HAD: Sourdough, soft eggs, strong coffee
+LEAD ON: The queue was worth it
+HONEST NOTE: A bit loud but the plate was perfect</textarea>
+              </div>
+              <div class="row">
+                <span class="btn btn-primary">✨ Generate caption</span>
+              </div>
+              <p class="hint">Photos stay in Google Keep. Generate fills the AI draft below.</p>
+            </div>
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-h">
+                  <h3><span class="step-pill">2</span> AI Draft</h3>
+                  <span class="badge">🔒 Locked</span>
+                </div>
+                <div class="field">
+                  <label>AI-generated draft</label>
+                  <textarea readonly rows="6" style="opacity:0.65">Saturday brunch at Berry and Rye hit different. Soft eggs, proper sourdough, coffee that actually tastes like coffee. Hebden Bridge doing what it does best ✨</textarea>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-h">
+                  <h3><span class="step-pill">3</span> Final caption</h3>
+                </div>
+                <div class="field">
+                  <label>Your final caption</label>
+                  <textarea readonly rows="6">Brunch at Berry and Rye. Soft eggs, proper sourdough, coffee that tastes like coffee. Queue was worth it — Hebden on a Saturday.</textarea>
+                </div>
+                <div class="row">
+                  <span class="btn btn-success">💾 Save pair</span>
+                  <span class="btn btn-primary">📋 Copy final for Keep</span>
+                  <span class="btn btn-secondary">🔄 New post</span>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-h">
+                <h3>📊 Your changes</h3>
+                <span class="badge">✏️ 3 edits</span>
+              </div>
+              <div class="diff-line rem">− Saturday brunch at Berry and Rye hit different.</div>
+              <div class="diff-line add">+ Brunch at Berry and Rye.</div>
+              <div class="diff-line rem">− Hebden Bridge doing what it does best ✨</div>
+              <div class="diff-line add">+ Queue was worth it — Hebden on a Saturday.</div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- A: INK ROOM -->
+    <section id="pA" class="panel" role="tabpanel">
+      <div class="brief">
+        <strong>A · Ink Room</strong> — Editorial writing desk. Warm paper, charcoal ink,
+        berry accent (food-adjacent without Instagram neon). Fraunces for titles, mono
+        labels, ruled textareas. Dark sidebar as a “spine.” Signature: manuscript feel —
+        this is a place you write, not a metrics cockpit.
+        <div class="tokens">
+          <span class="swatch"><i style="background:#f3efe6"></i>#f3efe6</span>
+          <span class="swatch"><i style="background:#faf7f0"></i>#faf7f0</span>
+          <span class="swatch"><i style="background:#1c1917"></i>#1c1917</span>
+          <span class="swatch"><i style="background:#c45c4a"></i>#c45c4a</span>
+          <span class="swatch"><i style="background:#d6d0c4"></i>#d6d0c4</span>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="mock dA">
+          <aside class="mock-side">
+            <div class="logo"><span class="mark">V</span> Voice</div>
+            <div class="nav-sec">Workshop</div>
+            <div class="nav-item active">Workshop</div>
+            <div class="nav-item">History</div>
+            <div style="flex:1;min-height:2rem"></div>
+            <div class="nav-item">Settings</div>
+            <div class="nav-item">Sign out</div>
+          </aside>
+          <main class="mock-main">
+            <div class="masthead">
+              <div>
+                <div class="mock-label">Daily loop</div>
+                <h1 class="mock-title">Voice Workshop</h1>
+                <p class="mock-sub">Notes in, generate, edit to your voice, copy final to Keep for Michelle.</p>
+              </div>
+              <div class="masthead-meta">
+                PAIR NOT SAVED<br />
+                3 EDITS DRAFTED
+              </div>
+            </div>
+            <div class="field">
+              <label>Topic</label>
+              <input value="Berry and Rye — Saturday brunch" readonly />
+            </div>
+            <div class="card">
+              <div class="card-h">
+                <h3><span class="step-pill">1</span> Notes</h3>
+              </div>
+              <div class="field">
+                <label>Notes template</label>
+                <textarea readonly rows="5">VENUE: Berry and Rye
+WHERE: Hebden Bridge
+TYPE: Feed post
+GIFTED: No
+HAD: Sourdough, soft eggs, strong coffee
+LEAD ON: The queue was worth it
+HONEST NOTE: A bit loud but the plate was perfect</textarea>
+              </div>
+              <div class="row">
+                <span class="btn btn-primary">Generate caption</span>
+              </div>
+              <p class="hint">Photos stay in Keep. Generate fills the AI draft — or paste from ChatGPT if you prefer.</p>
+            </div>
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-h">
+                  <h3><span class="step-pill">2</span> AI draft</h3>
+                  <span class="badge">Locked</span>
+                </div>
+                <div class="field">
+                  <label>AI-generated draft</label>
+                  <textarea readonly rows="6" style="opacity:0.7">Saturday brunch at Berry and Rye hit different. Soft eggs, proper sourdough, coffee that actually tastes like coffee. Hebden Bridge doing what it does best ✨</textarea>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-h">
+                  <h3><span class="step-pill">3</span> Final caption</h3>
+                </div>
+                <div class="field">
+                  <label>What Michelle posts</label>
+                  <textarea readonly rows="6">Brunch at Berry and Rye. Soft eggs, proper sourdough, coffee that tastes like coffee. Queue was worth it — Hebden on a Saturday.</textarea>
+                </div>
+                <div class="row">
+                  <span class="btn btn-success">Save pair</span>
+                  <span class="btn btn-primary">Copy final for Keep</span>
+                  <span class="btn btn-secondary">New post</span>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-h">
+                <h3>Your changes</h3>
+                <span class="badge">3 edits</span>
+              </div>
+              <div class="diff-line rem">− Saturday brunch at Berry and Rye hit different.</div>
+              <div class="diff-line add">+ Brunch at Berry and Rye.</div>
+              <div class="diff-line rem">− Hebden Bridge doing what it does best ✨</div>
+              <div class="diff-line add">+ Queue was worth it — Hebden on a Saturday.</div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- B: NIGHT DESK -->
+    <section id="pB" class="panel" role="tabpanel">
+      <div class="brief">
+        <strong>B · Night Desk</strong> — Refined dark without Instagram rainbow. Icon rail
+        sidebar, amber craft accent (workshop lamp), mono stage strip for the loop.
+        Less glow, more precision. Signature: stage control (Notes / Draft / Final) as the
+        primary orienting device — optimised for repeated daily use at night.
+        <div class="tokens">
+          <span class="swatch"><i style="background:#0e1014"></i>#0e1014</span>
+          <span class="swatch"><i style="background:#12151c"></i>#12151c</span>
+          <span class="swatch"><i style="background:#252b36"></i>#252b36</span>
+          <span class="swatch"><i style="background:#f0a020"></i>#f0a020</span>
+          <span class="swatch"><i style="background:#4ade80"></i>#4ade80</span>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="mock dB">
+          <aside class="mock-side">
+            <div class="logo">V</div>
+            <div class="nav-icon active" title="Workshop">✎</div>
+            <div class="nav-icon" title="History">☰</div>
+            <div style="flex:1"></div>
+            <div class="nav-icon" title="Settings">⚙</div>
+          </aside>
+          <main class="mock-main">
+            <div class="topbar">
+              <div>
+                <h1 class="mock-title">Workshop</h1>
+                <p class="mock-sub">Berry and Rye — Saturday brunch</p>
+              </div>
+              <div class="row">
+                <span class="btn btn-secondary">New post</span>
+                <span class="btn btn-primary">Copy for Keep</span>
+              </div>
+            </div>
+            <div class="stage">
+              <span class="on">01 Notes</span>
+              <span>02 Draft</span>
+              <span>03 Final</span>
+              <span>04 Diff</span>
+            </div>
+            <div class="kpi">
+              <div><strong>3</strong><span>Edits</span></div>
+              <div><strong>—</strong><span>Saved</span></div>
+              <div><strong>Lock</strong><span>Draft state</span></div>
+            </div>
+            <div class="card">
+              <div class="card-h">
+                <h3><span class="step-pill on">1</span> Notes</h3>
+              </div>
+              <div class="field">
+                <label>Topic</label>
+                <input value="Berry and Rye — Saturday brunch" readonly />
+              </div>
+              <div class="field">
+                <label>Notes</label>
+                <textarea readonly rows="4">VENUE: Berry and Rye · WHERE: Hebden Bridge · TYPE: Feed
+HAD: Sourdough, soft eggs, strong coffee
+LEAD ON: The queue was worth it
+HONEST NOTE: A bit loud but the plate was perfect</textarea>
+              </div>
+              <div class="row">
+                <span class="btn btn-primary">Generate caption</span>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-h">
+                  <h3><span class="step-pill">2</span> AI draft</h3>
+                  <span class="badge">locked</span>
+                </div>
+                <div class="field">
+                  <label>Locked original</label>
+                  <textarea readonly rows="5" style="opacity:0.7">Saturday brunch at Berry and Rye hit different. Soft eggs, proper sourdough, coffee that actually tastes like coffee. Hebden Bridge doing what it does best ✨</textarea>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-h">
+                  <h3><span class="step-pill on">3</span> Final</h3>
+                </div>
+                <div class="field">
+                  <label>Your voice</label>
+                  <textarea readonly rows="5">Brunch at Berry and Rye. Soft eggs, proper sourdough, coffee that tastes like coffee. Queue was worth it — Hebden on a Saturday.</textarea>
+                </div>
+                <div class="row">
+                  <span class="btn btn-success">Save pair</span>
+                  <span class="btn btn-secondary">Reset</span>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-h">
+                <h3>Diff</h3>
+                <span class="badge">3</span>
+              </div>
+              <div class="diff-line rem">− Saturday brunch at Berry and Rye hit different.</div>
+              <div class="diff-line add">+ Brunch at Berry and Rye.</div>
+              <div class="diff-line rem">− Hebden Bridge doing what it does best ✨</div>
+              <div class="diff-line add">+ Queue was worth it — Hebden on a Saturday.</div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- C: GALLERY LIGHT -->
+    <section id="pC" class="panel" role="tabpanel">
+      <div class="brief">
+        <strong>C · Gallery Light</strong> — Soft daylight product UI. Warm off-white canvas,
+        white cards, periwinkle accent (deliberately not IG pink). Airy radius, calm hierarchy.
+        Signature: pill flow tracker + black “commit” actions. Closest to a modern SaaS tool
+        if this ever goes multi-user — still distinct from the neon baseline.
+        <div class="tokens">
+          <span class="swatch"><i style="background:#f7f6f3"></i>#f7f6f3</span>
+          <span class="swatch"><i style="background:#ffffff"></i>#ffffff</span>
+          <span class="swatch"><i style="background:#5b6cff"></i>#5b6cff</span>
+          <span class="swatch"><i style="background:#121212"></i>#121212</span>
+          <span class="swatch"><i style="background:#e5e2db"></i>#e5e2db</span>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="mock dC">
+          <aside class="mock-side">
+            <div class="logo"><span class="dot"></span> Voice Workshop</div>
+            <div class="nav-sec">Voice</div>
+            <div class="nav-item active">Workshop</div>
+            <div class="nav-item">History</div>
+            <div style="flex:1;min-height:2rem"></div>
+            <div class="nav-item">Settings</div>
+          </aside>
+          <main class="mock-main">
+            <h1 class="mock-title">Workshop</h1>
+            <p class="mock-sub">Notes → generate → edit final → copy to Keep for Michelle</p>
+            <div class="flow">
+              <i class="done">1 Notes</i>
+              <i class="done">2 Draft</i>
+              <i class="on">3 Final</i>
+              <i>4 Save</i>
+            </div>
+            <div class="field">
+              <label>Topic</label>
+              <input value="Berry and Rye — Saturday brunch" readonly />
+            </div>
+            <div class="card">
+              <div class="card-h">
+                <h3><span class="step-pill">1</span> Notes</h3>
+              </div>
+              <div class="field">
+                <label>Notes template</label>
+                <textarea readonly rows="4">VENUE: Berry and Rye
+WHERE: Hebden Bridge
+TYPE: Feed post
+HAD: Sourdough, soft eggs, strong coffee
+LEAD ON: The queue was worth it</textarea>
+              </div>
+              <div class="row">
+                <span class="btn btn-primary">Generate caption</span>
+              </div>
+              <p class="hint">Photos stay in Google Keep. Generate fills the AI draft below.</p>
+            </div>
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-h">
+                  <h3><span class="step-pill">2</span> AI draft</h3>
+                  <span class="badge">Locked</span>
+                </div>
+                <div class="field">
+                  <label>AI-generated draft</label>
+                  <textarea readonly rows="5" style="opacity:0.65">Saturday brunch at Berry and Rye hit different. Soft eggs, proper sourdough, coffee that actually tastes like coffee. Hebden Bridge doing what it does best ✨</textarea>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-h">
+                  <h3><span class="step-pill">3</span> Final caption</h3>
+                </div>
+                <div class="field">
+                  <label>Your final caption</label>
+                  <textarea readonly rows="5">Brunch at Berry and Rye. Soft eggs, proper sourdough, coffee that tastes like coffee. Queue was worth it — Hebden on a Saturday.</textarea>
+                </div>
+                <div class="row">
+                  <span class="btn btn-success">Save pair</span>
+                  <span class="btn btn-primary">Copy final for Keep</span>
+                  <span class="btn btn-secondary">New post</span>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-h">
+                <h3>Your changes</h3>
+                <span class="badge">3 edits</span>
+              </div>
+              <div class="diff-line rem">− Saturday brunch at Berry and Rye hit different.</div>
+              <div class="diff-line add">+ Brunch at Berry and Rye.</div>
+              <div class="diff-line rem">− Hebden Bridge doing what it does best ✨</div>
+              <div class="diff-line add">+ Queue was worth it — Hebden on a Saturday.</div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPARE -->
+    <section id="pR" class="panel" role="tabpanel">
+      <div class="brief">
+        <strong>How to decide</strong> — Ignore decoration. Ask which room you’d want to
+        open at 9pm to write three captions. The winner is the one that makes the draft/final
+        split feel obvious and calm.
+      </div>
+      <div class="brief" style="margin-top:0.75rem">
+        <table style="width:100%;border-collapse:collapse;font-size:0.88rem">
+          <thead>
+            <tr style="text-align:left;color:#fafafa">
+              <th style="padding:0.4rem 0.5rem 0.6rem 0;border-bottom:1px solid rgba(255,255,255,0.1)">Axis</th>
+              <th style="padding:0.4rem 0.5rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.1)">Current</th>
+              <th style="padding:0.4rem 0.5rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.1)">A Ink</th>
+              <th style="padding:0.4rem 0.5rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.1)">B Night</th>
+              <th style="padding:0.4rem 0.5rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.1)">C Gallery</th>
+            </tr>
+          </thead>
+          <tbody style="color:#d4d4d8">
+            <tr>
+              <td style="padding:0.55rem 0.5rem 0.55rem 0;border-bottom:1px solid rgba(255,255,255,0.06)">Mood</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Social neon</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Editorial desk</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Craft console</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Calm product</td>
+            </tr>
+            <tr>
+              <td style="padding:0.55rem 0.5rem 0.55rem 0;border-bottom:1px solid rgba(255,255,255,0.06)">Light</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Dark</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Light warm</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Dark cool</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Light soft</td>
+            </tr>
+            <tr>
+              <td style="padding:0.55rem 0.5rem 0.55rem 0;border-bottom:1px solid rgba(255,255,255,0.06)">Accent</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">IG pink/purple</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Berry</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Amber</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Periwinkle</td>
+            </tr>
+            <tr>
+              <td style="padding:0.55rem 0.5rem 0.55rem 0;border-bottom:1px solid rgba(255,255,255,0.06)">Type</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Outfit</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Fraunces + DM Sans</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Instrument + Mono</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Instrument Sans</td>
+            </tr>
+            <tr>
+              <td style="padding:0.55rem 0.5rem 0.55rem 0;border-bottom:1px solid rgba(255,255,255,0.06)">Risk</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Generic IG clone</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Too “blog theme”</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Feels sparse if nav grows</td>
+              <td style="padding:0.55rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">Could feel SaaS-generic</td>
+            </tr>
+            <tr>
+              <td style="padding:0.55rem 0.5rem 0.55rem 0">Best if…</td>
+              <td style="padding:0.55rem 0.5rem">You want zero change</td>
+              <td style="padding:0.55rem 0.5rem">Writing is the product</td>
+              <td style="padding:0.55rem 0.5rem">You keep dark + want focus</td>
+              <td style="padding:0.55rem 0.5rem">Daytime use / multi-user later</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="verdict">
+        <h2>My read</h2>
+        <p>
+          Current over-indexes on Instagram brand chrome for a tool whose real job is
+          <em>voice</em>, not reach charts. For this workshop-first build I’d pick
+          <strong style="color:#fff">A (Ink Room)</strong> if you want the product to feel
+          like a personal writing practice, or <strong style="color:#fff">B (Night Desk)</strong>
+          if you want to stay dark and just strip the neon. C is the safest “product polish”
+          option if the app grows back toward dashboards.
+        </p>
+        <p style="margin-top:0.75rem">
+          Say A, B, C, a hybrid (e.g. “B colours + A typography”), or “keep current with X fixed”
+          and I’ll implement tokens + Workshop page refinements only.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const tabs = document.querySelectorAll('.dir-tab');
+    const panels = document.querySelectorAll('.panel');
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        tabs.forEach((t) => t.setAttribute('aria-selected', 'false'));
+        panels.forEach((p) => p.classList.remove('active'));
+        tab.setAttribute('aria-selected', 'true');
+        document.getElementById(tab.dataset.panel).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
