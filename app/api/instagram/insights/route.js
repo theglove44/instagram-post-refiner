@@ -125,12 +125,14 @@ export async function GET(request) {
         `${baseUrl}?fields=id,username,profile_picture_url,followers_count,follows_count,media_count,biography`,
         accessToken
       ),
+      // Graph API v24+ only supports period=day for account insights —
+      // days_28 was removed. Values are daily, not 28-day rolling totals.
       graphFetch(
-        `${baseUrl}/insights?metric=reach&period=days_28`,
+        `${baseUrl}/insights?metric=reach&period=day`,
         accessToken
       ),
       graphFetch(
-        `${baseUrl}/insights?metric=accounts_engaged&period=days_28`,
+        `${baseUrl}/insights?metric=accounts_engaged&period=day`,
         accessToken
       ),
       graphFetch(

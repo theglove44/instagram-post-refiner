@@ -34,7 +34,7 @@ shape of the app, recount rather than editing these numbers to look right.
 | React | 19.2.7 | UI components |
 | Supabase JS | 2.86.0 | PostgreSQL, Auth, Storage, Row Level Security |
 | Supabase SSR | 0.8.0 | Cookie-based server authentication |
-| Instagram Graph API | v21.0 | Post metrics, account insights, Stories |
+| Instagram Graph API | v24.0 | Post metrics, account insights, Stories |
 | Vercel Analytics | 2.0.1 | Web Vitals |
 | Jest | 30.2.0 | Unit tests |
 
