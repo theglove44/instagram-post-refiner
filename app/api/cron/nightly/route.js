@@ -93,6 +93,19 @@ export async function GET(request) {
       results.mentionSync = err.message;
     }
 
+    // 6. v24 media insights: views follow split + Reel watch metrics
+    try {
+      const mediaInsightsRes = await fetch(`${origin}/api/cron/media-insights`, {
+        headers: cronHeaders,
+      });
+      const mediaInsightsData = await mediaInsightsRes.json();
+      results.mediaInsights = mediaInsightsData.success
+        ? { reelsSynced: mediaInsightsData.reelsSynced, reelsFailed: mediaInsightsData.reelsFailed }
+        : mediaInsightsData.error;
+    } catch (err) {
+      results.mediaInsights = err.message;
+    }
+
     console.log('Nightly cron completed:', JSON.stringify(results));
     return Response.json({ success: true, results });
   } catch (error) {
