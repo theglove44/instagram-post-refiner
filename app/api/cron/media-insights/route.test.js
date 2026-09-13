@@ -1,6 +1,6 @@
 import { GET } from './route';
 import { getServerSupabaseClient } from '@/lib/supabase-server';
-import { getViewsFollowBreakdown, getReelEnhancedInsights } from '@/lib/instagram';
+import { getViewsFollowBreakdown, getReelEnhancedInsights, getStoriesWithInsights } from '@/lib/instagram';
 
 jest.mock('@/lib/supabase-server', () => ({
   getServerSupabaseClient: jest.fn(),
@@ -8,6 +8,7 @@ jest.mock('@/lib/supabase-server', () => ({
 jest.mock('@/lib/instagram', () => ({
   getViewsFollowBreakdown: jest.fn(),
   getReelEnhancedInsights: jest.fn(),
+  getStoriesWithInsights: jest.fn(),
   getTokenExpiryDate: jest.fn(() => '2026-12-01T00:00:00.000Z'),
 }));
 
@@ -62,10 +63,20 @@ const VIEWS_SPLIT = {
   expiresIn: null,
 };
 
+const STORIES = {
+  stories: [
+    { id: 'story-1', mediaType: 'VIDEO', timestamp: '2026-09-12T21:28:35+0000', insights: { views: 13, reach: 13, replies: 0, navigation: 13, profile_activity: 0, follows: 0 } },
+    { id: 'story-2', mediaType: 'VIDEO', timestamp: '2026-09-12T20:37:53+0000', insights: { views: 15, reach: 15, replies: 1, navigation: 14, profile_activity: 1, follows: 0 } },
+  ],
+  newToken: null,
+  expiresIn: null,
+};
+
 describe('media-insights cron', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     getViewsFollowBreakdown.mockResolvedValue(VIEWS_SPLIT);
+    getStoriesWithInsights.mockResolvedValue(STORIES);
   });
 
   test('returns 400 when no Instagram account is connected', async () => {
@@ -106,11 +117,15 @@ describe('media-insights cron', () => {
     expect(getReelEnhancedInsights).toHaveBeenCalledTimes(1);
     expect(getReelEnhancedInsights).toHaveBeenCalledWith('tok', 'reel-1');
 
-    // two upserts: one daily split, one reel
+    // three upserts: daily split, one reel, two stories
     const upserts = client.from('account_insights_cache').upsert.mock.calls;
-    expect(upserts).toHaveLength(2);
+    expect(upserts).toHaveLength(4);
     expect(upserts[0][0].insight_type).toMatch(/^views_follow_split:\d{4}-\d{2}-\d{2}$/);
     expect(upserts[1][0].insight_type).toBe('reel_insights:reel-1');
+    expect(upserts[2][0].insight_type).toBe('story_insights:story-1');
+    expect(upserts[3][0].insight_type).toBe('story_insights:story-2');
+    expect(upserts[2][0].data.views).toBe(13);
+    expect(body.storiesSynced).toBe(2);
   });
 
   test('returns 502 when the views split call fails against Meta', async () => {
@@ -140,6 +155,18 @@ describe('media-insights cron', () => {
     expect(response.status).toBe(200);
     expect(body.reelsSynced).toBe(0);
     expect(body.reelsFailed).toBe(1);
+  });
+
+  test('stories failing does not abort the run', async () => {
+    const client = makeClient({ accounts: [{ access_token: 'tok', instagram_user_id: 'ig-1' }], recentPosts: [], metricRows: [] });
+    getServerSupabaseClient.mockReturnValue(client);
+    getStoriesWithInsights.mockRejectedValue(new Error('stories gone'));
+    const response = await GET({ url: 'http://localhost:3000/api/cron/media-insights' });
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.storiesError).toMatch(/stories gone/);
+    expect(body.viewsSplit.totalViews).toBe(3920);
   });
 
   test('caps the days parameter at 30', async () => {

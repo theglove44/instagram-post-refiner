@@ -7,14 +7,17 @@
  * Stored in account_insights_cache:
  *   - insight_type `views_follow_split:<YYYY-MM-DD>` — one row per day
  *   - insight_type `reel_insights:<media_id>` — upserted per Reel
+ *   - insight_type `story_insights:<media_id>` — upserted per live Story
  *
+ * Stories expire after 24h, so this sweep is the only chance to capture them.
  * Called via: curl -H "x-cron-secret: ..." http://localhost:3000/api/cron/media-insights
- * Cost: ~2 calls + 1 per recent Reel — well inside the 200/hour limit.
+ * Cost: ~2 calls + 1 per recent Reel + 1 per live Story — well inside the 200/hour limit.
  */
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import {
   getViewsFollowBreakdown,
   getReelEnhancedInsights,
+  getStoriesWithInsights,
   getTokenExpiryDate,
 } from '@/lib/instagram';
 
@@ -52,7 +55,7 @@ export async function GET(request) {
     const account = accounts[0];
     let accessToken = account.access_token;
     const instagramUserId = account.instagram_user_id;
-    const summary = { reelsSynced: 0, reelsFailed: 0 };
+    const summary = { reelsSynced: 0, reelsFailed: 0, storiesSynced: 0 };
 
     // 1. Account views split (follower vs non-follower)
     let viewsSplit = null;
@@ -122,6 +125,37 @@ export async function GET(request) {
         console.warn(`Reel insights failed for ${mediaId}:`, err.message);
         summary.reelsFailed++;
       }
+    }
+
+    // 3. Stories sweep — Stories expire after 24h, so capture while they are live.
+    // Final capture is the last nightly run before expiry (~18h into their life).
+    let storiesSynced = 0;
+    try {
+      const { stories, newToken: storyToken, expiresIn: storyExpires } =
+        await getStoriesWithInsights(accessToken, instagramUserId);
+      await updateTokenIfRefreshed(supabase, instagramUserId, storyToken, storyExpires);
+      accessToken = storyToken || accessToken;
+
+      for (const story of stories) {
+        await supabase.from('account_insights_cache').upsert(
+          {
+            instagram_user_id: instagramUserId,
+            insight_type: `story_insights:${story.id}`,
+            data: {
+              ...story.insights,
+              mediaType: story.mediaType,
+              postedAt: story.timestamp,
+              capturedAt: new Date().toISOString(),
+            },
+          },
+          { onConflict: 'instagram_user_id,insight_type' }
+        );
+        storiesSynced++; // eslint-disable-line no-unused-vars
+      }
+      summary.storiesSynced = storiesSynced;
+    } catch (err) {
+      console.warn('Stories sweep failed:', err.message);
+      summary.storiesError = err.message;
     }
 
     return Response.json({ success: true, viewsSplit, ...summary });
