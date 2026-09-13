@@ -1,0 +1,13 @@
+[Unit]
+Description=Instagram Post Logger — Daily pulse digest (pushes to ntfy)
+After=network-online.target instagram-logger.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/home/christof21/instagram-post-refiner/.env.local
+ExecStart=/usr/bin/curl -sf -H "x-cron-secret: ${CRON_SECRET}" http://localhost:3000/api/cron/digest
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

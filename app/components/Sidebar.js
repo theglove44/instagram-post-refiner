@@ -10,6 +10,7 @@ const NAV_SECTIONS = [
     items: [
       { name: 'Workshop', href: '/edit', icon: '\u270F\uFE0F' },
       { name: 'History', href: '/history', icon: '\uD83D\uDCDA' },
+      { name: 'Pulse', href: '/pulse', icon: '\uD83D\uDCC8' },
     ],
   },
 ];

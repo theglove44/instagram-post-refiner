@@ -13,6 +13,7 @@ describe('Sidebar', () => {
     expect(screen.getByRole('link', { name: 'Voice Workshop' })).toHaveAttribute('href', '/edit');
     expect(screen.getByRole('link', { name: 'Workshop' })).toHaveAttribute('href', '/edit');
     expect(screen.getByRole('link', { name: 'History' })).toHaveAttribute('href', '/history');
+    expect(screen.getByRole('link', { name: 'Pulse' })).toHaveAttribute('href', '/pulse');
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
 
     expect(screen.queryByText('PUBLISH')).not.toBeInTheDocument();
