@@ -136,7 +136,7 @@ export default function PulsePage() {
         {data.storyTotals?.count ? (
           <div style={{ display: 'flex', gap: 24 }}>
             <div>
-              <div style={bigNumber}>{data.storyTotals.views}</div>
+              <div style={bigNumber}>{int(data.storyTotals.views)}</div>
               <div style={subLabel}>views</div>
             </div>
             <div>
