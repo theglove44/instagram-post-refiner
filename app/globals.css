@@ -3487,3 +3487,67 @@ textarea:focus-visible {
 .auth-success { color: #bbf7d0 !important; background: #052e16; }
 .sidebar-logout-form { margin: 0; }
 .sidebar-logout-button { width: 100%; border: 0; background: transparent; font: inherit; cursor: pointer; }
+
+/* ─── Pulse (The Wall design) ───────────────────────────────────────── */
+.pulse-page {
+  background: linear-gradient(180deg, #1C2B26, #16221E);
+  min-height: 100vh;
+  padding: 22px 14px 90px;
+}
+.pulse-frame {
+  max-width: 430px;
+  margin: 0 auto;
+  border: 2px solid rgba(242, 237, 224, 0.25);
+  outline: 1px solid rgba(242, 237, 224, 0.08);
+  outline-offset: 5px;
+  padding: 22px 18px;
+  border-radius: 4px;
+}
+.pulse-head { text-align: center; margin-bottom: 24px; }
+.pulse-rule { border: none; border-top: 1px dashed rgba(242, 237, 224, 0.3); margin: 22px 0; }
+.pulse-big {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 52px;
+  line-height: 1;
+  color: #E9C46A;
+}
+.pulse-tri-num {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 26px;
+  font-weight: 700;
+  display: block;
+  color: #E9C46A;
+}
+.pulse-league { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.pulse-foot {
+  text-align: center;
+  font-size: 11px;
+  color: #8FA098;
+  margin-top: 22px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+@media (min-width: 900px) {
+  .pulse-page { padding: 48px 40px 110px; }
+  .pulse-frame { max-width: 1080px; padding: 44px 52px; }
+  .pulse-head { margin-bottom: 12px; }
+  .pulse-head h1 { font-size: 42px !important; }
+  .pulse-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 64px;
+    align-items: start;
+  }
+  .pulse-rule { display: none; }
+  .pulse-sec { margin-bottom: 36px; }
+  .sec-yesterday { grid-column: 1; grid-row: 1; }
+  .sec-league    { grid-column: 2; grid-row: 1 / 3; }
+  .sec-stories   { grid-column: 1; grid-row: 2; }
+  .sec-form      { grid-column: 2; grid-row: 3; }
+  .sec-rules     { grid-column: 2; grid-row: 4; }
+  .pulse-big { font-size: 84px; }
+  .pulse-tri-num { font-size: 34px; }
+  .pulse-league { font-size: 15px; }
+  .pulse-foot { margin-top: 8px; }
+}
