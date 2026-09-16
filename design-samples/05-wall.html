@@ -1,0 +1,126 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tuck In &amp; Talk — The Wall</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Karla:wght@400;500;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board:#1C2B26; --board-2:#16221E; --chalk:#F2EDE0; --butter:#E9C46A; --rose:#E39A8B; --faded:#8FA098;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#12100E;font-family:'Karla',sans-serif;color:var(--chalk)}
+.wall{max-width:430px;margin:0 auto;min-height:100vh;padding:24px 20px 90px;
+  background:
+    radial-gradient(1200px 400px at 50% -100px, rgba(242,237,224,.06), transparent),
+    linear-gradient(180deg,var(--board),var(--board-2));
+  box-shadow:inset 0 0 80px rgba(0,0,0,.45)}
+.frame{border:2px solid rgba(242,237,224,.25);outline:1px solid rgba(242,237,224,.08);outline-offset:5px;padding:22px 18px;border-radius:4px}
+.head{text-align:center;margin-bottom:24px}
+.head .open{font-family:'Caveat',cursive;font-size:20px;color:var(--butter);transform:rotate(-2deg);display:inline-block}
+.head h1{font-family:'Fraunces',serif;font-weight:700;font-size:30px;letter-spacing:.02em;margin-top:2px}
+.head p{font-size:13px;color:var(--faded);margin-top:6px}
+.rule{border:none;border-top:1px dashed rgba(242,237,224,.3);margin:20px 0}
+section{margin-bottom:8px}
+.menu-title{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+.menu-title h2{font-family:'Fraunces',serif;font-weight:500;font-size:19px}
+.menu-title span{font-family:'Karla',sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--faded)}
+.hero{display:flex;align-items:baseline;justify-content:space-between}
+.hero .big{font-family:'Fraunces',serif;font-weight:700;font-size:52px;line-height:1;color:var(--butter)}
+.hero .big small{font-size:20px;color:var(--faded);font-weight:500}
+.leader{display:flex;align-items:baseline;gap:8px;margin:12px 0}
+.leader .name{font-size:14.5px;white-space:nowrap}
+.leader .dots{flex:1;border-bottom:2px dotted rgba(242,237,224,.35);transform:translateY(-4px)}
+.leader .val{font-family:'Fraunces',serif;font-weight:700;font-size:19px;white-space:nowrap}
+.leader .val small{font-size:12px;color:var(--faded);font-weight:400}
+.leader.hot .val{color:var(--rose)}
+.splitlegend{display:flex;height:14px;border-radius:7px;overflow:hidden;margin-top:14px;border:1px dashed rgba(242,237,224,.35)}
+.splitlegend .a{background:var(--butter);width:56%}
+.splitlegend .b{background:var(--rose);width:44%}
+.splitlegend-k{display:flex;justify-content:space-between;font-size:11.5px;color:var(--faded);margin-top:7px}
+.trio{display:flex;gap:0;border:1px dashed rgba(242,237,224,.35);border-radius:6px;margin-top:4px}
+.tri{flex:1;text-align:center;padding:14px 4px}
+.tri+.tri{border-left:1px dashed rgba(242,237,224,.35)}
+.tri b{font-family:'Fraunces',serif;font-size:26px;font-weight:700;display:block;color:var(--butter)}
+.tri i{font-style:normal;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faded)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:4px}
+th{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faded);text-align:right;font-weight:500;padding:6px 0}
+th:first-child,td:first-child{text-align:left}
+td{padding:9px 0;border-bottom:1px dashed rgba(242,237,224,.18);text-align:right}
+td:first-child{font-weight:700}
+tr.best td{color:var(--butter)}
+.note{margin-top:16px;border:1px dashed rgba(233,196,106,.5);border-radius:4px;padding:12px 14px;position:relative}
+.note .tag{position:absolute;top:-11px;left:12px;background:var(--board);padding:0 8px;font-family:'Caveat',cursive;font-size:17px;color:var(--butter);transform:rotate(-1.5deg)}
+.note p{font-size:14px;line-height:1.5;color:var(--chalk)}
+.note p b{color:var(--butter)}
+.foot{text-align:center;font-size:11px;color:var(--faded);margin-top:22px;letter-spacing:.14em;text-transform:uppercase}
+.switch{position:fixed;bottom:14px;right:14px;display:flex;gap:6px}
+.switch a{background:var(--chalk);color:var(--board);text-decoration:none;padding:6px 10px;font-size:11px;border-radius:3px;font-weight:700}
+.switch a.active{background:var(--butter)}
+</style></head><body class="wall"><div class="wall"><div class="frame">
+
+<div class="head">
+  <span class="open">tonight's board</span>
+  <h1>Tuck In &amp; Talk</h1>
+  <p>Saturday 13 September · everything from your own books, nothing borrowed</p>
+</div>
+
+<section>
+  <div class="menu-title"><h2>Yesterday, served</h2><span>all surfaces</span></div>
+  <div class="hero">
+    <span class="big">4,834 <small>views</small></span>
+  </div>
+  <div class="leader"><span class="name">Regulars</span><span class="dots"></span><span class="val">2,777</span></div>
+  <div class="leader hot"><span class="name">First-timers</span><span class="dots"></span><span class="val">2,192</span></div>
+  <div class="splitlegend"><div class="a"></div><div class="b"></div></div>
+  <div class="splitlegend-k"><span>◆ 56% already follow you</span><span>◆ 44% just found you</span></div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="menu-title"><h2>Stories this week</h2><span>disappears in 24h — we kept it</span></div>
+  <div class="trio">
+    <div class="tri"><b>26</b><i>posted</i></div>
+    <div class="tri"><b>1,285</b><i>views</i></div>
+    <div class="tri"><b>4</b><i>replies</i></div>
+  </div>
+  <div class="note"><span class="tag">kitchen note</span>
+    <p>Stories are quietly your <b>second-biggest surface</b> — 1,977 views yesterday alone, mostly regulars. The app now keeps every one of them before they vanish.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="menu-title"><h2>Today's league</h2><span>per 1,000 reached · since Jan</span></div>
+  <table>
+    <tr><th>Format</th><th>Reach</th><th>Loves</th><th>Chat</th><th>Keeps</th></tr>
+    <tr class="best"><td>Images</td><td>695</td><td>45%</td><td class="best">165</td><td>1.2</td></tr>
+    <tr><td>Carousels</td><td>872</td><td>42%</td><td>103</td><td>0.8</td></tr>
+    <tr><td>Reels</td><td><b>3,304</b></td><td>27%</td><td>26</td><td class="best">6.3</td></tr>
+  </table>
+  <div class="note"><span class="tag">the trade</span>
+    <p><b>Reels recruit, carousels keep.</b> Reels reached 3.8× more people; images and carousels make people talk at 4–6× the rate. One of each, most weeks.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="menu-title"><h2>Form, last ten weeks</h2><span>median engagement</span></div>
+  <div class="leader"><span class="name">This week</span><span class="dots"></span><span class="val">55% <small>▲ season best</small></span></div>
+  <div class="leader"><span class="name">Last week</span><span class="dots"></span><span class="val">42%</span></div>
+  <div class="leader"><span class="name">Worst dip (early Jul)</span><span class="dots"></span><span class="val" style="color:var(--faded)">26%</span></div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="menu-title"><h2>House rules</h2><span>what the numbers keep saying</span></div>
+  <div class="leader"><span class="name">Long captions beat the middle</span><span class="dots"></span><span class="val">39% <small>vs 27%</small></span></div>
+  <div class="leader"><span class="name">End on a question</span><span class="dots"></span><span class="val">41% <small>vs 35%</small></span></div>
+  <div class="leader"><span class="name">Weekday evenings</span><span class="dots"></span><span class="val">51%</span></div>
+</section>
+
+<div class="foot">next edition at 7am · tuck in and talk</div>
+</div></div>
+
+<div class="switch"><a href="01-editorial.html">01</a><a href="02-studio.html">02</a><a href="03-notebook.html">03</a><a href="04-briefing.html">04</a><a class="active" href="05-wall.html">05</a></div>
+</body></html>

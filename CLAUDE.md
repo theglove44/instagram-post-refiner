@@ -133,6 +133,9 @@ don't loosen the assertion to get to green.
 - Styling is inline styles plus `app/globals.css` — no UI library. Dark theme,
   background `#0a0a0a`, cards `#141414`, accent `#e1306c`, success `#22c55e`,
   error `#ef4444`. Grid collapses to one column at 1024px.
+  **Exception:** `/pulse` uses "The Wall" design (approved 2026-09-13, see
+  `design-samples/05-wall.html`): bottle-green `#1C2B26`, chalk `#F2EDE0`,
+  butter `#E9C46A`, rose `#E39A8B`, fonts Fraunces/Karla/Caveat.
 - Secrets — hosting, SSH, Facebook app config — live in Claude's auto-memory and `.env`,
   never in committed code. `.env.example` lists what's required.
 

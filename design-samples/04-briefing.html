@@ -1,0 +1,139 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tuck In &amp; Talk — The Daily Briefing</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5EFE2; --ink:#1B1712; --pen:#BE2D2D; --faded:#8A8172; --rule:#D9CFBA;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#E8E0CE;font-family:'Newsreader',Georgia,serif;color:var(--ink)}
+.sheet{max-width:430px;margin:0 auto;background:var(--paper);min-height:100vh;padding:18px 18px 80px;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 28px,rgba(27,23,18,.025) 28px,rgba(27,23,18,.025) 29px)}
+.masthead{border-bottom:3px double var(--ink);padding-bottom:10px;margin-bottom:14px}
+.masthead .over{font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--faded);display:flex;justify-content:space-between}
+.masthead h1{font-family:'Oswald',sans-serif;font-weight:700;font-size:29px;letter-spacing:.01em;text-transform:uppercase;line-height:1;margin-top:6px}
+.masthead h1 span{color:var(--pen)}
+.standfirst{font-size:15px;font-style:italic;margin-top:8px;color:var(--ink)}
+section{margin-bottom:22px}
+h2{font-family:'Oswald',sans-serif;font-weight:600;font-size:15px;letter-spacing:.14em;text-transform:uppercase;border-bottom:1px solid var(--ink);padding-bottom:5px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:baseline}
+h2 .stamp{font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--faded)}
+.yesterday{display:flex;gap:0;border:1px solid var(--ink)}
+.yd{flex:1;padding:10px 12px}
+.yd+.yd{border-left:1px solid var(--ink)}
+.yd b{font-family:'Oswald',sans-serif;font-size:25px;font-weight:600;display:block;line-height:1}
+.yd i{font-family:'Spline Sans Mono',monospace;font-style:normal;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faded)}
+.bar{display:flex;height:10px;margin-top:8px;border:1px solid var(--ink)}
+.bar .f{background:var(--ink);width:56%}
+.bar .n{background:repeating-linear-gradient(45deg,var(--paper),var(--paper) 3px,var(--ink) 3px,var(--ink) 4px);width:44%}
+.bark{display:flex;justify-content:space-between;gap:8px;font-family:'Spline Sans Mono',monospace;font-size:9px;margin-top:5px;color:var(--faded)}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+th{font-family:'Oswald',sans-serif;font-weight:500;font-size:9px;letter-spacing:.08em;text-transform:uppercase;text-align:right;color:var(--faded);padding:4px 0;border-bottom:2px solid var(--ink)}
+th:first-child,td:first-child{text-align:left}
+td{padding:7px 0;line-height:1.2;border-bottom:1px solid var(--rule);text-align:right;font-family:'Spline Sans Mono',monospace;font-size:12px}
+td:first-child{font-family:'Oswald',sans-serif;font-weight:500;font-size:13px;letter-spacing:.03em;white-space:nowrap}
+tr.me td{font-weight:500}
+.pos{display:inline-block;width:20px;height:20px;border:1px solid var(--ink);border-radius:50%;line-height:19px;text-align:center;font-size:11px;margin-right:6px}
+.form{display:flex;align-items:flex-end;gap:5px;height:90px;margin-top:6px}
+.form .wk{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px}
+.form .wk b{width:100%;background:var(--ink);display:block}
+.form .wk.low b{background:repeating-linear-gradient(45deg,transparent,transparent 3px,var(--ink) 3px,var(--ink) 4px)}
+.form .wk i{font-family:'Spline Sans Mono',monospace;font-style:normal;font-size:9px;color:var(--faded)}
+.pen{background:transparent;border:none;position:relative}
+.pen li{list-style:none;position:relative;margin-bottom:14px;font-size:15px;line-height:1.45;padding-left:6px}
+.pen li b{color:var(--pen)}
+.pen .circle{position:absolute;left:-14px;top:-4px;width:26px;height:26px;border:2px solid var(--pen);border-radius:50%;opacity:.75}
+.pen .scrawl{font-family:'Oswald',sans-serif;color:var(--pen);text-transform:uppercase;letter-spacing:.06em;font-size:12px}
+.pen li em{font-style:italic}
+.pen .u{box-shadow:inset 0 -2px 0 var(--pen);padding-bottom:1px}
+.fixture td:first-child{font-family:'Oswald',sans-serif}
+.star{color:var(--pen)}
+.foot{border-top:3px double var(--ink);margin-top:6px;padding-top:8px;font-family:'Spline Sans Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faded);display:flex;justify-content:space-between}
+.switch{position:fixed;bottom:14px;right:14px;display:flex;gap:6px;font-family:'Spline Sans Mono',monospace}
+.switch a{background:var(--ink);color:var(--paper);text-decoration:none;padding:6px 10px;font-size:11px;border-radius:3px}
+.switch a.active{background:var(--pen)}
+</style></head><body class="paper"><div class="sheet">
+
+<div class="masthead">
+  <div class="over"><span>Sat 13 Sept 2026</span><span>Private circulation</span></div>
+  <h1>Tuck In &amp; Talk <span>—</span> The Briefing</h1>
+  <p class="standfirst">What the account did, what it means, and what to do about it. Everything below is your own data, nothing borrowed.</p>
+</div>
+
+<section>
+  <h2>Yesterday <span class="stamp">all surfaces</span></h2>
+  <div class="yesterday">
+    <div class="yd"><b>4,834</b><i>views</i></div>
+    <div class="yd"><b>2,777</b><i>regulars</i></div>
+    <div class="yd"><b>2,192</b><i>new people</i></div>
+  </div>
+  <div class="bar"><div class="f"></div><div class="n"></div></div>
+  <div class="bark"><span>■ 56% followers</span><span>▨ 44% strangers — discovery working</span></div>
+</section>
+
+<section>
+  <h2>League table <span class="stamp">posts since Jan · by format</span></h2>
+  <table>
+    <tr><th>Format</th><th>P</th><th>ER</th><th>Avg reach</th><th>Saves/1k</th><th>Talk/1k</th></tr>
+    <tr><td><span class="pos">1</span>Image</td><td>25</td><td>45%</td><td>695</td><td>1.2</td><td class="star">165</td></tr>
+    <tr><td><span class="pos">2</span>Carousel</td><td>126</td><td>42%</td><td>872</td><td>0.8</td><td>103</td></tr>
+    <tr><td><span class="pos">3</span>Reels</td><td>42</td><td>27%</td><td><b>3,304</b></td><td class="star">6.3</td><td>26</td></tr>
+  </table>
+  <ul class="pen" style="margin-top:14px">
+    <li><span class="circle"></span><span class="scrawl">Verdict —</span> Reels are the <b>only thing reaching strangers</b> (3.8× the reach), but regulars love them <em>half</em> as much. Run Reels to recruit, carousels to keep.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Form guide <span class="stamp">median ER, by week</span></h2>
+  <div class="form">
+    <div class="wk low"><b style="height:42%"></b><i>35</i></div>
+    <div class="wk low"><b style="height:26%"></b><i>26</i></div>
+    <div class="wk"><b style="height:44%"></b><i>44</i></div>
+    <div class="wk"><b style="height:55%"></b><i>55</i></div>
+    <div class="wk"><b style="height:41%"></b><i>41</i></div>
+    <div class="wk"><b style="height:48%"></b><i>48</i></div>
+    <div class="wk"><b style="height:52%"></b><i>52</i></div>
+    <div class="wk"><b style="height:44%"></b><i>44</i></div>
+    <div class="wk"><b style="height:42%"></b><i>42</i></div>
+    <div class="wk"><b style="height:42%"></b><i>42</i></div>
+    <div class="wk"><b style="height:55%"></b><i>55</i></div>
+  </div>
+  <ul class="pen" style="margin-top:14px">
+    <li><span class="circle"></span><span class="scrawl">Note —</span> This week's 55% is a <b>season best</b>, joint with late July. Whatever you did this week, do it again.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>The stories <span class="stamp">last 7 days</span></h2>
+  <table>
+    <tr><td>Posted</td><td>26</td><td>Views</td><td><b>1,285</b></td></tr>
+    <tr><td>Replies</td><td>4</td><td>Per story</td><td>49</td></tr>
+  </table>
+  <ul class="pen" style="margin-top:14px">
+    <li><span class="circle"></span><span class="scrawl">Watch it —</span> Stories reach a <b>55/45 stranger split</b> — your quietest recruitment channel. Nobody is measuring them but us.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>House rules <span class="stamp">what the data keeps saying</span></h2>
+  <ul class="pen">
+    <li><span class="circle"></span><span class="scrawl">Captions —</span> Go long or go very short. The <span class="u">200–500 dead zone</span> scores 27% against 39% for long reads.</li>
+    <li><span class="circle"></span><span class="scrawl">Ask —</span> Posts that <b>end with a question</b> out-score the rest, 41% to 35%. Costs nothing.</li>
+    <li><span class="circle"></span><span class="scrawl">Saving —</span> Almost nobody saves anything (0.8–6.3 per thousand). Make one post a week a <em>keepable</em> thing — addresses, prices, a list worth keeping.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Fixtures <span class="stamp">best slots, UK time</span></h2>
+  <table class="fixture">
+    <tr><td><span class="star">★</span> Wed 19:00</td><td>51%</td><td>6 matches</td></tr>
+    <tr><td>Mon 18:00</td><td>51%</td><td>3 matches</td></tr>
+    <tr><td>Thu 18:00</td><td>51%</td><td>4 matches</td></tr>
+    <tr><td>Tue 20:00</td><td>50%</td><td>6 matches</td></tr>
+  </table>
+</section>
+
+<div class="foot"><span>Compiled from your own records · 0 Meta calls</span><span>Next edition 07:00</span></div>
+</div>
+
+<div class="switch"><a href="01-editorial.html">01</a><a href="02-studio.html">02</a><a href="03-notebook.html">03</a><a class="active" href="04-briefing.html">04</a><a href="05-wall.html">05</a></div>
+</body></html>
