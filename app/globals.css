@@ -3551,3 +3551,8 @@ textarea:focus-visible {
   .pulse-league { font-size: 15px; }
   .pulse-foot { margin-top: 8px; }
 }
+.pulse-leader { display: flex; align-items: baseline; gap: 8px; margin: 12px 0; }
+.pulse-leader .dots-grow { flex: 1; }
+@media (min-width: 900px) {
+  .pulse-leader { margin: 16px 0; }
+}
