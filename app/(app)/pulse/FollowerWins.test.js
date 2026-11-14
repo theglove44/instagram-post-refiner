@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import FollowerWins, { hourLabel } from './FollowerWins';
+import FollowerWins, { hourLabel, peakWindow } from './FollowerWins';
 
 const EMPTY_WINS = { byFollows: [], byVisitsPer1k: [], postsWithSignals: 0 };
 
@@ -32,10 +32,30 @@ describe('FollowerWins', () => {
     expect(screen.getByText(/A very long caption about Sun…/)).toBeInTheDocument();
     expect(screen.getByText('20.0')).toBeInTheDocument();
     expect(screen.getByText('+3')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: /peaks at 9pm/ })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /busiest around 9pm/ })).toBeInTheDocument();
   });
 
   test('hourLabel reads like a clock', () => {
     expect([0, 9, 12, 21].map(hourLabel)).toEqual(['12am', '9am', '12pm', '9pm']);
+  });
+});
+
+describe('peakWindow', () => {
+  const peak = (...hours) => hours.map((hour, i) => ({ hour, followers: 2000 - i }));
+
+  test('next-door hours read as one window, ending when the last hour ends', () => {
+    expect(peakWindow(peak(20, 19, 18))).toBe('between 6pm and 9pm');
+  });
+
+  test('a single peak hour reads as a window too', () => {
+    expect(peakWindow(peak(21))).toBe('between 9pm and 10pm');
+  });
+
+  test('hours that are not next to each other are listed in clock order', () => {
+    expect(peakWindow(peak(20, 7, 13))).toBe('around 7am, 1pm and 8pm');
+  });
+
+  test('a window running past midnight', () => {
+    expect(peakWindow(peak(23, 22))).toBe('between 10pm and 12am');
   });
 });
