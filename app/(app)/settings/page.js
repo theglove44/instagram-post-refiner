@@ -343,15 +343,14 @@ export default function SettingsPage() {
               >
                 {disconnecting ? 'Disconnecting...' : '🔌 Disconnect Account'}
               </button>
-              {instagramAccount.needsReconnect && (
-                <button 
-                  className="btn btn-primary"
-                  onClick={handleConnect}
-                  disabled={connecting}
-                >
-                  🔄 Reconnect
-                </button>
-              )}
+              {/* Always offered: reconnecting is how new permissions get granted. */}
+              <button
+                className={instagramAccount.needsReconnect ? 'btn btn-primary' : 'btn btn-secondary'}
+                onClick={handleConnect}
+                disabled={connecting}
+              >
+                {connecting ? 'Redirecting...' : '🔄 Reconnect'}
+              </button>
             </div>
           </div>
         ) : (
