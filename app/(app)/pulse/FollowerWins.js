@@ -12,6 +12,17 @@ const subHead = { display: 'flex', alignItems: 'baseline', justifyContent: 'spac
 const subTitle = { ...fontFraunces, fontWeight: 500, fontSize: 15.5, color: CHALK };
 
 export const hourLabel = (h) => `${h % 12 || 12}${h < 12 ? 'am' : 'pm'}`;
+
+// "between 6pm and 9pm" when the peak hours sit next to each other (a bar
+// covers its whole hour, so the window ends when the last hour does);
+// otherwise "around 7am, 1pm and 8pm" in clock order.
+export const peakWindow = (peak) => {
+  const hours = peak.map((p) => p.hour).sort((a, b) => a - b);
+  const contiguous = hours.every((h, i) => i === 0 || h === hours[i - 1] + 1);
+  if (contiguous) return `between ${hourLabel(hours[0])} and ${hourLabel((hours[hours.length - 1] + 1) % 24)}`;
+  const labels = hours.map(hourLabel);
+  return `around ${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+};
 const shortDate = (iso) => `${Number(iso.slice(8, 10))}/${Number(iso.slice(5, 7))}`;
 const clip = (text, max = 30) => {
   const clean = (text || '').replace(/\s+/g, ' ').trim() || 'Untitled post';
@@ -60,7 +71,7 @@ function OnlineHoursChart({ online }) {
     <>
       <div
         role="img"
-        aria-label={`Followers online peaks at ${online.peak.map((p) => hourLabel(p.hour)).join(', ')} UK time`}
+        aria-label={`Followers online: busiest around ${hourLabel(online.peak[0]?.hour ?? 0)}, ${online.peak.length ? peakWindow(online.peak) : ''} UK time`}
         style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 80, marginTop: 10, borderBottom: dashed }}
       >
         {online.hours.map((h) => (
@@ -73,7 +84,7 @@ function OnlineHoursChart({ online }) {
       </div>
       {online.peak[0] && (
         <Note tag="when to post">
-          Most of your followers are on at <b>{online.peak.map((p) => hourLabel(p.hour)).join(', ')}</b> UK time — about {int(online.peak[0].followers)} at the peak.
+          Your followers are most active <b>{peakWindow(online.peak)}</b> UK time, peaking around {hourLabel(online.peak[0].hour)} with about {int(online.peak[0].followers)} online.
           Post just before it so the first push lands on a full room.
         </Note>
       )}
