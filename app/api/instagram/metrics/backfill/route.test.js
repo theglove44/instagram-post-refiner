@@ -77,6 +77,30 @@ describe('POST /api/instagram/metrics/backfill', () => {
     expect(getMediaInsights).toHaveBeenCalledTimes(1);
   });
 
+  it('stores the follower signals with each snapshot and drops the stale impressions field', async () => {
+    const client = makeClient();
+    getServerSupabaseClient.mockReturnValue(client);
+    findPostsWithoutMetrics.mockResolvedValue({ total: 1, missing: [{ id: 'p1', instagram_media_id: 'm1' }] });
+    getMediaInsights.mockResolvedValue({
+      insights: { reach: 100, follows: 3, profile_visits: 7, total_views: 250, profile_activity_breakdown: { BIO_LINK_CLICKED: 1 } },
+    });
+
+    await POST({ json: async () => ({}) });
+    await new Promise(r => setTimeout(r, 0));
+
+    const row = client.tables.post_metrics.insert.mock.calls[0][0];
+    expect(row).toMatchObject({
+      post_id: 'p1',
+      reach: 100,
+      follows: 3,
+      profile_visits: 7,
+      total_views: 250,
+      reposts: null,
+      profile_activity_breakdown: { BIO_LINK_CLICKED: 1 },
+    });
+    expect(row).not.toHaveProperty('impressions');
+  });
+
   it('does nothing when every post already has metrics', async () => {
     getServerSupabaseClient.mockReturnValue(makeClient());
     findPostsWithoutMetrics.mockResolvedValue({ total: 3, missing: [] });

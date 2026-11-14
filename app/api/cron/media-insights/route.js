@@ -8,21 +8,40 @@
  *   - insight_type `views_follow_split:<YYYY-MM-DD>` — one row per day
  *   - insight_type `reel_insights:<media_id>` — upserted per Reel
  *   - insight_type `story_insights:<media_id>` — upserted per live Story
+ *   - insight_type `account_daily:<YYYY-MM-DD>` — follows/unfollows, reach split,
+ *     profile link taps for one UTC day (last 3 days re-collected each run)
+ *   - insight_type `online_followers:latest` — hourly online followers, ~28 days
+ *   - insight_type `engaged_demographics:<YYYY-MM>` — this month's engaged audience
  *
  * Stories expire after 24h, so this sweep is the only chance to capture them.
  * Called via: curl -H "x-cron-secret: ..." http://localhost:3000/api/cron/media-insights
- * Cost: ~2 calls + 1 per recent Reel + 1 per live Story — well inside the 200/hour limit.
+ * Cost: ~1 call + 1 per recent Reel + 1 for Stories + 2 per account day (3 by
+ * default) + 1 online + 4 demographics ≈ 20 calls — well inside 200/hour.
+ * One-off backfill: ?accountDays=28 adds up to 56 calls (cap 28).
  */
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import {
   getViewsFollowBreakdown,
   getReelEnhancedInsights,
   getStoriesWithInsights,
+  getDailyAccountInsights,
+  getOnlineFollowers,
+  getEngagedAudienceDemographics,
   getTokenExpiryDate,
 } from '@/lib/instagram';
 
 function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+  return new Date(Date.now()).toISOString().slice(0, 10);
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_ACCOUNT_DAYS = 3;
+const MAX_ACCOUNT_DAYS = 28;
+
+// Complete UTC days, newest first: yesterday, the day before, ...
+function recentUtcDays(count) {
+  const midnight = Math.floor(Date.now() / DAY_MS) * DAY_MS;
+  return Array.from({ length: count }, (_, i) => new Date(midnight - (i + 1) * DAY_MS).toISOString().slice(0, 10));
 }
 
 async function updateTokenIfRefreshed(supabase, instagramUserId, newToken, expiresIn) {
@@ -43,6 +62,10 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const days = Math.min(parseInt(searchParams.get('days') || '7', 10) || 7, 30);
+    const accountDays = Math.max(1, Math.min(
+      parseInt(searchParams.get('accountDays') || String(DEFAULT_ACCOUNT_DAYS), 10) || DEFAULT_ACCOUNT_DAYS,
+      MAX_ACCOUNT_DAYS
+    ));
 
     const { data: accounts } = await supabase
       .from('instagram_accounts')
@@ -55,7 +78,11 @@ export async function GET(request) {
     const account = accounts[0];
     let accessToken = account.access_token;
     const instagramUserId = account.instagram_user_id;
-    const summary = { reelsSynced: 0, reelsFailed: 0, storiesSynced: 0 };
+    const summary = { reelsSynced: 0, reelsFailed: 0, storiesSynced: 0, accountDaysSynced: 0, accountDaysFailed: 0, accountErrors: [] };
+    const cacheUpsert = (insightType, data) => supabase.from('account_insights_cache').upsert(
+      { instagram_user_id: instagramUserId, insight_type: insightType, data: { ...data, capturedAt: new Date().toISOString() } },
+      { onConflict: 'instagram_user_id,insight_type' }
+    );
 
     // 1. Account views split (follower vs non-follower)
     let viewsSplit = null;
@@ -156,6 +183,36 @@ export async function GET(request) {
     } catch (err) {
       console.warn('Stories sweep failed:', err.message);
       summary.storiesError = err.message;
+    }
+
+    // 4. Account follower signals. Meta's daily figures settle ~2 days late, so
+    // the last few days are re-collected each run and overwrite earlier captures.
+    for (const date of recentUtcDays(accountDays)) {
+      try {
+        const day = await getDailyAccountInsights(accessToken, instagramUserId, date);
+        await cacheUpsert(`account_daily:${date}`, day);
+        summary.accountDaysSynced++;
+      } catch (err) {
+        console.warn(`Account insights failed for ${date}:`, err.message);
+        summary.accountDaysFailed++;
+        if (summary.accountDaysFailed === 1) summary.accountErrors.push(`account_daily: ${err.message}`);
+      }
+    }
+
+    try {
+      const online = await getOnlineFollowers(accessToken, instagramUserId);
+      await cacheUpsert('online_followers:latest', online);
+    } catch (err) {
+      console.warn('Online followers failed:', err.message);
+      summary.accountErrors.push(`online_followers: ${err.message}`);
+    }
+
+    try {
+      const demographics = await getEngagedAudienceDemographics(accessToken, instagramUserId);
+      await cacheUpsert(`engaged_demographics:${todayKey().slice(0, 7)}`, demographics);
+    } catch (err) {
+      console.warn('Engaged audience demographics failed:', err.message);
+      summary.accountErrors.push(`engaged_demographics: ${err.message}`);
     }
 
     return Response.json({ success: true, viewsSplit, ...summary });
