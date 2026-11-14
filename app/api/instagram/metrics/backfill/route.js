@@ -1,6 +1,7 @@
 import { delay } from '@/lib/utils';
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getMediaInsights, getMediaDetails, getTokenExpiryDate } from '@/lib/instagram';
+import { findPostsWithoutMetrics } from '@/lib/metrics-coverage';
 
 function nullIfMissing(value) {
   return value !== undefined && value !== null ? value : null;
@@ -61,30 +62,7 @@ export async function POST(request) {
     const account = accounts[0];
     let accessToken = account.access_token;
 
-    // Find all published posts
-    const { data: allPublished } = await supabase
-      .from('posts')
-      .select('id, instagram_media_id')
-      .not('instagram_media_id', 'is', null)
-      .order('published_at', { ascending: false });
-
-    if (!allPublished || allPublished.length === 0) {
-      return Response.json({ success: true, processed: 0, remaining: 0, errors: 0 });
-    }
-
-    // Find which ones already have metrics (in chunks to avoid query limits)
-    const CHUNK = 500;
-    const hasMetrics = new Set();
-    for (let i = 0; i < allPublished.length; i += CHUNK) {
-      const chunk = allPublished.slice(i, i + CHUNK);
-      const { data: existing } = await supabase
-        .from('post_metrics')
-        .select('post_id')
-        .in('post_id', chunk.map(p => p.id));
-      (existing || []).forEach(m => hasMetrics.add(m.post_id));
-    }
-
-    const neverFetched = allPublished.filter(p => !hasMetrics.has(p.id));
+    const { missing: neverFetched } = await findPostsWithoutMetrics(supabase);
     const batch = neverFetched.slice(0, batchSize);
     const remaining = neverFetched.length - batch.length;
 
@@ -126,27 +104,8 @@ export async function GET() {
   try {
     const supabase = getServerSupabaseClient();
 
-    const { data: allPublished } = await supabase
-      .from('posts')
-      .select('id')
-      .not('instagram_media_id', 'is', null);
-
-    if (!allPublished || allPublished.length === 0) {
-      return Response.json({ success: true, total: 0, withMetrics: 0, remaining: 0 });
-    }
-
-    const CHUNK = 500;
-    const hasMetrics = new Set();
-    for (let i = 0; i < allPublished.length; i += CHUNK) {
-      const chunk = allPublished.slice(i, i + CHUNK);
-      const { data: existing } = await supabase
-        .from('post_metrics')
-        .select('post_id')
-        .in('post_id', chunk.map(p => p.id));
-      (existing || []).forEach(m => hasMetrics.add(m.post_id));
-    }
-
-    const remaining = allPublished.filter(p => !hasMetrics.has(p.id)).length;
+    const { total, missing } = await findPostsWithoutMetrics(supabase);
+    const remaining = missing.length;
 
     // Get latest backfill sync status
     const { data: lastSync } = await supabase
@@ -158,8 +117,8 @@ export async function GET() {
 
     return Response.json({
       success: true,
-      total: allPublished.length,
-      withMetrics: hasMetrics.size,
+      total,
+      withMetrics: total - remaining,
       remaining,
       lastSync: lastSync?.[0] || null,
     });
