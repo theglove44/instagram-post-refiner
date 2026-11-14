@@ -172,3 +172,5 @@ One line per failure, not one paragraph.
   `middleware.js`; Basic Auth is a fallback, not the gate.
 - **Never call a publishing, comment or account endpoint against the real account without
   asking first.** There is no staging account.
+- **Read the latest `post_metrics` snapshot with an embedded `order` + `limit(1, { referencedTable })`.** Fetching snapshot rows and picking the latest in JS hit the 1000-row cap and left Pulse scoring 154 of 232 posts on stale data. (2026-11-14.)
+- **Never mix a `breakdown` with other metrics in one Graph insights request — Meta rejects it.** Use a nested field with `.as()` aliases on a call you already make (see `getStoriesWithInsights`). (2026-11-14.)

@@ -1,6 +1,13 @@
 import { GET } from './route';
 import { getServerSupabaseClient } from '@/lib/supabase-server';
-import { getViewsFollowBreakdown, getReelEnhancedInsights, getStoriesWithInsights } from '@/lib/instagram';
+import {
+  getViewsFollowBreakdown,
+  getReelEnhancedInsights,
+  getStoriesWithInsights,
+  getDailyAccountInsights,
+  getOnlineFollowers,
+  getEngagedAudienceDemographics,
+} from '@/lib/instagram';
 
 jest.mock('@/lib/supabase-server', () => ({
   getServerSupabaseClient: jest.fn(),
@@ -9,6 +16,9 @@ jest.mock('@/lib/instagram', () => ({
   getViewsFollowBreakdown: jest.fn(),
   getReelEnhancedInsights: jest.fn(),
   getStoriesWithInsights: jest.fn(),
+  getDailyAccountInsights: jest.fn(),
+  getOnlineFollowers: jest.fn(),
+  getEngagedAudienceDemographics: jest.fn(),
   getTokenExpiryDate: jest.fn(() => '2026-12-01T00:00:00.000Z'),
 }));
 
@@ -77,6 +87,9 @@ describe('media-insights cron', () => {
     jest.clearAllMocks();
     getViewsFollowBreakdown.mockResolvedValue(VIEWS_SPLIT);
     getStoriesWithInsights.mockResolvedValue(STORIES);
+    getDailyAccountInsights.mockImplementation(async (_tok, _uid, date) => ({ date, follows: 4, unfollows: 3 }));
+    getOnlineFollowers.mockResolvedValue({ days: [{ endTime: '2026-11-12T08:00:00+0000', hours: { 0: 1300 } }] });
+    getEngagedAudienceDemographics.mockResolvedValue({ age: { '25-34': 343 }, gender: null, country: null, city: null });
   });
 
   test('returns 400 when no Instagram account is connected', async () => {
@@ -119,7 +132,8 @@ describe('media-insights cron', () => {
 
     // three upserts: daily split, one reel, two stories
     const upserts = client.from('account_insights_cache').upsert.mock.calls;
-    expect(upserts).toHaveLength(4);
+    // 4 media rows, then 3 daily account rows + online followers + demographics
+    expect(upserts).toHaveLength(9);
     expect(upserts[0][0].insight_type).toMatch(/^views_follow_split:\d{4}-\d{2}-\d{2}$/);
     expect(upserts[1][0].insight_type).toBe('reel_insights:reel-1');
     expect(upserts[2][0].insight_type).toBe('story_insights:story-1');
@@ -180,5 +194,63 @@ describe('media-insights cron', () => {
     const daysAgo30 = before - 30 * 24 * 60 * 60 * 1000;
     // cutoff must sit at ~30 days back, not 999
     expect(Math.abs(cutoff - daysAgo30)).toBeLessThan(60 * 1000);
+  });
+
+  describe('account follower signals', () => {
+    const NOW = new Date('2026-12-02T21:00:00Z').getTime();
+    let nowSpy;
+    beforeEach(() => { nowSpy = jest.spyOn(Date, 'now').mockReturnValue(NOW); });
+    afterEach(() => nowSpy.mockRestore());
+
+    const accountClient = () => makeClient({ accounts: [{ access_token: 'tok', instagram_user_id: 'ig-1' }], recentPosts: [], metricRows: [] });
+    const cacheRows = (client) => client.from('account_insights_cache').upsert.mock.calls.map((c) => c[0]);
+
+    test('re-collects the last 3 complete UTC days by default (Meta lags ~2 days)', async () => {
+      const client = accountClient();
+      getServerSupabaseClient.mockReturnValue(client);
+      const body = await (await GET({ url: 'http://localhost:3000/api/cron/media-insights' })).json();
+
+      expect(getDailyAccountInsights.mock.calls.map((c) => c[2])).toEqual(['2026-12-01', '2026-11-30', '2026-11-29']);
+      const daily = cacheRows(client).filter((r) => r.insight_type.startsWith('account_daily:'));
+      expect(daily.map((r) => r.insight_type)).toEqual(['account_daily:2026-12-01', 'account_daily:2026-11-30', 'account_daily:2026-11-29']);
+      expect(daily[0].data).toMatchObject({ follows: 4, unfollows: 3 });
+      expect(body.accountDaysSynced).toBe(3);
+    });
+
+    test('stores online followers and this month\'s engaged audience', async () => {
+      const client = accountClient();
+      getServerSupabaseClient.mockReturnValue(client);
+      await GET({ url: 'http://localhost:3000/api/cron/media-insights' });
+
+      const rows = cacheRows(client);
+      const online = rows.find((r) => r.insight_type === 'online_followers:latest');
+      expect(online.data.days).toHaveLength(1);
+      const demo = rows.find((r) => r.insight_type === 'engaged_demographics:2026-12');
+      expect(demo.data.age).toEqual({ '25-34': 343 });
+    });
+
+    test('accountDays backfills further back but is capped at 28 days', async () => {
+      const client = accountClient();
+      getServerSupabaseClient.mockReturnValue(client);
+      await GET({ url: 'http://localhost:3000/api/cron/media-insights?accountDays=500' });
+      expect(getDailyAccountInsights).toHaveBeenCalledTimes(28);
+      expect(getDailyAccountInsights.mock.calls[27][2]).toBe('2026-11-04');
+    });
+
+    test('account failures are counted but never abort the run', async () => {
+      const client = accountClient();
+      getServerSupabaseClient.mockReturnValue(client);
+      getDailyAccountInsights.mockRejectedValue(new Error('rate limited'));
+      getOnlineFollowers.mockRejectedValue(new Error('online down'));
+      getEngagedAudienceDemographics.mockRejectedValue(new Error('demo down'));
+
+      const res = await GET({ url: 'http://localhost:3000/api/cron/media-insights' });
+      const body = await res.json();
+      expect(res.status).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.accountDaysFailed).toBe(3);
+      expect(body.accountErrors).toEqual(expect.arrayContaining([expect.stringMatching(/online down/), expect.stringMatching(/demo down/)]));
+      expect(body.storiesSynced).toBe(2);
+    });
   });
 });

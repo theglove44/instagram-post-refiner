@@ -1,6 +1,7 @@
 import { delay } from '@/lib/utils';
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import { getMediaInsights, getMediaDetails, getTokenExpiryDate } from '@/lib/instagram';
+import { followerSignalFields, insertPostMetrics } from '@/lib/post-metrics';
 import { findPostsWithoutMetrics } from '@/lib/metrics-coverage';
 
 function nullIfMissing(value) {
@@ -161,7 +162,6 @@ async function processBackfillBatch(syncId, batch, remaining, account, accessTok
         }
 
         const metrics = {
-          impressions: null,
           reach: nullIfMissing(insights?.reach),
           views: nullIfMissing(insights?.views),
           likes: nullIfMissing(details?.likes ?? details?.like_count),
@@ -171,20 +171,19 @@ async function processBackfillBatch(syncId, batch, remaining, account, accessTok
           total_interactions: nullIfMissing(insights?.total_interactions),
           media_type: detailsResult.details?.mediaType || null,
           media_product_type: detailsResult.details?.mediaProductType || null,
+          ...followerSignalFields(insights),
         };
 
         const engagementRate = calculateEngagementRate(
           metrics.likes, metrics.comments, metrics.saves, metrics.shares, metrics.reach
         );
 
-        const { error: insertError } = await supabase
-          .from('post_metrics')
-          .insert({
-            post_id: post.id,
-            instagram_media_id: post.instagram_media_id,
-            ...metrics,
-            engagement_rate: engagementRate,
-          });
+        const { error: insertError } = await insertPostMetrics(supabase, {
+          post_id: post.id,
+          instagram_media_id: post.instagram_media_id,
+          ...metrics,
+          engagement_rate: engagementRate,
+        });
 
         if (insertError) {
           throw new Error(`Insert failed: ${insertError.message}`);

@@ -264,10 +264,10 @@ the data.
 | Table | Purpose |
 |---|---|
 | `posts` | Logged pairs: AI draft, final version, edit count, optional Instagram link |
-| `post_metrics` | Per-post engagement: reach, views, likes, comments, saves, shares |
+| `post_metrics` | Per-post engagement snapshots (one row per fetch): reach, views, likes, comments, saves, shares, plus follower signals — follows, profile_visits, profile_activity (+ action_type breakdown), reposts, total_views — from migration `2026-11-14-post-metrics-follower-signals.sql`. Follower signals are FEED-only except reposts/total_views (also Reels); NULL means Meta sent no value. Read the latest snapshot via an embedded `order`+`limit(1, { referencedTable })`, never by fetching all rows (1000-row cap). |
 | `instagram_accounts` | OAuth tokens, expiry, connected Facebook Page |
 | `sync_status` | Background job progress and error detail |
-| `account_insights_cache` | Cached account-level insights (JSONB) |
+| `account_insights_cache` | Cached account-level insights (JSONB), keyed by `insight_type`. The evening `/api/cron/media-insights` sweep writes `views_follow_split:<date>`, `reel_insights:<id>`, `story_insights:<id>` (incl. link_clicks, navigation_breakdown), `account_daily:<UTC date>` (follows, unfollows, reach split, profile link taps — last 3 days re-collected nightly; `?accountDays=28` backfills), `online_followers:latest` (hourly, Pacific-time keys) and `engaged_demographics:<YYYY-MM>`. |
 | `account_snapshots` | Daily follower count and 28-day reach |
 | `match_suggestions` | Post-to-Instagram matches with confidence scores |
 | `hashtag_library` | Curated hashtags with categories and notes |
