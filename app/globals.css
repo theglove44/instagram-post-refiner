@@ -3546,12 +3546,15 @@ textarea:focus-visible {
   .sec-stories   { grid-column: 1; grid-row: 2; }
   .sec-form      { grid-column: 2; grid-row: 3; }
   .sec-rules     { grid-column: 2; grid-row: 4; }
+  .sec-followers { grid-column: 1 / 3; grid-row: 5; border-top: 1px dashed rgba(242, 237, 224, 0.3); padding-top: 28px; }
+  .pulse-followers-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 64px; }
   .pulse-big { font-size: 84px; }
   .pulse-tri-num { font-size: 34px; }
   .pulse-league { font-size: 15px; }
   .pulse-foot { margin-top: 8px; }
 }
 .pulse-leader { display: flex; align-items: baseline; gap: 8px; margin: 12px 0; }
+.sec-followers { margin-top: 8px; }
 .pulse-leader .dots-grow { flex: 1; }
 @media (min-width: 900px) {
   .pulse-leader { margin: 16px 0; }
