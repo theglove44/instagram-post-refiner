@@ -8,6 +8,7 @@ import {
   getOnlineFollowers,
   getEngagedAudienceDemographics,
 } from '@/lib/instagram';
+import { syncFacebookInsights } from '@/lib/facebook-page';
 
 jest.mock('@/lib/supabase-server', () => ({
   getServerSupabaseClient: jest.fn(),
@@ -20,6 +21,9 @@ jest.mock('@/lib/instagram', () => ({
   getOnlineFollowers: jest.fn(),
   getEngagedAudienceDemographics: jest.fn(),
   getTokenExpiryDate: jest.fn(() => '2026-12-01T00:00:00.000Z'),
+}));
+jest.mock('@/lib/facebook-page', () => ({
+  syncFacebookInsights: jest.fn(),
 }));
 
 const originalResponse = global.Response;
@@ -90,6 +94,7 @@ describe('media-insights cron', () => {
     getDailyAccountInsights.mockImplementation(async (_tok, _uid, date) => ({ date, follows: 4, unfollows: 3 }));
     getOnlineFollowers.mockResolvedValue({ days: [{ endTime: '2026-11-12T08:00:00+0000', hours: { 0: 1300 } }] });
     getEngagedAudienceDemographics.mockResolvedValue({ age: { '25-34': 343 }, gender: null, country: null, city: null });
+    syncFacebookInsights.mockResolvedValue({ pageDaysSynced: 3, postsChecked: 25, postsCrossposted: 18, errors: [], newToken: null, expiresIn: null });
   });
 
   test('returns 400 when no Instagram account is connected', async () => {
@@ -250,6 +255,54 @@ describe('media-insights cron', () => {
       expect(body.success).toBe(true);
       expect(body.accountDaysFailed).toBe(3);
       expect(body.accountErrors).toEqual(expect.arrayContaining([expect.stringMatching(/online down/), expect.stringMatching(/demo down/)]));
+      expect(body.storiesSynced).toBe(2);
+    });
+  });
+
+  describe('Facebook Page and crossposted views', () => {
+    const client = (account = {}) => makeClient({
+      accounts: [{ access_token: 'tok', instagram_user_id: 'ig-1', facebook_page_id: 'page-1', ...account }],
+      recentPosts: [],
+      metricRows: [],
+    });
+
+    test('runs the Facebook sweep with the account Page and the account-day window', async () => {
+      const c = client();
+      getServerSupabaseClient.mockReturnValue(c);
+      const body = await (await GET({ url: 'http://localhost:3000/api/cron/media-insights?accountDays=10' })).json();
+
+      expect(syncFacebookInsights).toHaveBeenCalledTimes(1);
+      const args = syncFacebookInsights.mock.calls[0][0];
+      expect(args).toMatchObject({ userToken: 'tok', pageId: 'page-1', instagramUserId: 'ig-1', days: 10 });
+      expect(body.facebook).toEqual({ pageDaysSynced: 3, postsChecked: 25, postsCrossposted: 18, errors: [] });
+
+      // save() writes one cache row with the capture time stamped on
+      await args.save('fb_page_daily:2026-11-14', { views: 541 });
+      const row = c.from('account_insights_cache').upsert.mock.calls.at(-1)[0];
+      expect(row).toMatchObject({ instagram_user_id: 'ig-1', insight_type: 'fb_page_daily:2026-11-14', data: { views: 541 } });
+      expect(row.data.capturedAt).toEqual(expect.any(String));
+    });
+
+    test('uses the refreshed user token from earlier steps and stores one it refreshes', async () => {
+      const c = client();
+      getServerSupabaseClient.mockReturnValue(c);
+      getViewsFollowBreakdown.mockResolvedValue({ ...VIEWS_SPLIT, newToken: 'fresh-tok', expiresIn: 5184000 });
+      syncFacebookInsights.mockResolvedValue({ pageDaysSynced: 0, postsChecked: 0, postsCrossposted: 0, errors: [], newToken: 'fresher-tok', expiresIn: 5184000 });
+
+      await GET({ url: 'http://localhost:3000/api/cron/media-insights' });
+      expect(syncFacebookInsights.mock.calls[0][0].userToken).toBe('fresh-tok');
+      const updates = c.from('instagram_accounts').update.mock.calls.map((call) => call[0].access_token);
+      expect(updates).toContain('fresher-tok');
+    });
+
+    test('a Facebook failure never aborts the run', async () => {
+      getServerSupabaseClient.mockReturnValue(client());
+      syncFacebookInsights.mockRejectedValue(new Error('graph exploded'));
+      const res = await GET({ url: 'http://localhost:3000/api/cron/media-insights' });
+      const body = await res.json();
+      expect(res.status).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.facebook.errors).toEqual(['facebook: graph exploded']);
       expect(body.storiesSynced).toBe(2);
     });
   });
