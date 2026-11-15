@@ -17,7 +17,9 @@ echo "  Pulling latest from GitHub..."
 git pull
 
 echo "  Installing dependencies..."
-npm install
+# npm ci installs exactly what package-lock.json pins and never rewrites it,
+# so the live checkout stays clean and the next git pull can't be blocked.
+npm ci
 
 echo "  Building production app..."
 npm run build
