@@ -101,6 +101,24 @@ describe('POST /api/instagram/metrics/backfill', () => {
     expect(row).not.toHaveProperty('impressions');
   });
 
+  it('stores NULL, not zeros, for a pre-2024-07 post that Meta never measured', async () => {
+    const client = makeClient();
+    getServerSupabaseClient.mockReturnValue(client);
+    findPostsWithoutMetrics.mockResolvedValue({
+      total: 1,
+      missing: [{ id: 'p2022', instagram_media_id: 'm2022', published_at: '2022-09-20T10:00:00Z' }],
+    });
+    getMediaInsights.mockResolvedValue({
+      insights: { reach: 6, views: 0, total_views: 0, follows: 0, profile_visits: 0, reposts: 0 },
+    });
+
+    await POST({ json: async () => ({}) });
+    await new Promise(r => setTimeout(r, 0));
+
+    const row = client.tables.post_metrics.insert.mock.calls[0][0];
+    expect(row).toMatchObject({ reach: 6, follows: null, profile_visits: null, total_views: null, reposts: null });
+  });
+
   it('does nothing when every post already has metrics', async () => {
     getServerSupabaseClient.mockReturnValue(makeClient());
     findPostsWithoutMetrics.mockResolvedValue({ total: 3, missing: [] });

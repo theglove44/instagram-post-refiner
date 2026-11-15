@@ -201,6 +201,19 @@ echo "  Systemd timer installed: runs daily at 04:00 UTC (with up to 5min jitter
 echo "  Check status: systemctl status instagram-snapshot.timer"
 echo ""
 
+# ─── 9. Systemd Timer for Follower-Signal Catch-up ────────────
+
+echo "▸ Setting up follower-signal catch-up timer..."
+
+sudo cp "$APP_DIR/deploy/instagram-signal-catchup.service" /etc/systemd/system/
+sudo cp "$APP_DIR/deploy/instagram-signal-catchup.timer" /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now instagram-signal-catchup.timer
+
+echo "  Systemd timer installed: runs daily at 06:00 UTC (re-measures 40 older posts per run)"
+echo "  Check status: systemctl status instagram-signal-catchup.timer"
+echo ""
+
 # ─── Done ─────────────────────────────────────────────────────
 
 echo "══════════════════════════════════════════════════════════"

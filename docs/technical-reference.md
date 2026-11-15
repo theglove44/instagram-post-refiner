@@ -186,13 +186,24 @@ ingress:
 ```
 
 **Timers.** Unit files live in `deploy/`: nightly metrics sync (3am UTC), account
-snapshot, new-post polling (15 min), and the publish scheduler. Install the ones you
-need:
+snapshot, new-post polling (15 min), the follower-signal catch-up (6am UTC) and the
+publish scheduler. Install the ones you need:
 
 ```bash
 sudo cp deploy/instagram-*.service deploy/instagram-*.timer /etc/systemd/system/
 sudo systemctl enable --now instagram-metrics-sync.timer
 ```
+
+**Follower-signal catch-up.** `POST /api/instagram/metrics/catchup` (timer
+`instagram-signal-catchup`, 06:00 UTC) re-measures posts published since 2024-07-01
+whose latest snapshot predates the follower-signal columns, newest first, 40 per run
+(cap 50, 3 Graph calls per post, 54s apart). It runs on its own timer because the
+03:00 nightly run is fire-and-forget, so there is no "backfill finished" signal to
+chain from; it also refuses to start while a backfill, refresh or earlier catch-up
+shows as running. `GET` on the same route reports how many posts are still waiting.
+Posts before 2024-07-01 are skipped: Meta returns zeros for views and follower
+signals there ("not measured"), and `lib/post-metrics.js` stores those as NULL.
+Delete the timer once `remaining` reaches 0.
 
 The publish scheduler timer processes scheduled posts and will post to the live
 account. Leave it disabled unless publishing is deliberately switched back on.

@@ -94,4 +94,17 @@ describe('POST /api/instagram/metrics (background refresh)', () => {
     expect(rows).toHaveLength(2);
     expect(rows.every(r => r.follows === 2 && !('impressions' in r))).toBe(true);
   });
+
+  it('stores NULL, not zeros, for a pre-2024-07 post that Meta never measured', async () => {
+    const client = makeClient();
+    client.tables.posts = builder({ data: [{ id: 'old', instagram_media_id: 'm-old', published_at: '2023-06-15T10:00:00Z' }], error: null, count: 1 });
+    getServerSupabaseClient.mockReturnValue(client);
+    getMediaInsights.mockResolvedValue({ insights: { reach: 77, views: 0, total_views: 0, follows: 0, profile_visits: 0, reposts: 0 } });
+
+    await POST({ json: async () => ({ days: 365 }) });
+    await new Promise(r => setTimeout(r, 0));
+
+    const row = client.tables.post_metrics.insert.mock.calls[0][0];
+    expect(row).toMatchObject({ reach: 77, follows: null, profile_visits: null, total_views: null, reposts: null });
+  });
 });

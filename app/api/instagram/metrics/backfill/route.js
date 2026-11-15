@@ -171,7 +171,7 @@ async function processBackfillBatch(syncId, batch, remaining, account, accessTok
           total_interactions: nullIfMissing(insights?.total_interactions),
           media_type: detailsResult.details?.mediaType || null,
           media_product_type: detailsResult.details?.mediaProductType || null,
-          ...followerSignalFields(insights),
+          ...followerSignalFields(insights, post.published_at),
         };
 
         const engagementRate = calculateEngagementRate(
