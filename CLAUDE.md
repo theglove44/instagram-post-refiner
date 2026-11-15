@@ -174,3 +174,4 @@ One line per failure, not one paragraph.
   asking first.** There is no staging account.
 - **Read the latest `post_metrics` snapshot with an embedded `order` + `limit(1, { referencedTable })`.** Fetching snapshot rows and picking the latest in JS hit the 1000-row cap and left Pulse scoring 154 of 232 posts on stale data. (2026-11-14.)
 - **Never mix a `breakdown` with other metrics in one Graph insights request — Meta rejects it.** Use a nested field with `.as()` aliases on a call you already make (see `getStoriesWithInsights`). (2026-11-14.)
+- **Probe Graph with `https://graph.facebook.com/v24.0/...` and an `Authorization: Bearer` header — reuse `GRAPH_API_BASE`/`graphFetch` from `lib/instagram.js`.** A hand-written probe against `graph.instagram.com` failed on all 8 calls and burned 8 of a 20-call allowance. (2026-11-15.)

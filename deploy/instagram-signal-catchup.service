@@ -1,0 +1,13 @@
+[Unit]
+Description=Instagram Post Logger — Follower-signal catch-up (re-measures older posts, 40 per run)
+After=network-online.target instagram-logger.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/home/christof21/instagram-post-refiner/.env.local
+ExecStart=/usr/bin/curl -sf -X POST -H "x-cron-secret: ${CRON_SECRET}" -H "Content-Type: application/json" -d '{"batchSize":40}' http://localhost:3000/api/instagram/metrics/catchup
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target

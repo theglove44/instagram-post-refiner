@@ -110,7 +110,7 @@ export async function GET(request) {
         total_interactions: nullIfMissing(insights?.total_interactions),
         media_type: detailsResult.details?.mediaType || null,
         media_product_type: detailsResult.details?.mediaProductType || null,
-        ...followerSignalFields(insights),
+        ...followerSignalFields(insights, post.published_at),
       };
 
       const engagementRate = calculateEngagementRate(
@@ -240,7 +240,7 @@ async function processMetricsInBackground(syncId, { days = 30 } = {}) {
     // Only refresh posts published within the requested window
     const { data: publishedPosts } = await supabase
       .from('posts')
-      .select('id, instagram_media_id')
+      .select('id, instagram_media_id, published_at')
       .not('instagram_media_id', 'is', null)
       .gte('published_at', cutoffDate);
 
@@ -293,7 +293,7 @@ async function processMetricsInBackground(syncId, { days = 30 } = {}) {
           total_interactions: nullIfMissing(insights?.total_interactions),
           media_type: detailsResult.details?.mediaType || null,
           media_product_type: detailsResult.details?.mediaProductType || null,
-          ...followerSignalFields(insights),
+          ...followerSignalFields(insights, post.published_at),
         };
 
         const engagementRate = calculateEngagementRate(
