@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 
 import { pct0, int, f1, fontFraunces, fontCaveat, sectionHead, menuTitle, menuTag, Leader, Note } from './wall-ui';
 import FollowerWins from './FollowerWins';
+import FacebookBlock from './FacebookBlock';
 
 export default function PulsePage() {
   const [data, setData] = useState(null);
@@ -155,6 +156,8 @@ export default function PulsePage() {
           </section>
 
           <FollowerWins wins={data.followerWins} flow={data.followFlow} online={data.onlineHours} />
+
+          <FacebookBlock facebook={data.facebook} />
 
           <section className="pulse-sec sec-rules">
             <div style={sectionHead}><h2 style={menuTitle}>House rules</h2><span style={menuTag}>what the numbers keep saying</span></div>

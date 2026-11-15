@@ -5,6 +5,11 @@
 export const pct0 = (n) => (n == null ? '—' : Math.round(n * 100) + '%');
 export const int = (n) => (n == null ? '—' : Math.round(n).toLocaleString('en-GB'));
 export const f1 = (n) => (n == null ? '—' : n.toFixed(1));
+export const shortDate = (iso) => `${Number(iso.slice(8, 10))}/${Number(iso.slice(5, 7))}`;
+export const clip = (text, max = 30) => {
+  const clean = (text || '').replace(/\s+/g, ' ').trim() || 'Untitled post';
+  return clean.length > max ? clean.slice(0, max - 1).trimEnd() + '…' : clean;
+};
 
 export const fontFraunces = { fontFamily: "'Fraunces', Georgia, serif" };
 export const fontCaveat = { fontFamily: "'Caveat', cursive" };

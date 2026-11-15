@@ -12,12 +12,17 @@
  *     profile link taps for one UTC day (last 3 days re-collected each run)
  *   - insight_type `online_followers:latest` — hourly online followers, ~28 days
  *   - insight_type `engaged_demographics:<YYYY-MM>` — this month's engaged audience
+ *   - insight_type `fb_page_daily:<YYYY-MM-DD>` — Facebook Page views, viewers,
+ *     followers, follows/unfollows for one Pacific day (same window as account days)
+ *   - insight_type `fb_post_views:<media_id>` — Facebook views vs total views
+ *     for the 25 most recent posts (lib/facebook-page.js)
  *
  * Stories expire after 24h, so this sweep is the only chance to capture them.
  * Called via: curl -H "x-cron-secret: ..." http://localhost:3000/api/cron/media-insights
  * Cost: ~1 call + 1 per recent Reel + 1 for Stories + 2 per account day (3 by
- * default) + 1 online + 4 demographics ≈ 20 calls — well inside 200/hour.
- * One-off backfill: ?accountDays=28 adds up to 56 calls (cap 28).
+ * default) + 1 online + 4 demographics + 4 Facebook ≈ 24 calls — well inside
+ * 200/hour. One-off backfill: ?accountDays=28 adds up to 56 calls (cap 28);
+ * the Facebook Page backfill rides along at no extra cost.
  */
 import { getServerSupabaseClient } from '@/lib/supabase-server';
 import {
@@ -29,6 +34,7 @@ import {
   getEngagedAudienceDemographics,
   getTokenExpiryDate,
 } from '@/lib/instagram';
+import { syncFacebookInsights } from '@/lib/facebook-page';
 
 function todayKey() {
   return new Date(Date.now()).toISOString().slice(0, 10);
@@ -215,7 +221,24 @@ export async function GET(request) {
       summary.accountErrors.push(`engaged_demographics: ${err.message}`);
     }
 
-    return Response.json({ success: true, viewsSplit, ...summary });
+    // 5. Facebook: Page trend + crossposted views. Never aborts the run.
+    let facebook;
+    try {
+      const { newToken, expiresIn, ...fbSummary } = await syncFacebookInsights({
+        userToken: accessToken,
+        pageId: account.facebook_page_id || null,
+        instagramUserId,
+        save: cacheUpsert,
+        days: accountDays,
+      });
+      await updateTokenIfRefreshed(supabase, instagramUserId, newToken, expiresIn);
+      facebook = fbSummary;
+    } catch (err) {
+      console.warn('Facebook sweep failed:', err.message);
+      facebook = { errors: [`facebook: ${err.message}`] };
+    }
+
+    return Response.json({ success: true, viewsSplit, ...summary, facebook });
   } catch (error) {
     console.error('Media insights sync error:', error);
     return Response.json({ error: error.message }, { status: 500 });

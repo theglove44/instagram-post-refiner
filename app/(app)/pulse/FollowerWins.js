@@ -1,6 +1,6 @@
 'use client';
 
-import { int, f1, sectionHead, menuTitle, menuTag, Leader, Note, fontFraunces } from './wall-ui';
+import { int, f1, sectionHead, menuTitle, menuTag, Leader, Note, fontFraunces, shortDate, clip } from './wall-ui';
 
 const BUTTER = '#E9C46A';
 const ROSE = '#E39A8B';
@@ -22,11 +22,6 @@ export const peakWindow = (peak) => {
   if (contiguous) return `between ${hourLabel(hours[0])} and ${hourLabel((hours[hours.length - 1] + 1) % 24)}`;
   const labels = hours.map(hourLabel);
   return `around ${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
-};
-const shortDate = (iso) => `${Number(iso.slice(8, 10))}/${Number(iso.slice(5, 7))}`;
-const clip = (text, max = 30) => {
-  const clean = (text || '').replace(/\s+/g, ' ').trim() || 'Untitled post';
-  return clean.length > max ? clean.slice(0, max - 1).trimEnd() + '…' : clean;
 };
 const signed = (n) => (n > 0 ? `+${int(n)}` : n < 0 ? `−${int(-n)}` : '0');
 
